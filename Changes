@@ -1,6 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.05 Fri Apr 12 20:53:42 EDT 2002
+	- Version 1.04 had a fatal bug.  Do not use.  1.05 fixes this
+	and is identical to BioPerl 1.01.
 1.04 Fri Apr 12 08:20:35 EDT 2002
-	- This is the same version that is in BioPerl version 1.01.
 	- Take advantage of optimizations in Bio::DB::GFF::Feature so don't
 	have to retrieve subfeatures at low magnifications (when you can't
 	see 'em anyway).
