@@ -25,21 +25,24 @@ sub new {
   $self->{factory} = $factory;
   $self->{top} = 0;
 
+  my @subglyphs;
+
   if (my @subfeatures = $self->subseq($feature)) {
-    my @subglyphs = sort { $a->left  <=> $b->left }
+    @subglyphs = sort { $a->left  <=> $b->left }
       $factory->make_glyph(@subfeatures);  # dynamic glyph resolution
 
-    $self->{left}    = $subglyphs[0]->{left};
-    my $right        = (sort { $b<=>$a } map {$_->right} @subglyphs)[0];
-    $self->{width}   = $right - $self->{left} + 1;
     $self->{parts}   = \@subglyphs;
   }
 
-  else {
+  if (defined $self->start && defined $self->stop) {
     my ($left,$right) = $factory->map_pt($self->start,$self->stop);
     ($left,$right) = ($right,$left) if $left > $right;  # paranoia
     $self->{left}    = $left;
     $self->{width}   = $right - $left + 1;
+  } else {
+    $self->{left}    = $subglyphs[0]->{left};
+    my $right        = (sort { $b<=>$a } map {$_->right} @subglyphs)[0];
+    $self->{width}   = $right - $self->{left} + 1;
   }
 
   #Glyphs that don't actually fill their space, but merely mark a point.
@@ -409,9 +412,22 @@ sub draw_connectors {
   my ($dx,$dy) = @_;
   my @parts = sort { $a->left <=> $b->left } $self->parts;
   for (my $i = 0; $i < @parts-1; $i++) {
-    my($xl,$xt,$xr,$xb) = $parts[$i]->bounds;
-    my($yl,$yt,$yr,$yb) = $parts[$i+1]->bounds;
+    $self->_connector($gd,$dx,$dy,$parts[$i]->bounds,$parts[$i+1]->bounds);
+  }
 
+  if (1) { # this is working, but it's a bit awkward
+    my($x1,$y1,$x2,$y2) = $self->bounds(0,0);
+    my($xl,$xt,$xr,$xb) = $parts[0]->bounds;
+    $self->_connector($gd,$dx,$dy,$x1,$xt,$x1,$xb,$xl,$xt,$xr,$xb);
+    ($xl,$xt,$xr,$xb) = $parts[-1]->bounds;
+    $self->_connector($gd,$dx,$dy,$parts[-1]->bounds,$x2,$xt,$x2,$xb);
+  }
+
+}
+
+sub _connector {
+  my $self = shift;
+  my ($gd,$dx,$dy,$xl,$xt,$xr,$xb,$yl,$yt,$yr,$yb) = @_;
     my $left   = $dx + $xr;
     my $right  = $dx + $yl;
     my $top1     = $dy + $xt;
@@ -423,7 +439,6 @@ sub draw_connectors {
 			  $top1,$bottom1,$left,
 			  $top2,$bottom2,$right,
 			 );
-  }
 }
 
 sub draw_connector {
