@@ -6,8 +6,8 @@ package Bio::Graphics::Glyph::extending_arrow;
 
 use strict;
 use vars '@ISA';
-use Bio::Graphics::Glyph::generic;
-@ISA = 'Bio::Graphics::Glyph::generic';
+use Bio::Graphics::Glyph::arrow;
+@ISA = 'Bio::Graphics::Glyph::arrow';
 
 my %UNITS = (K => 1000,
 	     M => 1_000_000,
@@ -55,6 +55,9 @@ sub extended_left {
   $x1 = $self->panel->left  if $x1 < $self->panel->left;
   #figure out if to extending and how much
   my $start    = $self->feature->start;
+  if ($self->feature->strand < 0) {
+      $start = $self->feature->stop;
+  }
   my $stop     = $start + $self->feature->length;
   my $p_seg_start = $self->panel->offset;
 
@@ -71,6 +74,9 @@ sub extended_right {
   $x2 = $self->panel->right if $x2 > $self->panel->right;
   #figure out if to extending and how much
   my $start    = $self->feature->start;
+  if ($self->feature->strand < 0) {
+      $start = $self->feature->stop;
+  }
   my $stop     = $start + $self->feature->length;
   my $p_seg_start = $self->panel->offset;
 
@@ -226,24 +232,24 @@ sub draw {
   $self->draw_description($gd,$dx,$dy) if $self->option('description');
 }
 
-sub arrowheads {
-  my $self = shift;
-  my ($ne,$sw,$base_e,$base_w);
-  if ($self->option('double')) {
-    $ne = $sw = 1;
-  } else {
-    $ne   = $self->option('northeast') || $self->option('east');
-    $sw   = $self->option('southwest') || $self->option('west');
-  }
-  # otherwise use strandedness to define the arrow
-  unless (defined($ne) || defined($sw)) {
-    # turn on both if neither specified
-    $ne = 1 if $self->feature->strand > 0;
-    $sw = 1 if $self->feature->strand < 0;
-  }
-  return ($sw,$ne,0,0) unless $self->option('base');
-  return ($sw,$ne,!$sw,!$ne);
-}
+#sub arrowheads {
+#  my $self = shift;
+#  my ($ne,$sw,$base_e,$base_w);
+#  if ($self->option('double')) {
+#    $ne = $sw = 1;
+#  } else {
+#    $ne   = $self->option('northeast') || $self->option('east');
+#    $sw   = $self->option('southwest') || $self->option('west');
+#  }
+#  # otherwise use strandedness to define the arrow
+#  unless (defined($ne) || defined($sw)) {
+#    # turn on both if neither specified
+#    $ne = 1 if $self->feature->strand > 0;
+#    $sw = 1 if $self->feature->strand < 0;
+#  }
+#  return ($sw,$ne,0,0) unless $self->option('base');
+#  return ($sw,$ne,!$sw,!$ne);
+#}
 
 1;
 
@@ -259,7 +265,9 @@ Bio::Graphics::Glyph::extending_arrow -- The "extending arrow" glyph
 
 This glyph was designed to show a segment that goes beyond the panel.
 Dashed line indicates the end goes beyond the panel and arrow
-indicates the direction.
+indicates the direction. To draw this more effectively, panel needs
+to be configured to have some room on both side by setting pad_left
+and pad_left options.
 
 Also see the anchored_arrw and arrow glyphs.
 
