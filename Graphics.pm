@@ -1,3 +1,5 @@
+package Bio::Graphics;
+
 use Bio::Graphics::Panel;
 use strict;
 
@@ -50,6 +52,7 @@ Please see Bio::Graphics::Panel for the full API.
 
 =head1 SEE ALSO
 
+L<Bio::Graphics::Panel>,
 L<Bio::Graphics::Glyph>,
 L<Bio::SeqI>,L<Bio::SeqFeatureI>,
 L<Bio::Das>,L<GD>

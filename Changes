@@ -1,36 +1,41 @@
 Revision history for Perl extension Bio::Graphics.
-0.92 Sat Dec  8 23:28:19 EST 2001
+0.95 Thu Jan  3 08:50:01 EST 2002  (LS)
+	-Removed generic genome browser from project, it is now part of
+	 Generic-Genome-Browser.
+
+0.92 Sat Dec  8 23:28:19 EST 2001  (LS)
 	-Fixed up key glyph so that it correctly tracks what appears on screen
 	-Fixed wormbase_transcript glyph so that it uses the skinny arrow when 
 	 there isn't enough room to show the filled arrow.
-0.91 Sun Nov 18 22:59:14 EST 2001
+
+0.91 Sun Nov 18 22:59:14 EST 2001  (LS)
 	-Modified Feature.pm to accept vanilla GFF format.
 	-Fixed Panel.pm so that empty tracks (height zero) do not take
 	 up space in the map.
 
-0.90  Sun Nov 18 21:46:46 EST 2001
+0.90  Sun Nov 18 21:46:46 EST 2001  (LS)
 	- Added the gbrowse genome browser script and supporting files
 	- Added a wormbase_transcript glyph for Wormbase's curated/uncurated genes.
 
-0.85  Mon Oct  1 16:41:57 EDT 2001
+0.85  Mon Oct  1 16:41:57 EDT 2001  (LS)
 	- Changed all instances of stop() to end() so that BioSeqFeatureI is supported
 	  correctly.
 
-0.82  Fri Jul 20 10:36:57 EDT 2001
+0.82  Fri Jul 20 10:36:57 EDT 2001  (LS)
 	- Removed perl 5.6'isms.
 	- Added appropriate documentation to Feature.
 
-0.81  Tue Jun 12 09:30:10 EDT 2001
+0.81  Tue Jun 12 09:30:10 EDT 2001  (LS)
 	- Messed up sourceforge upload, so bumping version no
 		to clean up.
 
-0.80  Tue Jun 12 09:10:15 EDT 2001
+0.80  Tue Jun 12 09:10:15 EDT 2001  (LS)
 	- Basically functional
 	- examples in eg/
 	- Bio::Graphics::Panel documentation complete,
 		other documentation incomplete
 
-0.01  Tue Jun  5 07:26:52 2001
+0.01  Tue Jun  5 07:26:52 2001  (LS)
 	- original version; created by h2xs 1.20 with options
 		-n Bio::Graphics -A
 

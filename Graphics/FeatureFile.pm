@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.11 2001-12-29 18:54:24 lstein Exp $
+# $Id: FeatureFile.pm,v 1.12 2002-01-03 13:53:02 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -138,10 +138,10 @@ sub parse_line {
      return;
   }
 
-  if (/^([\w ]+?)\s*=\s*(.+)/) {   # key value pair within a configuration section
+  if (/^([\w ]+?)\s*=\s*(.*)/) {   # key value pair within a configuration section
     my $tag = lc $1;
     my $cc = $self->{current_config} ||= 'general';       # in case no configuration named
-    $self->{config}{$cc}{$tag} = $2;
+    $self->{config}{$cc}{$tag} = $2 || '';    # empty string, not undef
     $self->{current_tag} = $tag;
     return;
   }
@@ -258,7 +258,8 @@ sub code_setting {
   my $section = shift;
   my $option  = shift;
 
-  my $setting = $self->setting($section=>$option) or return;
+  my $setting = $self->setting($section=>$option);
+  return unless defined $setting;
   return $setting if ref($setting) eq 'CODE';
   return $setting unless $setting =~ /^sub\s+\{/;
   my $coderef = eval $setting;
@@ -482,7 +483,9 @@ sub make_link {
   my $self     = shift;
   my $feature  = shift;
   my $label    = $self->feature2label($feature) or return;
-  my $link     = $self->setting($label,'link') || $self->setting(general=>'link');
+  my $link     = $self->setting($label,'link');
+  $link        = $self->setting(general=>'link') unless defined $link;
+  return unless $link;
   return $self->link_pattern($link,$feature);
 }
 
