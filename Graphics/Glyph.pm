@@ -359,7 +359,7 @@ sub tkcolor { # "track color"
   my $self = shift;
   $self->option('tkcolor') or return;
   return $self->color('tkcolor')
-} 
+}
 sub connector_color {
   my $self = shift;
   $self->color('connector_color') || $self->fgcolor;
