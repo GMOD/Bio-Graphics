@@ -80,6 +80,7 @@ sub draw_parallel {
 
   # turn on ticks
   if ($self->option('tick')) {
+      local $^W = 0;  # dumb uninitialized variable warning
     my $font = $self->font;
     my $width      = $font->width;
     my $font_color = $self->fontcolor;

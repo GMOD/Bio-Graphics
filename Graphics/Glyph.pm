@@ -41,11 +41,13 @@ sub new {
       ($left,$right) = ($right,$left) if $left > $right;  # paranoia
       $self->{left}    = $left;
       $self->{width}   = $right - $left + 1;
-  }
+  } 
   if (@subglyphs) {
-      $self->{left}    = $subglyphs[0]->{left};
+      my $l            = $subglyphs[0]->left;
+      $self->{left}    = $l if !defined($self->{left}) || $l < $self->{left};
       my $right        = (sort { $b<=>$a } map {$_->right} @subglyphs)[0];
-      $self->{width}   = $right - $self->{left} + 1;
+      my $w            = $right - $self->{left} + 1;
+      $self->{width}   = $w if !defined($self->{width}) || $w > $self->{width};
   }
 
   #Handle glyphs that don't actually fill their space, but merely mark a point.
@@ -134,13 +136,15 @@ sub top {
 }
 sub left {
   my $self = shift;
-  return $self->{cache_left} if exists $self->{cache_left};
-  $self->{cache_left} = $self->{left} - $self->pad_left;
+#  return $self->{cache_left} if exists $self->{cache_left};
+#  $self->{cache_left} = $self->{left} - $self->pad_left;
+  return $self->{left} - $self->pad_left;
 }
 sub right {
   my $self = shift;
-  return $self->{cache_right} if exists $self->{cache_right};
-  $self->{cache_right} = $self->left + $self->layout_width - 1;
+#  return $self->{cache_right} if exists $self->{cache_right};
+#  $self->{cache_right} = $self->left + $self->layout_width - 1;
+  return $self->left + $self->layout_width - 1;
 }
 sub bottom {
   my $self = shift;
@@ -164,8 +168,8 @@ sub layout_height {
 }
 sub layout_width {
   my $self = shift;
-  $self->{layout_width} ||= $self->width + $self->pad_left + $self->pad_right;
-  return $self->{layout_width};
+#  return $self->{layout_width} ||= $self->width + $self->pad_left + $self->pad_right;
+  return $self->width + $self->pad_left + $self->pad_right;
 }
 
 # returns the rectangle that surrounds the physical part of the
@@ -251,7 +255,14 @@ sub pad_left {
 }
 sub pad_right {
   my $self = shift;
-  return 0;
+# this shouldn't be necessary
+  my @parts = $self->parts or return 0;
+  my $max = 0;
+  foreach (@parts) {
+      my $pr = $_->pad_right;
+      $max = $pr if $max < $pr;
+  }
+  $max;
 }
 
 # move relative to parent
