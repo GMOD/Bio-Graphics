@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.90';
+$VERSION = '0.91';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
@@ -332,6 +332,7 @@ sub boxes {
   my $pt = $self->pad_top;
   my $between = $self->{key_style} eq 'between';
   for my $track (@{$self->{tracks}}) {
+    next unless $track->parts;
     $offset += $self->{key_font}->height if $between && $track->option('key');
     my $boxes = $track->boxes(0,$offset+$pt);
     push @boxes,@$boxes;
