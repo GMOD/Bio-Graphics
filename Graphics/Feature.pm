@@ -11,7 +11,7 @@ $VERSION = 1.1;
 *exons       = *sub_SeqFeature = *merged_segments = \&segments;
 
 # usage:
-# Ace::Graphics::Feature->new(
+# Bio::Graphics::Feature->new(
 #                         -start => 1,
 #                         -end   => 100,
 #                         -name  => 'fred feature',
@@ -118,30 +118,30 @@ __END__
 
 =head1 NAME
 
-Ace::Graphics::Feature - A simple feature object for use with Ace::Graphics::Panel
+Bio::Graphics::Feature - A simple feature object for use with Bio::Graphics::Panel
 
 =head1 SYNOPSIS
 
- use Ace::Graphics::Feature;
+ use Bio::Graphics::Feature;
 
  # create a simple feature with no internal structure
- $f = Ace::Graphics::Feature->new(-start => 1000,
+ $f = Bio::Graphics::Feature->new(-start => 1000,
                                   -stop  => 2000,
                                   -type  => 'transcript',
                                   -name  => 'alpha-1 antitrypsin'
                                  );
 
  # create a feature composed of multiple segments, all of type "similarity"
- $f = Ace::Graphics::Feature->new(-segments => [[1000,1100],[1500,1550],[1800,2000]],
+ $f = Bio::Graphics::Feature->new(-segments => [[1000,1100],[1500,1550],[1800,2000]],
                                   -name     => 'ABC-3',
                                   -type     => 'gapped_alignment',
                                   -subtype  => 'similarity');
 
  # build up a gene exon by exon
- $e1 = Ace::Graphics::Feature->new(-start=>1,-stop=>100,-type=>'exon');
- $e2 = Ace::Graphics::Feature->new(-start=>150,-stop=>200,-type=>'exon');
- $e3 = Ace::Graphics::Feature->new(-start=>300,-stop=>500,-type=>'exon');
- $f  = Ace::Graphics::Feature->new(-segments=>[$e1,$e2,$e3],-type=>'gene');
+ $e1 = Bio::Graphics::Feature->new(-start=>1,-stop=>100,-type=>'exon');
+ $e2 = Bio::Graphics::Feature->new(-start=>150,-stop=>200,-type=>'exon');
+ $e3 = Bio::Graphics::Feature->new(-start=>300,-stop=>500,-type=>'exon');
+ $f  = Bio::Graphics::Feature->new(-segments=>[$e1,$e2,$e3],-type=>'gene');
 
 =head1 DESCRIPTION
 
