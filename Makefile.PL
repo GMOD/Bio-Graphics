@@ -1,5 +1,5 @@
 use ExtUtils::MakeMaker;
-require 5.6.0;
+require 5.005003;
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.

@@ -7,13 +7,14 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.82';
+$VERSION = '0.83';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
 use constant KEYPADTOP    => 5;  # extra padding before the key starts
 use constant KEYCOLOR     => 'wheat';
 use constant KEYSTYLE     => 'bottom';
+use constant KEYALIGN     => 'left';
 
 my %COLORS;  # translation table for symbolic color names to RGB triple
 
@@ -33,6 +34,7 @@ sub new {
   my $keycolor = $options{-key_color} || KEYCOLOR;
   my $keyspacing = $options{-key_spacing} || KEYSPACING;
   my $keystyle = $options{-key_style} || KEYSTYLE;
+  my $keyalign = $options{-key_align} || KEYALIGN;
   my $allcallbacks = $options{-all_callbacks} || 0;
 
   $offset   ||= $options{-segment}->start-1 if $options{-segment};
@@ -58,6 +60,7 @@ sub new {
 		key_color => $keycolor,
 		key_spacing => $keyspacing,
 		key_style => $keystyle,
+		key_align => $keyalign,
 		all_callbacks => $allcallbacks,
 	       },$class;
 }
@@ -312,7 +315,9 @@ sub draw_between_key {
   my $self   = shift;
   my ($gd,$track,$offset) = @_;
   my $key = $track->option('key') or return 0;
-  my $x = ($self->width - CORE::length($key) * $self->{key_font}->width)/2;
+  my $x =   $self->{key_align} eq 'center' ? $self->width - (CORE::length($key) * $self->{key_font}->width)/2
+          : $self->{key_align} eq 'right'  ? $self->width - CORE::length($key)
+          : 0;
   $gd->string($self->{key_font},$x,$offset,$key,1);
   return $self->{key_font}->height;
 }
