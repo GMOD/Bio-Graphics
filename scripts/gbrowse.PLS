@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.5 2001-11-24 01:22:46 lstein Exp $
+# $Id: gbrowse.PLS,v 1.6 2001-11-24 01:37:21 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -36,7 +36,7 @@ use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT);
 use constant MAG_ICON_HEIGHT => 20;
 use constant MAG_ICON_WIDTH  => 8;
 use constant MAX_SEGMENT     => 1_000_000;
-use constant TOO_MANY_SEGMENTS => 10_000;
+use constant TOO_MANY_SEGMENTS => 5_000;
 use constant DEFAULT_SEGMENT => 100_000;
 use constant OVERVIEW_RATIO  => 0.9;
 
@@ -84,7 +84,7 @@ adjust_settings($page_settings);
 
 ## GETTING THE SEGMENT ########################################################################
 my @segments  = get_segment($page_settings);
-@segments     = merge(\@segments) if @segments > 1;
+@segments     = merge(\@segments) if @segments > 1 && @segments < TOO_MANY_SEGMENTS;
 ###############################################################################################
 
 ## DUMPS ######################################################################################
@@ -700,34 +700,39 @@ sub multiple_choices {
   my $segments = shift;
   my $settings = shift;
 
-  my $message = "The landmark named ".param('name')." exists in multiple locations.  Please choose one.";
+  my $message = "The landmark named ".param('name')." exists in multiple locations";
+  $message   .= @$segments > TOO_MANY_SEGMENTS ?  ", but there are too many to choose from (".@$segments.")."
+                                                 ." Please try a different landmark." 
+                                               : ". Please choose one.";
 
   print start_table({-class=>'searchtitle'});
   print TR(th(font({-color=>'red'},$message)));
-  print start_TR({-class=>'searchbody'}),start_td();
+  if (@$segments <= TOO_MANY_SEGMENTS) {
+    print start_TR({-class=>'searchbody'}),start_td();
   
-  # aggregate segments by reference and then split on gaps of > 1 M
-  my %segs;
-  push @{$segs{$_->ref}},$_ foreach @$segments;
+    # aggregate segments by reference and then split on gaps of > 1 M
+    my %segs;
+    push @{$segs{$_->ref}},$_ foreach @$segments;
 
-  my $url = url(-relative=>1,-path_info=>1);
-  my $source = $settings->{source};
+    my $url = url(-relative=>1,-path_info=>1);
+    my $source = $settings->{source};
 
-  print start_dl;
-  for my $ref (sort keys %segs) {
-    my @spans  = sort {$a->start <=> $b->start} @{$segs{$ref}};
-    print dt($ref),"\n";
-    foreach (@spans) {
-      my ($start,$stop) = ($_->start,$_->stop);
-      my $bp = $stop - $start;
-      my $s = commas($start);
-      my $e = commas($stop);
-      print dd(a({-href=>"$url?source=$source;ref=$ref;start=$start;stop=$stop"},"$s..$e ($bp bp)")),"\n";
+    print start_dl;
+    for my $ref (sort keys %segs) {
+      my @spans  = sort {$a->start <=> $b->start} @{$segs{$ref}};
+      print dt($ref),"\n";
+      foreach (@spans) {
+	my ($start,$stop) = ($_->start,$_->stop);
+	my $bp = $stop - $start;
+	my $s = commas($start);
+	my $e = commas($stop);
+	print dd(a({-href=>"$url?source=$source;ref=$ref;start=$start;stop=$stop"},"$s..$e ($bp bp)")),"\n";
+      }
+
     }
-
+    print end_dl,end_td,end_TR;
   }
-  print end_dl,end_td,end_TR,end_table;
-
+  print end_table;
 }
 
 sub merge {
