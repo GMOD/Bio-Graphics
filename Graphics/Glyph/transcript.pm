@@ -1,9 +1,8 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.13 2002-04-12 12:20:34 lstein Exp $
+# $Id: transcript.pm,v 1.14 2002-04-13 00:46:01 lstein Exp $
 
 use strict;
 use Bio::Graphics::Glyph::segments;
-use Bio::Location::Simple;
 use vars '@ISA';
 @ISA = qw( Bio::Graphics::Glyph::segments);
 
