@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.10 2001-11-27 04:09:04 lstein Exp $
+# $Id: gbrowse.PLS,v 1.11 2001-11-28 04:07:01 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -173,7 +173,7 @@ print end_form(),
 
 sub get_source {
   my $new_source = param('source');
-  my $old_source = cookie('gbrowse_source') unless request_method() eq 'GET';
+  my $old_source = cookie('gbrowse_source') unless param('source') && request_method() eq 'GET';
 
   my $source   = $new_source || $old_source;
   $source ||= $CONFIG->source;  # the default, whatever it is
