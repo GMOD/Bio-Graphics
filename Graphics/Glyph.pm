@@ -26,10 +26,12 @@ sub new {
   $self->{top} = 0;
 
   my @subglyphs;
+  my @subfeatures = $self->subseq($feature);
 
-  if (my @subfeatures = $self->subseq($feature)) {
-    @subglyphs = sort { $a->left  <=> $b->left }
-      $factory->make_glyph(@subfeatures);  # dynamic glyph resolution
+  if (@subfeatures) {
+    
+    # dynamic glyph resolution
+    @subglyphs = sort { $a->left  <=> $b->left }  $factory->make_glyph(@subfeatures);  
 
     $self->{parts}   = \@subglyphs;
   }

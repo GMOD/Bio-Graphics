@@ -28,7 +28,6 @@ sub get_description {
     $comment   .= $comment ? " ($id)" : $id if $id;
     $comment;
   };
-  return $acedb_info if $acedb_info;
 
   my @notes = eval { $feature->notes };
   return join '; ',@notes;

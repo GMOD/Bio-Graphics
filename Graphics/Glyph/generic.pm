@@ -76,7 +76,8 @@ sub _description {
   return $label unless $label eq '1';
   return "1"   if $label eq '1 ';
 
-  return $self->get_description($self->feature);
+  return $self->{_description} if exists $self->{_description};
+  return $self->{_description} = $self->get_description($self->feature);
 }
 
 sub get_description {

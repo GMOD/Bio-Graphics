@@ -92,7 +92,7 @@ sub draw_parallel {
     my $offset   = $relative ? $self->feature->start-1 : 0;
     my $reversed = $self->feature->strand < 0;
 
-    my $units = $self->option('units');
+    my $units = $self->option('units') || '';
     my $divisor = $UNITS{$units} || 1 if $units;
 
     my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font,$divisor);

@@ -175,21 +175,26 @@ PERL_ARCHIVE_AFTER =
 
 TO_INST_PM = Graphics.pm \
 	Graphics/Browser.pm \
+	Graphics/Browser.pm~ \
 	Graphics/Feature.pm \
 	Graphics/FeatureFile.pm \
 	Graphics/FeatureFile.pm~ \
 	Graphics/File.pm~ \
 	Graphics/Glyph.pm \
+	Graphics/Glyph.pm~ \
 	Graphics/Glyph/Factory.pm \
+	Graphics/Glyph/Factory.pm~ \
 	Graphics/Glyph/alignment.pm \
 	Graphics/Glyph/anchored_arrow.pm \
 	Graphics/Glyph/arrow.pm \
+	Graphics/Glyph/arrow.pm~ \
 	Graphics/Glyph/box.pm \
 	Graphics/Glyph/crossbox.pm \
 	Graphics/Glyph/dot.pm \
 	Graphics/Glyph/ellipse.pm \
 	Graphics/Glyph/ex.pm \
 	Graphics/Glyph/generic.pm \
+	Graphics/Glyph/generic.pm~ \
 	Graphics/Glyph/graded_segments.pm \
 	Graphics/Glyph/group.pm \
 	Graphics/Glyph/line.pm \
@@ -201,18 +206,14 @@ TO_INST_PM = Graphics.pm \
 	Graphics/Glyph/track.pm \
 	Graphics/Glyph/transcript.pm \
 	Graphics/Glyph/transcript2.pm \
+	Graphics/Glyph/transcript2.pm~ \
 	Graphics/Glyph/triangle.pm \
 	Graphics/Glyph/wormbase_transcript.pm \
+	Graphics/Glyph/wormbase_transcript.pm~ \
 	Graphics/Panel.pm \
 	Graphics/Panel.pm~
 
-PM_TO_BLIB = Graphics/Glyph/crossbox.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/crossbox.pm \
-	Graphics/Glyph/segments.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/segments.pm \
-	Graphics/Glyph/ex.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/ex.pm \
-	Graphics/File.pm~ \
+PM_TO_BLIB = Graphics/File.pm~ \
 	$(INST_LIBDIR)/Graphics/File.pm~ \
 	Graphics/Glyph/primers.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/primers.pm \
@@ -220,54 +221,74 @@ PM_TO_BLIB = Graphics/Glyph/crossbox.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/generic.pm \
 	Graphics/FeatureFile.pm \
 	$(INST_LIBDIR)/Graphics/FeatureFile.pm \
-	Graphics/Glyph/wormbase_transcript.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/wormbase_transcript.pm \
-	Graphics/Glyph/graded_segments.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm \
 	Graphics/Glyph/group.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/group.pm \
 	Graphics/Glyph/arrow.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm \
-	Graphics/Glyph/transcript.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm \
-	Graphics/Glyph/ellipse.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/ellipse.pm \
-	Graphics/Panel.pm~ \
-	$(INST_LIBDIR)/Graphics/Panel.pm~ \
-	Graphics.pm \
-	$(INST_LIBDIR)/Graphics.pm \
-	Graphics/Glyph/track.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
-	Graphics/Glyph/toomany.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/toomany.pm \
-	Graphics/Panel.pm \
-	$(INST_LIBDIR)/Graphics/Panel.pm \
 	Graphics/Glyph/anchored_arrow.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/anchored_arrow.pm \
 	Graphics/Glyph/transcript2.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/transcript2.pm \
 	Graphics/Glyph/alignment.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/alignment.pm \
-	Graphics/Browser.pm \
-	$(INST_LIBDIR)/Graphics/Browser.pm \
-	Graphics/Glyph/dot.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/dot.pm \
+	Graphics/Glyph/wormbase_transcript.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/wormbase_transcript.pm~ \
+	Graphics/Glyph/Factory.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ \
 	Graphics/Glyph/triangle.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/triangle.pm \
-	Graphics/Glyph/box.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/box.pm \
 	Graphics/Glyph/span.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/span.pm \
 	Graphics/Feature.pm \
 	$(INST_LIBDIR)/Graphics/Feature.pm \
 	Graphics/Glyph/oval.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/oval.pm \
-	Graphics/Glyph/Factory.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm \
 	Graphics/Glyph/line.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/line.pm \
 	Graphics/Glyph.pm \
 	$(INST_LIBDIR)/Graphics/Glyph.pm \
+	Graphics/Glyph/generic.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/generic.pm~ \
+	Graphics/Glyph/crossbox.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/crossbox.pm \
+	Graphics/Glyph/segments.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/segments.pm \
+	Graphics/Glyph/ex.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/ex.pm \
+	Graphics/Browser.pm~ \
+	$(INST_LIBDIR)/Graphics/Browser.pm~ \
+	Graphics/Glyph/wormbase_transcript.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/wormbase_transcript.pm \
+	Graphics/Glyph/graded_segments.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm \
+	Graphics/Glyph/transcript.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm \
+	Graphics/Glyph/transcript2.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript2.pm~ \
+	Graphics/Panel.pm~ \
+	$(INST_LIBDIR)/Graphics/Panel.pm~ \
+	Graphics/Glyph/ellipse.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/ellipse.pm \
+	Graphics.pm \
+	$(INST_LIBDIR)/Graphics.pm \
+	Graphics/Glyph/track.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
+	Graphics/Glyph.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph.pm~ \
+	Graphics/Panel.pm \
+	$(INST_LIBDIR)/Graphics/Panel.pm \
+	Graphics/Glyph/toomany.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/toomany.pm \
+	Graphics/Glyph/arrow.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ \
+	Graphics/Browser.pm \
+	$(INST_LIBDIR)/Graphics/Browser.pm \
+	Graphics/Glyph/dot.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/dot.pm \
+	Graphics/Glyph/box.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/box.pm \
+	Graphics/Glyph/Factory.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm \
 	Graphics/FeatureFile.pm~ \
 	$(INST_LIBDIR)/Graphics/FeatureFile.pm~
 
@@ -520,8 +541,8 @@ manifypods : pure_all scripts/feature_draw.pl \
 	Graphics/Glyph/dot.pm \
 	Graphics/Glyph/triangle.pm \
 	Graphics/Glyph/box.pm \
-	Graphics/Glyph/span.pm \
 	Graphics/Feature.pm \
+	Graphics/Glyph/span.pm \
 	Graphics/Glyph/line.pm \
 	Graphics/Glyph.pm
 	@$(POD2MAN) \
@@ -551,10 +572,10 @@ manifypods : pure_all scripts/feature_draw.pl \
 	$(INST_MAN3DIR)/Bio::Graphics::Glyph::triangle.$(MAN3EXT) \
 	Graphics/Glyph/box.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Glyph::box.$(MAN3EXT) \
-	Graphics/Glyph/span.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::span.$(MAN3EXT) \
 	Graphics/Feature.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Feature.$(MAN3EXT) \
+	Graphics/Glyph/span.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::span.$(MAN3EXT) \
 	Graphics/Glyph/line.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Glyph::line.$(MAN3EXT) \
 	Graphics/Glyph.pm \
@@ -620,25 +641,31 @@ clean ::
 # Delete temporary files (via clean) and also delete installed files
 realclean purge ::  clean
 	rm -rf $(INST_AUTODIR) $(INST_ARCHAUTODIR)
-	rm -f  $(INST_LIBDIR)/Graphics/Glyph/crossbox.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/segments.pm $(INST_LIBDIR)/Graphics/Glyph/ex.pm
-	rm -f $(INST_LIBDIR)/Graphics/File.pm~ $(INST_LIBDIR)/Graphics/Glyph/primers.pm
+	rm -f  $(INST_LIBDIR)/Graphics/File.pm~ $(INST_LIBDIR)/Graphics/Glyph/primers.pm
 	rm -f $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/FeatureFile.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/wormbase_transcript.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm
 	rm -f $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/transcript.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics/Panel.pm~
-	rm -f $(INST_LIBDIR)/Graphics.pm $(INST_LIBDIR)/Graphics/Glyph/track.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/toomany.pm $(INST_LIBDIR)/Graphics/Panel.pm
 	rm -f $(INST_LIBDIR)/Graphics/Glyph/anchored_arrow.pm
 	rm -f $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/alignment.pm $(INST_LIBDIR)/Graphics/Browser.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/dot.pm $(INST_LIBDIR)/Graphics/Glyph/triangle.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/box.pm $(INST_LIBDIR)/Graphics/Glyph/span.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/alignment.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/wormbase_transcript.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/Factory.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/triangle.pm $(INST_LIBDIR)/Graphics/Glyph/span.pm
 	rm -f $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/oval.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Glyph/line.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph.pm $(INST_LIBDIR)/Graphics/FeatureFile.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/line.pm $(INST_LIBDIR)/Graphics/Glyph.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/generic.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/crossbox.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/segments.pm $(INST_LIBDIR)/Graphics/Glyph/ex.pm
+	rm -f $(INST_LIBDIR)/Graphics/Browser.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/wormbase_transcript.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/transcript.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm~ $(INST_LIBDIR)/Graphics/Panel.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm~
+	rm -f $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/toomany.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ $(INST_LIBDIR)/Graphics/Browser.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/dot.pm $(INST_LIBDIR)/Graphics/Glyph/box.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/FeatureFile.pm~
 	rm -rf Makefile Makefile.old
 
 

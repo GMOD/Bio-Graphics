@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.4 2001-11-22 04:28:55 lstein Exp $
+# $Id: Browser.pm,v 1.5 2001-11-24 05:20:44 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -136,6 +136,7 @@ sub image_and_map {
   my (%similarity,%feature_count);
 
   while (my $feature = $iterator->next_feature) {
+
     my $label = $self->feature2label($feature);
     my $track = $tracks{$label} or next;
 
