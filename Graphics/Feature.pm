@@ -31,12 +31,14 @@ sub new {
   my @segments;
   if (my $s = $arg{-segments}) {
 
+    my $subtype =   $arg{-subtype} || $arg{-type};
+
     for my $seg (@$s) {
       if (ref($seg) eq 'ARRAY') {
 	push @segments,$class->new(-start=>$seg->[0],
 				   -stop=>$seg->[1],
 				   -strand=>$self->{strand},
-				   -type => $arg{-subtype}||'feature');
+				   -type  => $subtype);
       } else {
 	push @segments,$seg;
       }
@@ -74,11 +76,15 @@ sub length {
   my $self = shift;
   return $self->stop - $self->start + 1;
 }
+
+sub source_tag { shift->{source} }
+
+# This probably should be deleted.  Not sure why it's here, but might
+# have been added for Ace::Sequence::Feature-compliance.
 sub introns {
   my $self = shift;
   return;
 }
-sub source_tag { shift->{source} }
 
 1;
 
@@ -86,20 +92,97 @@ __END__
 
 =head1 NAME
 
-Ace::Graphics::Fk - A dummy feature object used for generating panel key tracks
+Ace::Graphics::Feature - A simple feature object for use with Ace::Graphics::Panel
 
 =head1 SYNOPSIS
 
-None.  Used internally by Ace::Graphics::Panel.
+ use Ace::Graphics::Feature;
+
+ # create a simple feature with no internal structure
+ $f = Ace::Graphics::Feature->new(-start => 1000,
+                                  -stop  => 2000,
+                                  -type  => 'transcript',
+                                  -name  => 'alpha-1 antitrypsin'
+                                 );
+
+ # create a feature composed of multiple segments, all of type "similarity"
+ $f = Ace::Graphics::Feature->new(-segments => [[1000,1100],[1500,1550],[1800,2000]],
+                                  -name     => 'ABC-3',
+                                  -type     => 'gapped_alignment',
+                                  -subtype  => 'similarity');
+
+ # build up a gene exon by exon
+ $e1 = Ace::Graphics::Feature->new(-start=>1,-stop=>100,-type=>'exon');
+ $e2 = Ace::Graphics::Feature->new(-start=>150,-stop=>200,-type=>'exon');
+ $e3 = Ace::Graphics::Feature->new(-start=>300,-stop=>500,-type=>'exon');
+ $f  = Ace::Graphics::Feature->new(-segments=>[$e1,$e2,$e3],-type=>'gene');
 
 =head1 DESCRIPTION
 
-None.  Used internally by Ace::Graphics::Panel.
+This is a simple Bio::SeqFeatureI-compliant object that is compatible
+with Bio::Graphics::Panel.  With it you can create lightweight feature
+objects for drawing.
+
+All methods are as described in L<Bio::SeqFeatureI> with the following additions:
+
+=head2 The new() Constructor
+
+ $feature = Bio::Graphics::Feature->new(@args);
+
+This method creates a new feature object.  You can create a simple
+feature that contains no subfeatures, or a hierarchically nested object.
+
+Arguments are as follows:
+
+  -start       the start position of the feature
+  -stop        the stop position of the feature
+  -end         an alias for stop
+  -name        the feature name (returned by seqname())
+  -type        the feature type (returned by primary_tag())
+  -source      the source tag
+  -segments    a list of subfeatures (see below)
+  -subtype     the type to use when creating subfeatures
+
+The subfeatures passed in -segments may be an array of
+Bio::Graphics::Feature objects, or an array of [$start,$stop]
+pairs. Each pair should be a two-element array reference.  In the
+latter case, the feature type passed in -subtype will be used when
+creating the subfeatures.
+
+If no feature type is passed, then it defaults to "feature".
+
+=head2 Non-SeqFeatureI methods
+
+A number of new methods are provided for compatibility with
+Ace::Sequence, which has a slightly different API from SeqFeatureI:
+
+=over 4
+
+=item segments()
+
+An alias for sub_SeqFeatures().
+
+=item merged_segments()
+
+Another alias for sub_SeqFeatures().
+
+=item stop()
+
+An alias for end().
+
+=item name()
+
+An alias for seqname().
+
+=item exons()
+
+An alias for sub_SeqFeatures() (you don't want to know why!)
+
+=back
 
 =head1 SEE ALSO
 
-L<Ace::Sequence>,L<Ace::Sequence::Feature>,
-L<Ace::Graphics::Track>,L<Ace::Graphics::Glyph>,
+L<Bio::Graphics::Panel>,L<Bio::Graphics::Glyph>,
 L<GD>
 
 =head1 AUTHOR
