@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.9 2001-11-25 19:43:56 lstein Exp $
+# $Id: gbrowse.PLS,v 1.10 2001-11-27 04:09:04 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -69,9 +69,6 @@ END
 $CONFIG         = Bio::Graphics::Browser->new($CONF_DIR)
   or die "Couldn't open configuration directory: $!";
 
-$MAX_SEGMENT     = $CONFIG->setting('max segment')     || MAX_SEGMENT;
-$DEFAULT_SEGMENT = $CONFIG->setting('default segment') || DEFAULT_SEGMENT;
-
 ## PAGE SETTINGS ##############################################################################
 #
 # Recover a hashref which contains page-specific settings
@@ -79,6 +76,9 @@ $DEFAULT_SEGMENT = $CONFIG->setting('default segment') || DEFAULT_SEGMENT;
 my ($source,$old_source) = get_source();
 $CONFIG->source($source);
 my $page_settings = get_settings($source);
+
+$MAX_SEGMENT     = $CONFIG->setting('max segment')     || MAX_SEGMENT;
+$DEFAULT_SEGMENT = $CONFIG->setting('default segment') || DEFAULT_SEGMENT;
 
 # Now adjust those settings based on submitted CGI parameters
 # With the exception that we ignore parameter changes if the source has changed.
