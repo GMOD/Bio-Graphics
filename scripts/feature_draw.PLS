@@ -367,7 +367,7 @@ configuration section for this feature type.
 
 =head1 BUGS
 
-Please report themto the author.
+Please report them to the author.
 
 =head1 SEE ALSO
 

@@ -4,8 +4,7 @@ use Bio::Graphics::Panel;
 use strict;
 
 use vars '$VERSION';
-$VERSION = '1.00';
-
+$VERSION = '1.01';
 
 1;
 
@@ -17,8 +16,6 @@ Bio::Graphics - Generate GD images of Bio::Seq objects
 
   use Bio::Graphics;
   use Bio::DB::BioFetch;  # or some other Bio::SeqI generator
-
-
   # get a Bio::SeqI object somehow
   my $bf     = Bio::DB::BioFetch->new;
   my $cosmid = $bf->getSeq_by_id('CEF58D5');
@@ -27,7 +24,6 @@ Bio::Graphics - Generate GD images of Bio::Seq objects
   my @CDS      = grep {$_->primary_tag eq 'CDS'}  @features;
   my @gene     = grep {$_->primary_tag eq 'gene'} @features;
   my @tRNAs    = grep {$_->primary_tag eq 'tRNA'} @features;
-
   # let the drawing begin...
   my $panel = Bio::Graphics::Panel->new(
 				      -segment => $cosmid,
@@ -93,10 +89,9 @@ Bio::Graphics - Generate GD images of Bio::Seq objects
     $notes[0];
   }
 
-
 =head1 DESCRIPTION
 
-Please see Bio::Graphics::Panel for the full API.
+Please see L<Bio::Graphics::Panel> for the full API.
 
 =head1 SEE ALSO
 
@@ -111,7 +106,7 @@ L<GD>
 
 =head1 AUTHOR
 
-Lincoln Stein <lstein@cshl.org>.
+Lincoln Stein E<lt>lstein@cshl.orgE<gt>.
 
 Copyright (c) 2001 Cold Spring Harbor Laboratory
 
