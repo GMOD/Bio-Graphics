@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.4 2001-11-22 04:28:55 lstein Exp $
+# $Id: gbrowse.PLS,v 1.5 2001-11-24 01:22:46 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -29,13 +29,14 @@ use Bio::Graphics::Browser;
 use Digest::MD5 'md5_hex';
 use File::Path 'mkpath';
 use Carp;
-use CGI qw(:standard center *table);
+use CGI qw(:standard center *table *dl *TR *td);
 use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT);
 
 # if you change the zoom/nav icons, you must change this as well.
 use constant MAG_ICON_HEIGHT => 20;
 use constant MAG_ICON_WIDTH  => 8;
 use constant MAX_SEGMENT     => 1_000_000;
+use constant TOO_MANY_SEGMENTS => 10_000;
 use constant DEFAULT_SEGMENT => 100_000;
 use constant OVERVIEW_RATIO  => 0.9;
 
@@ -82,21 +83,22 @@ adjust_settings($page_settings);
 ###############################################################################################
 
 ## GETTING THE SEGMENT ########################################################################
-my $segment      = get_segment($page_settings);
+my @segments  = get_segment($page_settings);
+@segments     = merge(\@segments) if @segments > 1;
 ###############################################################################################
 
 ## DUMPS ######################################################################################
-if ( (my $dump = param('dump')) && $segment) {
+if ( (my $dump = param('dump')) && @segments == 1) {
   if ($dump eq 'FastA') {
-    print header(-attachment   => "$segment.fa",
+    print header(-attachment   => "$segments[0].fa",
 		 -type         => 'text/plain');
-    dump_fasta($segment,$page_settings);
+    dump_fasta($segments[0],$page_settings);
   }
 
   elsif($dump eq 'GFF') {
-    print header(-attachment   => "$segment.gff",
+    print header(-attachment   => "$segments[0].gff",
 		 -type         => 'text/plain');
-    dump_gff($segment,$page_settings);
+    dump_gff($segments[0],$page_settings);
   }
   exit 0;
 }
@@ -107,21 +109,31 @@ if ( (my $dump = param('dump')) && $segment) {
 print header(-cookie => settings2cookie($page_settings));
 
 my $description = $CONFIG->setting('description');
+my $segment;
+
 print
   start_html(-title => 'Genome browser',
 	    -style  => {src=>$CONFIG->setting('stylesheet')},
 	    ),
   h1($description);
 
-print h2("Showing",commas($segment->length),"bp from",
-	 $segment->ref.", positions ".commas($segment->start)." to ".commas($segment->stop))
-  if $segment;
+if (@segments == 1) {
+  $segment = $segments[0];
+  print h2("Showing",commas($segment->length),"bp from",
+	   $segment->ref.", positions ".commas($segment->start)." to ".commas($segment->stop));
+} 
 
-print h2({-class=>'error'},"The landmark named",i(param('name')),"is not recognized.",
-	 "You may need to qualify it with the type, as in",i("PCR_Product:".param('name')))
-  if $page_settings->{name} && !$segment;
+elsif (@segments > 1) {
+  multiple_choices(\@segments,$page_settings);
+}
 
-print start_form(-action=>url(-relative=>1));
+elsif ($page_settings->{name}) {
+
+  print h2({-class=>'error'},"The landmark named",i(param('name')),"is not recognized.",
+	   "You may need to qualify it with the type, as in",i("PCR_Product:".param('name')))
+}
+
+print start_form(-action=>url(-relative=>1,-path_info=>1));
 
 print navigation_table($segment,$page_settings);
 
@@ -153,7 +165,7 @@ print end_form(), $CONFIG->setting('footer'),end_html;
 sub get_settings {
   my %settings = cookie('gbrowse');
 
-  # slight violation of the logic here, but the current configuration
+  # violation of the logic here, but the current configuration
   # source must be modified before anything else happens.
   $settings{source} = param('source') if param('source');
   $CONFIG->source($settings{source}) if defined $settings{source};
@@ -202,10 +214,11 @@ sub adjust_settings {
   if (my @selected = param('label')) {
     $settings->{labels} = \@selected;
   }
-  $settings->{width} = param('width')   if param('width');
+  $settings->{width}  = param('width')   if param('width');
   $settings->{source} = param('source') if param('source');
 
-  if (param('ref') && grep {/zoom|nav|overview/} param() ) {
+  # a GET request forces the reference to be used, as does clicking on the zoom panel
+  if (param('ref') && (request_method() eq 'GET' || grep {/zoom|nav|overview/} param()) ) {
     $settings->{ref}   = param('ref');
     $settings->{start} = param('start') if param('start') =~ /^[\d-]+/;
     $settings->{stop}  = param('stop')  if param('stop')  =~ /^[\d-]+/;
@@ -307,7 +320,7 @@ sub settings_table {
 
   # set up the dumps line.
   my($ref,$start,$stop,$source) = @{$settings}{qw(ref start stop source)};
-  my $self     = url(-relative=>1);
+  my $self     = url(-relative=>1,-path_info=>1);
   my @dumps    = (['GFF'  ,"$self?dump=GFF;start=$start;stop=$stop;ref=$ref;source=$source"]);
   unshift @dumps,['FastA',"$self?dump=FastA;start=$start;stop=$stop;ref=$ref;source=$source"]
     if $CONFIG->setting('fasta_files');
@@ -406,10 +419,10 @@ sub zoomnav {
 # interesting heuristic way of fetching sequence segments based on educated guesses
 sub get_segment {
   my $settings = shift;
+  my @segments;
 
   my $db = open_database();
   $db->debug(0);
-  my $segment;
 
   if (my $name = $settings->{name}) {
     my ($class,$start,$stop);
@@ -428,11 +441,11 @@ sub get_segment {
     push @argv,(-class => $class) if defined $class;
     push @argv,(-start => $start) if defined $start;
     push @argv,(-stop  => $stop)  if defined $stop;
-    $segment = $db->segment(@argv);
+    @segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv);
 
     # Here's the heuristic part.  Try various abbreviations that
     # people tend to use for chromosomal addressing.
-    if (!$segment && $name =~ /^([\dIVXA-F]+)$/) {
+    if (!@segments && $name =~ /^([\dIVXA-F]+)$/) {
       my $id = $1;
       foreach (qw(CHROMOSOME_ Chr chr)) {
 	my $n = "${_}${id}";
@@ -440,19 +453,18 @@ sub get_segment {
 	push @argv,(-class => $class) if defined $class;
 	push @argv,(-start => $start) if defined $start;
 	push @argv,(-stop  => $stop)  if defined $stop;
-	$segment ||= $db->segment(@argv);
+	@segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv) unless @segments;
       }
     }
     # try things that look like genes
-    if (!$segment && $name =~ /[a-zA-Z]-?\d+/) {
-      $segment = $db->segment(Locus => $name);
+    if (!@segments && $name =~ /[a-zA-Z]-?\d+/) {
+      @segments = $db->segments(Locus => $name);
     }
 
     # try to remove the chr CHROMOSOME_I
-    if (!$segment && $name =~ /^(chromosome_?|chr)/i) {
+    if (!@segments && $name =~ /^(chromosome_?|chr)/i) {
       (my $chr = $name) =~ s/^(chromosome_?|chr)//i;
-      warn "chr = $chr";
-      $segment = $db->segment($chr);
+      @segments = $db->segment($chr);
     }
 
   }
@@ -461,20 +473,21 @@ sub get_segment {
     my @argv = (-name  => $ref);
     push @argv,(-start => $settings->{start}) if defined $settings->{start};
     push @argv,(-stop  => $settings->{stop})  if defined $settings->{stop};
-    $segment = $db->segment(@argv);
+    @segments = $db->segment(@argv);
   }
 
-  return unless $segment;
+  return unless @segments;
+  return @segments if @segments > 1;
 
-  $segment->absolute(1);
+  $segments[0]->absolute(1);
 
   # set CGI name parameter to match segment.
   # this prevents any confusion over (ref,start,stop) and (name) addressing.
-  $settings->{ref}   = $segment->ref;
-  $settings->{start} = $segment->start;
-  $settings->{stop}  = $segment->stop;
+  $settings->{ref}   = $segments[0]->ref;
+  $settings->{start} = $segments[0]->start;
+  $settings->{stop}  = $segments[0]->stop;
 
-  return $segment;
+  return $segments[0];
 }
 
 sub open_database {
@@ -680,6 +693,103 @@ sub commas {
   chop $i if $i=~/,$/;
   $i = reverse $i;
   $i;
+}
+
+
+sub multiple_choices {
+  my $segments = shift;
+  my $settings = shift;
+
+  my $message = "The landmark named ".param('name')." exists in multiple locations.  Please choose one.";
+
+  print start_table({-class=>'searchtitle'});
+  print TR(th(font({-color=>'red'},$message)));
+  print start_TR({-class=>'searchbody'}),start_td();
+  
+  # aggregate segments by reference and then split on gaps of > 1 M
+  my %segs;
+  push @{$segs{$_->ref}},$_ foreach @$segments;
+
+  my $url = url(-relative=>1,-path_info=>1);
+  my $source = $settings->{source};
+
+  print start_dl;
+  for my $ref (sort keys %segs) {
+    my @spans  = sort {$a->start <=> $b->start} @{$segs{$ref}};
+    print dt($ref),"\n";
+    foreach (@spans) {
+      my ($start,$stop) = ($_->start,$_->stop);
+      my $bp = $stop - $start;
+      my $s = commas($start);
+      my $e = commas($stop);
+      print dd(a({-href=>"$url?source=$source;ref=$ref;start=$start;stop=$stop"},"$s..$e ($bp bp)")),"\n";
+    }
+
+  }
+  print end_dl,end_td,end_TR,end_table;
+
+}
+
+sub merge {
+  my $features = shift;
+  my (%segs,@merged_segs);
+  push @{$segs{$_->ref}},$_ foreach @$features;
+  foreach (keys %segs) {
+    push @merged_segs,low_merge($segs{$_});
+  }
+  return @merged_segs;
+}
+
+sub low_merge {
+  my $features = shift;
+
+  my $max_range = (get_ranges())[-1];
+  my $db = open_database();
+  my ($previous_start,$previous_stop,$statistical_cutoff,@spans);
+
+  my @features = sort {$a->low<=>$b->low} @$features;
+
+  # run through the segments, and find the mean and stdev gap length
+  if (@features >= 3) {
+    my ($total,$gap_length,@gaps);
+    for (my $i=0; $i<@$features-1; $i++) {
+      my $gap = $features[$i+1]->low - $features[$i]->high;
+      $total++;
+      $gap_length += $gap;
+      push @gaps,$gap;
+    }
+    my $mean = $gap_length/$total;
+    my $variance;
+    $variance += ($_-$mean)**2 foreach @gaps;
+    my $stdev = sqrt($variance/$total);
+    $statistical_cutoff = $stdev * 2;
+  } else {
+    $statistical_cutoff = $max_range;
+  }
+
+  my $ref = $features[0]->ref;
+
+  for my $f (@features) {
+    my $start = $f->low;
+    my $stop  = $f->high;
+
+    if (defined($previous_stop) && 
+	( $start-$previous_stop >= $max_range || 
+	  $previous_stop-$previous_start >= $max_range ||
+	  $start-$previous_stop >= $statistical_cutoff)) {
+      push @spans,$db->segment($ref,$previous_start,$previous_stop);
+      $previous_start = $start;
+      $previous_stop  = $stop;
+    } 
+
+    else {
+      $previous_start = $start unless defined $previous_start;
+      $previous_stop  =   $stop;
+    }
+
+  }
+  push @spans,$db->segment($ref,$previous_start,$previous_stop);
+  return @spans;
 }
 
 !NO!SUBS!
