@@ -1,9 +1,11 @@
 package Bio::Graphics::Glyph::transcript;
 
 use strict;
+use Bio::Graphics::Glyph::generic;
 use Bio::Graphics::Glyph::segmented_keyglyph;
 use vars '@ISA';
-@ISA = 'Bio::Graphics::Glyph::segmented_keyglyph';
+@ISA = qw(Bio::Graphics::Glyph::segmented_keyglyph
+	  Bio::Graphics::Glyph::generic);
 
 sub pad_left  {
   my $self = shift;
@@ -25,7 +27,6 @@ sub draw_connectors {
   my ($left,$top) = @_;
   $self->SUPER::draw_connectors($gd,$left,$top);
   my @parts = $self->parts;
-
   if ($self->feature->strand >= 0) {
     my($x1,$y1,$x2,$y2) = $parts[-1]->bounds(@_);
     my $center = ($y2+$y1)/2;

@@ -29,9 +29,9 @@ sub new {
   my @subfeatures = $self->subseq($feature);
 
   if (@subfeatures) {
-    
+
     # dynamic glyph resolution
-    @subglyphs = sort { $a->left  <=> $b->left }  $factory->make_glyph(@subfeatures);  
+    @subglyphs = sort { $a->left  <=> $b->left }  $factory->make_glyph(@subfeatures);
 
     $self->{parts}   = \@subglyphs;
   }
@@ -195,8 +195,6 @@ sub box {
   my $fg = $self->fgcolor;
   my $bg = $self->bgcolor;
   my $linewidth = $self->option('linewidth') || 1;
-
-#  $gd->rectangle($x1,$y1,$x2,$y2,$bg);
 
   $fg = $self->set_pen($linewidth,$fg) if $linewidth > 1;
 
@@ -396,7 +394,6 @@ sub layout {
 	$pos += $collision->[3]-$collision->[1] + BUMP_SPACING;                    # collision, so bump
 
       } else {
-#	$pos -= $g->{layout_height} - BUMP_SPACING;
 	$pos -= BUMP_SPACING;
       }
     }
@@ -702,6 +699,17 @@ sub subseq {
 # synthesize a key glyph
 sub keyglyph {
   my $self = shift;
+  my $feature = $self->make_key_feature;
+  my $factory = $self->factory->clone;
+  $factory->set_option(label => 1);
+  $factory->set_option(bump  => 0);
+  $factory->set_option(connector  => 'solid');
+  return $factory->make_glyph($feature);
+}
+
+# synthesize a key glyph
+sub make_key_feature {
+  my $self = shift;
 
   my $scale = 1/$self->scale;  # base pairs/pixel
 
@@ -714,11 +722,7 @@ sub keyglyph {
 				-end   =>80*$scale+$offset,
 				-name => $self->option('key'),
 				-strand => '+1');
-  my $factory = $self->factory->clone;
-  $factory->set_option(label => 1);
-  $factory->set_option(bump  => 0);
-  $factory->set_option(connector  => 'solid');
-  return $factory->make_glyph($feature);
+  return $feature;
 }
 
 sub all_callbacks {

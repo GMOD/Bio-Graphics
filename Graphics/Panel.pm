@@ -235,7 +235,7 @@ sub _add_track {
     $f = Bio::Graphics::Feature->new(
 				     -segments=>$f,
 				     -type => 'group'
-				       );
+				    );
   }
 
   # top-level glyph is the track
@@ -315,7 +315,7 @@ sub gd {
   $offset = $pt;
   for my $track (@{$self->{tracks}}) {
     next unless $track->parts;
-    $offset += $self->draw_between_key($gd,$track,$offset) if $between_key && $track->option('key');;
+    $offset += $self->draw_between_key($gd,$track,$offset) if $between_key && $track->option('key');
     $track->draw($gd,0,$offset,0,1);
     $offset += $track->layout_height + $spacing;
   }
@@ -386,7 +386,16 @@ sub format_key {
     # and their max size
     for my $track (@{$self->{tracks}}) {
       next unless $track->option('key');
-      my $glyph = $track->parts ? ($track->parts)[0]->keyglyph : $track->keyglyph;
+
+      my $glyph;
+      if (my @parts = $track->parts) {
+	$glyph = $parts[0]->keyglyph;
+      } else {
+	my $t = Bio::Graphics::Feature->new(-segments=>[Bio::Graphics::Feature->new(-start=>1,-stop=>1)]);
+	my $g = $track->factory->make_glyph($t);
+	$glyph = $g->keyglyph;
+      }
+
       $tracks{$track} = $glyph;
       my ($h,$w) = ($glyph->layout_height,
 		    $glyph->layout_width);

@@ -7,6 +7,27 @@ use vars '@ISA';
 
 use constant MIN_WIDTH_FOR_ARROW => 8;
 
+sub pad_left  {
+  my $self = shift;
+  my $pad = $self->Bio::Graphics::Glyph::generic::pad_left;
+  return $pad unless $self->feature->strand < 0;
+  my $first = ($self->parts)[0] or return $pad;
+  my @rect  = $first->bounds();
+  my $width = abs($rect[2] - $rect[0]);
+  return $self->SUPER::pad_left if $width < MIN_WIDTH_FOR_ARROW;
+  return 0;
+}
+
+sub pad_right  {
+  my $self = shift;
+  my $pad = $self->Bio::Graphics::Glyph::generic::pad_right;
+  my $last = ($self->parts)[-1] or return $pad;
+  my @rect  = $last->bounds();
+  my $width = abs($rect[2] - $rect[0]);
+  return $self->SUPER::pad_right if $width < MIN_WIDTH_FOR_ARROW;
+  return $pad;
+}
+
 sub draw_component {
   my $self = shift;
   my $gd = shift;

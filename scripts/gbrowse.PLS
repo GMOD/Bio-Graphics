@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.11 2001-11-28 04:07:01 lstein Exp $
+# $Id: gbrowse.PLS,v 1.12 2001-12-09 04:32:03 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -43,7 +43,7 @@ use constant OVERVIEW_RATIO  => 0.9;
 ###################################################################
 # Non-modperl users should change this constant if needed
 #
-my $CONF_DIR = '/usr/local/wormbase/conf/gbrowse.conf';
+my $CONF_DIR = '/usr/local/apache/conf/gbrowse.conf';
 #
 ###################################################################
 
@@ -544,6 +544,8 @@ sub image_and_map {
   $CONFIG->width($settings->{width});
 
   my($image,$map) = $CONFIG->image_and_map($segment,$settings->{labels});
+  if (0) { debugging_rectangles($image,$map) }
+
   my ($width,$height) = $image->getBounds;
 
   my $signature = md5_hex($segment,@{$settings->{labels}},$settings->{width},$CONFIG->source);
@@ -579,7 +581,6 @@ sub overview {
 
 sub generate_image {
   my ($image,$signature) = @_;
-
   my $extension = $image->can('png') ? 'png' : 'gif';
   my ($uri,$path) = picture_tmpdir();
   my $url         = sprintf("%s/%s.%s",$uri,$signature,$extension);
@@ -822,12 +823,22 @@ sub low_merge {
 }
 
 sub show_examples {
-  my @examples = split /\s+/,$CONFIG->setting('examples');
+  my $examples = $CONFIG->setting('examples') or return;;
+  my @examples = split /\s+/,$examples;
   return unless @examples;
   my $url    = url(-relative=>1,-path_info=>1);
   my $source = $CONFIG->source;
   my @urls = map { a({-href=>"$url?source=$source;name=".escape($_)},$_) } @examples;
   return b('Examples: ').join ', ',@urls;
+}
+
+sub debugging_rectangles {
+  my ($image,$boxes) = @_;
+  my $black = $image->colorClosest(0,0,0);
+  foreach (@$boxes) {
+    my @rect = @{$_}[1,2,3,4];
+    $image->rectangle(@{$_}[1,2,3,4],$black);
+  }
 }
 
 !NO!SUBS!

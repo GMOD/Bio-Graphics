@@ -30,11 +30,11 @@ sub pad_bottom {
 sub pad_right {
   my $self = shift;
   my $pad = $self->SUPER::pad_right;
-  my $label_width = length($self->label||'') * $self->font->width;
+  my $label_width       = length($self->label||'') * $self->font->width;
   my $description_width = length($self->description||'') * $self->font->width;
   my $max = $label_width > $description_width ? $label_width : $description_width;
-  $pad = $max - ($self->width+$pad) if $max > ($self->width+$pad);
-  $pad;
+  my $right = $max - $self->width;
+  return $pad > $right ? $pad : $right;
 }
 
 sub labelheight {

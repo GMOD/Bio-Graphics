@@ -16,21 +16,22 @@ sub bgcolor {
 }
 
 sub get_description {
-   my $self    = shift;
-   my $feature = shift;
+  my $self    = shift;
+  my $feature = shift;
 
-   # fetch modularity-breaking acedb sequence object information
-   # for backward compatibility with wormbase requirements
-   return $self->SUPER::get_description($feature)
-     unless $feature->isa('Ace::Sequence::Transcript');
-
-   return eval {
-     my $t       = $feature->info;
-     my $id      = $t->Brief_identification;
-     my $comment = $t->Locus;
-     $comment   .= $comment ? " ($id)" : $id if $id;
-     $comment;
+  # fetch modularity-breaking acedb sequence object information
+  # for backward compatibility with wormbase requirements
+  if ($feature->isa('Ace::Sequence::Transcript')) {
+    return eval {
+      my $t       = $feature->info;
+      my $id      = $t->Brief_identification;
+      my $comment = $t->Locus;
+      $comment   .= $comment ? " ($id)" : $id if $id;
+      $comment;
     };
+  } else {
+    return join '; ',eval { $feature->notes };
+  }
 }
 
 1;

@@ -1,9 +1,11 @@
 package Bio::Graphics::Glyph::segments;
 
 use strict;
+use Bio::Graphics::Glyph::generic;
 use Bio::Graphics::Glyph::segmented_keyglyph;
 use vars '@ISA';
-@ISA = 'Bio::Graphics::Glyph::segmented_keyglyph';
+@ISA = qw(Bio::Graphics::Glyph::segmented_keyglyph
+	  Bio::Graphics::Glyph::generic);
 
 # group sets connector to 'solid'
 sub connector {

@@ -5,6 +5,12 @@ use vars '@ISA';
 use Bio::Graphics::Glyph::segmented_keyglyph;
 @ISA = 'Bio::Graphics::Glyph::segmented_keyglyph';
 
+sub pad_right {
+  my $self = shift;
+  my @parts = $self->parts or return $self->SUPER::pad_right;
+  $parts[-1]->pad_right;
+}
+
 # group sets connector to 'dashed'
 sub connector {
   my $self = shift;
