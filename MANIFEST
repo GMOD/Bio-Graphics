@@ -15,6 +15,5 @@ MANIFEST
 DISCLAIMER.txt
 Makefile.PL
 README
-eg/testgraphics.pl
 eg/testit.pl
 eg/testit2.pl
