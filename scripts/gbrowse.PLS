@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.6 2001-11-24 01:37:21 lstein Exp $
+# $Id: gbrowse.PLS,v 1.7 2001-11-24 14:36:22 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -76,10 +76,17 @@ $DEFAULT_SEGMENT = $CONFIG->setting('default segment') || DEFAULT_SEGMENT;
 #
 # Recover a hashref which contains page-specific settings
 # (this involves reading a cookie or possibly a database record in some future implementation
-my $page_settings = get_settings();
+my ($source,$old_source) = get_source();
+$CONFIG->source($source);
+my $page_settings = get_settings($source);
 
 # Now adjust those settings based on submitted CGI parameters
-adjust_settings($page_settings);
+# With the exception that we ignore parameter changes if the source has changed.
+if (defined($old_source) && $source ne $old_source) {
+  param(name => $page_settings->{name});  # restore old reference point
+} else {
+  adjust_settings($page_settings);        # set settings from CGI parameters
+}
 ###############################################################################################
 
 ## GETTING THE SEGMENT ########################################################################
@@ -156,19 +163,26 @@ if ($segment) {
 
 print settings_table($page_settings);
 
-print end_form(), $CONFIG->setting('footer'),end_html;
+print end_form(), 
+  hr,
+  p(i('Note: This page uses cookie to save and restore preference information. No information is shared.')),
+  $CONFIG->setting('footer'),
+  end_html;
 
 ###############################################################################################
+
+sub get_source {
+  my $source = param('source');
+  $source ||= cookie('gbrowse_source');
+  $source ||= $CONFIG->source;  # the default, whatever it is
+  return ($source,cookie('gbrowse_source'));
+}
 
 # read from cookie, if there is one
 # if not, set  from defaults
 sub get_settings {
-  my %settings = cookie('gbrowse');
-
-  # violation of the logic here, but the current configuration
-  # source must be modified before anything else happens.
-  $settings{source} = param('source') if param('source');
-  $CONFIG->source($settings{source}) if defined $settings{source};
+  my $source   = shift;
+  my %settings = cookie("gbrowse_$source");
 
   my $ok = 1;
   if (%settings) {  # if cookie is there, then validate it
@@ -186,8 +200,8 @@ sub get_settings {
   if (!$ok || !%settings) {
     %settings = ();
     @settings{'name','ref','start','stop'} = ('','','','');
-    $settings{source} = $CONFIG->source;
     $settings{width}  = $CONFIG->setting('default width');
+    $settings{source} = $CONFIG->source;
     $settings{labels} = [$CONFIG->default_labels];
   }
 
@@ -202,20 +216,23 @@ sub settings2cookie {
       $settings{$key} = join $;,@{$settings{$key}};
     }
   }
-  my $cookie = cookie(-name    => 'gbrowse',
+  my @cookies;
+  my $source = $CONFIG->source;
+  push @cookies,cookie(-name    => "gbrowse_$source",
 		      -value   => \%settings,
 		      -expires => '+3M');
-  return $cookie;
+  push @cookies,cookie(-name   => 'gbrowse_source',
+		       -value  => $source,
+		       -expires => '+3M');
+  return \@cookies;
 }
 
 sub adjust_settings {
   my $settings = shift;
-  $settings->{source} = param('source') if param('source');
   if (my @selected = param('label')) {
     $settings->{labels} = \@selected;
   }
   $settings->{width}  = param('width')   if param('width');
-  $settings->{source} = param('source') if param('source');
 
   # a GET request forces the reference to be used, as does clicking on the zoom panel
   if (param('ref') && (request_method() eq 'GET' || grep {/zoom|nav|overview/} param()) ) {
@@ -226,10 +243,8 @@ sub adjust_settings {
     $settings->{name} = "$settings->{ref}:$settings->{start}..$settings->{stop}";
     param(name=>$settings->{name});
   }
-
-  if ( param('name')) {
-    $settings->{name}  = param('name');
-  }
+  $settings->{name}   = param('name')   if param('name');
+  $settings->{source} = param('source') if param('source');
 
 }
 
@@ -319,7 +334,8 @@ sub settings_table {
   @widths = (640,800,1024) unless @widths;
 
   # set up the dumps line.
-  my($ref,$start,$stop,$source) = @{$settings}{qw(ref start stop source)};
+  my($ref,$start,$stop) = @{$settings}{qw(ref start stop)};
+  my $source   = $CONFIG->source;
   my $self     = url(-relative=>1,-path_info=>1);
   my @dumps    = (['GFF'  ,"$self?dump=GFF;start=$start;stop=$stop;ref=$ref;source=$source"]);
   unshift @dumps,['FastA',"$self?dump=FastA;start=$start;stop=$stop;ref=$ref;source=$source"]
@@ -479,6 +495,7 @@ sub get_segment {
   return unless @segments;
   return @segments if @segments > 1;
 
+  return unless @segments;
   $segments[0]->absolute(1);
 
   # set CGI name parameter to match segment.
@@ -523,7 +540,7 @@ sub image_and_map {
   my($image,$map) = $CONFIG->image_and_map($segment,$settings->{labels});
   my ($width,$height) = $image->getBounds;
 
-  my $signature = md5_hex($segment,@{$settings->{labels}},$settings->{width},$settings->{source});
+  my $signature = md5_hex($segment,@{$settings->{labels}},$settings->{width},$CONFIG->source);
   my $url       = generate_image($image,$signature);
   my $img     = img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0});
   my $img_map = make_map($map);
@@ -715,7 +732,7 @@ sub multiple_choices {
     push @{$segs{$_->ref}},$_ foreach @$segments;
 
     my $url = url(-relative=>1,-path_info=>1);
-    my $source = $settings->{source};
+    my $source = $CONFIG->source;
 
     print start_dl;
     for my $ref (sort keys %segs) {
@@ -737,6 +754,7 @@ sub multiple_choices {
 
 sub merge {
   my $features = shift;
+
   my (%segs,@merged_segs);
   push @{$segs{$_->ref}},$_ foreach @$features;
   foreach (keys %segs) {
@@ -796,6 +814,7 @@ sub low_merge {
   push @spans,$db->segment($ref,$previous_start,$previous_stop);
   return @spans;
 }
+
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";

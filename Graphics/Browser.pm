@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.5 2001-11-24 05:20:44 lstein Exp $
+# $Id: Browser.pm,v 1.6 2001-11-24 14:36:21 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -297,6 +297,7 @@ sub invert_types {
   my $config  = $self->{config} or return;
   my %inverted;
   for my $label (keys %{$config}) {
+    next if $label eq 'overview';   # special case
     my $feature = $config->{$label}{feature} or next;
     foreach (shellwords($feature)) {
       $inverted{$_} = $label;
