@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.14 2002-01-31 06:28:22 lstein Exp $
+# $Id: FeatureFile.pm,v 1.15 2002-02-12 19:32:56 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -60,7 +60,7 @@ sub new {
   } elsif (my $text = $args{-text}) {
     $self->parse_text($text);
   }
-  $fh->close or warn "Error closing file: $!";
+  $fh->close or warn "Error closing file: $!" if $fh;
   $self;
 }
 
