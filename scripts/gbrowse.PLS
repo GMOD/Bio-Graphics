@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.8 2001-11-25 19:34:06 lstein Exp $
+# $Id: gbrowse.PLS,v 1.9 2001-11-25 19:43:56 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -164,9 +164,9 @@ if ($segment) {
 print settings_table($page_settings);
 
 print end_form(), 
-  hr,
-  p(i('Note: This page uses cookie to save and restore preference information. No information is shared.')),
   $CONFIG->setting('footer'),
+  p(i(font({-size=>'small'},
+	   'Note: This page uses cookie to save and restore preference information. No information is shared.'))),
   end_html;
 
 ###############################################################################################
