@@ -2,9 +2,10 @@ package Bio::Graphics::Glyph::anchored_arrow;
 # package to use for drawing an arrow
 
 use strict;
-use vars '@ISA';
+use vars '@ISA','$VERSION';
 use Bio::Graphics::Glyph::arrow;
 @ISA = 'Bio::Graphics::Glyph::arrow';
+$VERSION = 1.01;
 
 sub draw_label {
   my $self = shift;
@@ -47,7 +48,7 @@ sub arrowheads {
   my $gstart  = $x1;
   my $gend    = $x2;
   my $pstart  = $self->panel->left;
-  my $pend    = $self->panel->right;
+  my $pend    = $self->panel->right-1;
 
   if ($gstart < $pstart) {  # off left end
     $sw = 1;

@@ -59,7 +59,7 @@ sub bump {
 
 =head1 NAME
 
-Bio::Graphics::Glyph::rndrect
+Bio::Graphics::Glyph::rndrect - The "round rect" glyph
 
 =head1 SYNOPSIS
 

@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.16 2002-02-16 09:49:22 lstein Exp $
+# $Id: FeatureFile.pm,v 1.17 2002-02-20 22:11:40 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -49,6 +49,7 @@ sub new {
   #   -text
   my $fh;
   if (my $file = $args{-file}) {
+    no strict 'refs';
     if (defined fileno($file)) {
       $fh = $file;
     } elsif ($file eq '-') {

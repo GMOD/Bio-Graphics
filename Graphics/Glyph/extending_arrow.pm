@@ -249,7 +249,7 @@ sub arrowheads {
 
 =head1 NAME
 
-Bio::Graphics::Glyph::extending_arrow
+Bio::Graphics::Glyph::extending_arrow -- The "extending arrow" glyph
 
 =head1 SYNOPSIS
 
