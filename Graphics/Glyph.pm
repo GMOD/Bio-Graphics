@@ -297,7 +297,11 @@ sub font2color {
   my $self = shift;
   $self->color('font2color') || $self->fontcolor;
 }
-sub tkcolor { shift->color('tkcolor') } # "track color"
+sub tkcolor { # "track color"
+  my $self = shift;
+  $self->option('tkcolor') or return;
+  return $self->color('tkcolor')
+} 
 sub connector_color {
   my $self = shift;
   $self->color('connector_color') || $self->fgcolor;
@@ -566,14 +570,14 @@ sub filled_arrow {
     $gd->line($x2,($y2+$y1)/2,$x2-$indent,$y2,$fg);
     $gd->line($x2-$indent,$y2,$x1,$y2,$fg);
     $gd->line($x1,$y2,$x1,$y1,$fg);
-    $gd->fill($x1+1,($y1+$y2)/2,$self->bgcolor);
+    $gd->fillToBorder($x1+1,($y1+$y2)/2,$fg,$self->bgcolor);
   } else {
     $gd->line($x1,($y2+$y1)/2,$x1+$indent,$y1,$fg);
     $gd->line($x1+$indent,$y1,$x2,$y1,$fg);
     $gd->line($x2,$y2,$x1+$indent,$y2,$fg);
     $gd->line($x1+$indent,$y2,$x1,($y1+$y2)/2,$fg);
     $gd->line($x2,$y1,$x2,$y2,$fg);
-    $gd->fill($x2-1,($y1+$y2)/2,$self->bgcolor);
+    $gd->fillToBorder($x2-1,($y1+$y2)/2,$fg,$self->bgcolor);
   }
 }
 

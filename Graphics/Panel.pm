@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.87';
+$VERSION = '0.88';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
@@ -15,6 +15,7 @@ use constant KEYPADTOP    => 5;  # extra padding before the key starts
 use constant KEYCOLOR     => 'wheat';
 use constant KEYSTYLE     => 'bottom';
 use constant KEYALIGN     => 'left';
+use constant GRIDCOLOR    => 'lightcyan';
 
 my %COLORS;  # translation table for symbolic color names to RGB triple
 
@@ -36,6 +37,8 @@ sub new {
   my $keystyle = $options{-key_style} || KEYSTYLE;
   my $keyalign = $options{-key_align} || KEYALIGN;
   my $allcallbacks = $options{-all_callbacks} || 0;
+  my $gridcolor    = $options{-gridcolor} || GRIDCOLOR;
+  my $grid         = $options{-grid} || 0;
 
   $offset   ||= $options{-segment}->start-1 if $options{-segment};
   $length   ||= $options{-segment}->length  if $options{-segment};
@@ -53,6 +56,8 @@ sub new {
 		pad_right  => $options{-pad_right}||0,
 		length => $length,
 		offset => $offset,
+		gridcolor => $gridcolor,
+		grid    => $grid,
 		bgcolor => $bgcolor,
 		height => 0, # AUTO
 		spacing => $spacing,
@@ -106,7 +111,6 @@ sub map_pt {
 }
 sub scale {
   my $self = shift;
-
   $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right)/$self->length;
 }
 sub offset { shift->{offset} }
@@ -285,6 +289,9 @@ sub gd {
   my $pt = $self->pad_top;
   my $offset = $pt;
 
+  $self->draw_grid($gd)  if $self->{grid};
+
+  $offset = $pt;
   for my $track (@{$self->{tracks}}) {
     $gd->filledRectangle($pl,
 			 $offset,
@@ -293,7 +300,6 @@ sub gd {
 			 + ($self->{key_style} eq 'between' ? $self->{key_font}->height : 0),
 			 $track->tkcolor)
       if defined $track->tkcolor;
-
     $offset += $self->draw_between_key($gd,$track,$offset)
       if $self->{key_style} eq 'between' && $track->option('key');
     $track->draw($gd,0,$offset,0,1);
@@ -327,7 +333,7 @@ sub draw_between_key {
   my $key = $track->option('key') or return 0;
   my $x =   $self->{key_align} eq 'center' ? $self->width - (CORE::length($key) * $self->{key_font}->width)/2
           : $self->{key_align} eq 'right'  ? $self->width - CORE::length($key)
-          : 0;
+          : $self->pad_left;
   $gd->string($self->{key_font},$x,$offset,$key,1);
   return $self->{key_font}->height;
 }
@@ -415,6 +421,67 @@ sub format_key {
   else {  # no known key style, neither "between" nor "bottom"
     return $self->{key_height} = 0;
   }
+}
+
+# draw a grid
+sub draw_grid {
+  my $self = shift;
+  my $gd = shift;
+
+  my $gridcolor = $self->translate_color($self->{gridcolor});
+  my @positions;
+  if (ref $self->{grid} eq 'ARRAY') {
+    @positions = @{$self->{grid}};
+  } else {
+    my ($major,$minor) = $self->ticks;
+    @positions = (@$major,@$minor);
+  }
+  my $pl = $self->pad_left;
+  my $pt = $self->pad_top;
+  my $pb = $self->height - $self->pad_bottom;
+  for my $tick (@positions) {
+    my ($pos) = $self->map_pt($tick);
+    $gd->line($pos,$pt,$pos,$pb,$gridcolor);
+  }
+}
+
+# calculate major and minor ticks, given a start position
+sub ticks {
+  my $self = shift;
+  my ($start,$end,$font) = @_;
+  $start   = $self->{offset}+1             unless defined $start;
+  $end     = $start + $self->{length} - 1  unless defined $end;
+  $font ||= gdSmallFont;
+  my (@major,@minor);
+
+  # figure out tick mark scale
+  # we want no more than 1 tick mark every 30 pixels
+  # and enough room for the labels
+  my $scale = $self->scale;
+  my $width = $font->width;
+
+  my $interval = 1;
+  my $mindist =  30;
+  my $widest = 5 + (CORE::length($end) * $width);
+  $mindist = $widest if $widest > $mindist;
+
+  while (1) {
+    my $pixels = $interval * $scale;
+    last if $pixels >= $mindist;
+    $interval *= 10;
+  }
+
+  my $first_tick = $interval * int(0.5 + $start/$interval);
+
+  for (my $i = $first_tick; $i < $end; $i += $interval) {
+    push @major,$i;
+  }
+
+  for (my $i = $start+$interval/10; $i < $end; $i += $interval/10) {
+    push @minor,$i;
+  }
+
+  return (\@major,\@minor);
 }
 
 # reverse of translate(); given index, return rgb tripler
@@ -780,6 +847,17 @@ a set of tag/value pairs as follows:
   -all_callbacks Whether to invoke callbacks on      false
                the automatic "track" and "group"
                glyphs.
+
+  -grid        Whether to draw a vertical grid in    false
+               the background.  Pass a scalar true
+               value to have a grid drawn at
+               regular intervals (corresponding
+               to the minor ticks of the arrow
+	       glyph).  Pass an array reference
+               to draw the grid at the specified
+               positions.
+
+  -gridcolor   Color of the grid                     lightcyan
 
 Typically you will pass new() an object that implements the
 Bio::RangeI interface, providing a length() method, from which the

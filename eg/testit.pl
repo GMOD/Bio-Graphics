@@ -8,7 +8,7 @@ use Bio::Graphics::Feature;
 
 my $ftr = 'Bio::Graphics::Feature';
 
-my $segment = $ftr->new(-start=>1,-end=>1000,-name=>'ZK154',-type=>'clone');
+my $segment = $ftr->new(-start=>-100,-end=>1000,-name=>'ZK154',-type=>'clone');
 my $zk154_1 = $ftr->new(-start=>-50,-end=>800,-name=>'ZK154.1',-type=>'gene');
 my $zk154_2 = $ftr->new(-start=>380,-end=>500,-name=>'ZK154.2',-type=>'gene');
 my $zk154_3 = $ftr->new(-start=>900,-end=>1200,-name=>'ZK154.3',-type=>'gene');
@@ -16,9 +16,9 @@ my $zk154_3 = $ftr->new(-start=>900,-end=>1200,-name=>'ZK154.3',-type=>'gene');
 my $zed_27 = $ftr->new(-segments=>[[400,500],[550,600],[800,950]],
 		   -name=>'zed-27',
 		   -subtype=>'exon',-type=>'transcript');
-my $abc3 = $ftr->new(-segments=>[[550,500],[400,350],[200,100]],
+my $abc3 = $ftr->new(-segments=>[[100,200],[350,400],[500,550]],
 		    -name=>'abc53',
- 		    -strand => +1,
+		     -strand => -1,
 		    -subtype=>'exon',-type=>'transcript');
 my $xyz4 = $ftr->new(-segments=>[[40,80],[100,120],[200,280],[300,320]],
 		     -name=>'xyz4',
@@ -61,6 +61,8 @@ foreach (@segments) {
 }
 
 my $panel = Bio::Graphics::Panel->new(
+				      -grid => [50,100,150,200,250,300,310,320,330],
+				      -gridcolor => 'orange',
 				      -segment => $segment,
 #				      -offset => 300,
 #				      -length  => 1000,
@@ -71,8 +73,8 @@ my $panel = Bio::Graphics::Panel->new(
 				      -pad_left => 20,
 				      -pad_right=> 20,
 #				      -bgcolor => 'teal',
-#				      -key_style => 'between',
-				      -key_style => 'bottom',
+				      -key_style => 'between',
+#				      -key_style => 'bottom',
 				     );
 my @colors = $panel->color_names();
 
@@ -87,6 +89,7 @@ $panel->add_track(
 $panel->add_track($segment,
 		  -glyph => 'arrow',
 		  -label => 'base pairs',
+		  -double => 1,
 		  -bump => 0,
 		  -height => 10,
 		  -arrowstyle=>'regular',

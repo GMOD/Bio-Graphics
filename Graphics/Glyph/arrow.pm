@@ -64,9 +64,14 @@ sub draw_parallel {
   my $a2 = ($y2-$y1)/2;
   my $center = $y1+$a2;
 
-  my $ne   = $self->option('northeast');
-  my $sw   = $self->option('southwest');
-  my $base = $self->option('base');
+  my ($ne,$sw,$base);
+  if ($self->option('double')) {
+    $ne = $sw = 1;
+  } else {
+    $ne   = $self->option('northeast') || $self->option('east');
+    $sw   = $self->option('southwest') || $self->option('west');
+    $base = $self->option('base');
+  }
 
   unless (defined($ne) || defined($sw)) {
     # turn on both if neither specified
@@ -86,53 +91,25 @@ sub draw_parallel {
 
   # turn on ticks
   if ($self->option('tick')) {
-    my $left = shift;
-
-    my $scale = $self->scale;
-
-    # figure out tick mark scale
-    # we want no more than 1 tick mark every 30 pixels
-    # and enough room for the labels
     my $font = $self->font;
-    my $width = $font->width;
+    my $width      = $font->width;
     my $font_color = $self->fontcolor;
+    my ($major_ticks,$minor_ticks) = $self->panel->ticks($self->start,$self->end,$font);
 
-    my $interval = 1;
-    my $mindist =  30;
-    my $widest = 5 + (length($self->end) * $width);
-    $mindist = $widest if $widest > $mindist;
+    ## Does the user want to override the internal scale?
+    my $scale = $self->option('scale');
 
-    while (1) {
-      my $pixels = $interval * $scale;
-      last if $pixels >= $mindist;
-      $interval *= 10;
-    }
-
-    my $first_tick = $interval * int(0.5 + $self->start/$interval);
-    my $pl = $self->panel->pad_left;
-
-    for (my $i = $first_tick; $i < $self->end; $i += $interval) {
-      my $tickpos = $left + $self->map_pt($i);
-      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg)
-	unless $tickpos <= $pl;
+    for my $i (@$major_ticks) {
+      my $tickpos = $dx + $self->map_pt($i);
+      $gd->line($tickpos,$center-$a2,$dx+$tickpos,$center+$a2,$fg);
       my $middle = $tickpos - (length($i) * $width)/2;
-
-      ## Does the user want to override the internal scale?
-      my $label;
-      if ($self->option('scale')) {
-	my $arb_scale = $self->option('scale');
-	$label = ($i / $arb_scale);
-      } else {
-	$label = $i;
-      }
-
-      $gd->string($font,$middle,$center+$a2-1,$label,$font_color)
-	unless $middle <= $pl;
+      my $label = $scale ? $i / $scale : $i;
+      $gd->string($font,$middle,$center+$a2-1,$label,$font_color);
     }
 
     if ($self->option('tick') >= 2) {
       my $a4 = ($y2-$y1)/4;
-      for (my $i = $self->start+$interval/10; $i < $self->end; $i += $interval/10) {
+      for my $i (@$minor_ticks) {
 	my $tickpos = $dx + $self->map_pt($i);
 	$gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
       }
@@ -184,9 +161,15 @@ options are recognized:
 	      arrowhead(depending 
 	      on orientation)
 
+  -east       synonym of above
+
   -southwest  Force a south or west         true
 	      arrowhead(depending 
 	      on orientation)
+
+  -west       synonym of above
+
+  -double     force-doubleheaded arrow
 
   -base       Draw a vertical base at the   false
               non-arrowhead side
