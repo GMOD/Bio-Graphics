@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.7 2001-11-26 14:42:39 lstein Exp $
+# $Id: Browser.pm,v 1.8 2001-11-26 23:14:06 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -96,9 +96,8 @@ sub make_link {
 sub get_link {
   my $self = shift;
   my $label = shift;
-  if (exists $self->{_link}{$label}) {
-    return $self->{_link}{$label}
-  } else {
+
+  unless (exists $self->{_link}{$label}) {
     my $link = $self->{_link}{$label} = $self->config->label2link($label);
     if ($link =~ /^sub\s+\{/) { # a subroutine
       my $coderef = eval $link;
@@ -106,6 +105,8 @@ sub get_link {
       $self->{_link}{$label} = $coderef;
     }
   }
+
+  return $self->{_link}{$label};
 }
 
 sub labels {
