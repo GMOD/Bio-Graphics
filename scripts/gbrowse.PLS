@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.16 2001-12-21 15:52:26 lstein Exp $
+# $Id: gbrowse.PLS,v 1.17 2001-12-21 17:56:18 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -134,7 +134,7 @@ if(param('Download Data') && $page_settings->{'3d_party'}) {
 
 
 ## HANDLING FILE UPLOADS ######################################################################
-if (my $file = param('upload_annotations')) {
+if (param('Upload') && (my $file = param('upload_annotations'))) {
   handle_upload($page_settings,$file);
 }
 
@@ -320,6 +320,7 @@ sub get_settings {
     @settings{'name','ref','start','stop'} = ('','','','');
     $settings{width}   = $CONFIG->setting('default width');
     $settings{source}  = $CONFIG->source;
+    $settings{eurl}    = [];
     $settings{id}      = md5_hex(rand);  # new identity
     set_default_tracks(\%settings);
   }
@@ -467,7 +468,7 @@ sub zoomBar {
 sub labels {
   my $settings = shift;
   my @labels = $CONFIG->labels;
-  push @labels,'Uploaded Annotations' if $settings->{'3d_party'};
+  push @labels,'Uploaded Annotations (if available)';# if $settings->{'3d_party'};
   push @labels,@{$settings->{eurl}}   if $settings->{eurl};
   @labels;
 }
@@ -593,7 +594,7 @@ sub custom_table {
 
 # URLs for external annotations
 sub external_table {
-  my $settings = shift;
+  my $settings      = shift;
   my $feature_files = shift;
   my @rows;
   if (my $urls     = $settings->{eurl}) {
@@ -987,7 +988,6 @@ sub commas {
   $i;
 }
 
-
 sub multiple_choices {
   my $segments = shift;
   my $settings = shift;
@@ -1173,10 +1173,10 @@ sub open_3d_party_file {
 
 sub load_3d_party_features {
   my ($segment,$settings) = @_;
-  return unless $settings->{'3d_party'};
+  return undef unless $settings->{'3d_party'};
 
   my $width = $settings->{width} or return;
-  my $fh = open_3d_party_file($settings,"<") or return;
+  my $fh = open_3d_party_file($settings,"<") or return undef;
 
   my $rel2abs = coordinate_mapper($segment) if $segment;
 
@@ -1196,6 +1196,7 @@ sub load_3d_party_features {
 
 sub load_external_sources {
   my ($segment,$settings) = @_;
+  return unless $settings->{eurl};
   my $rel2abs = coordinate_mapper($segment) if $segment;
   my @files;
   for (my $i = 0; $i < @{$settings->{eurl}}; $i++) {
@@ -1365,8 +1366,8 @@ sub adjust_tracks {
   }
 
   elsif ($old_count > $new_count) { # shrank
-    $settings->{labels} = [grep {$_ < $new_count} @{$settings->{labels}}];
-    $settings->{track}  = [grep {$_ < $new_count} @{$settings->{track}}];
+    $settings->{labels} = [grep {defined($_) && $_ < $new_count} @{$settings->{labels}}];
+    $settings->{track}  = [grep {defined($_) && $_ < $new_count} @{$settings->{track}}];
     splice(@{$settings->{options}},$old_count-$new_count,$new_count);
   }
 
@@ -1525,6 +1526,9 @@ sub help {
   print div({-align=>'RIGHT'},$do_close);
   close F;
 }
+
+
+
 
 
 
