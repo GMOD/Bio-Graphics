@@ -39,4 +39,4 @@ make_docs.pl
 eg/testit.pl
 eg/testit2.pl
 scripts/feature_draw.PLS
-scripts/rend.PLS
+scripts/frend.PLS
