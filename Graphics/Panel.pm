@@ -10,7 +10,7 @@ use vars '$VERSION';
 $VERSION = '0.91';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
-use constant KEYSPACING   => 10; # extra space between key columns
+use constant KEYSPACING   => 5; # extra space between key columns
 use constant KEYPADTOP    => 5;  # extra padding before the key starts
 use constant KEYCOLOR     => 'wheat';
 use constant KEYSTYLE     => 'bottom';

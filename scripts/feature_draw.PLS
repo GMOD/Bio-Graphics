@@ -168,8 +168,7 @@ Negative ranges are allowed.
 =head1 Feature Files Format
 
 This script accepts and processes sequence annotations in a simple
-tab-delimited format.  It does not support straight GFF at the current
-time, but it will soon.
+tab-delimited format or in GFF format.
 
 The feature file format has a configuration section and a data
 section. The configuration section sets up the size and overall

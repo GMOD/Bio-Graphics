@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.7 2001-12-17 04:11:21 lstein Exp $
+# $Id: FeatureFile.pm,v 1.8 2001-12-21 15:52:26 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -42,6 +42,7 @@ sub new {
 		   },$class;
   $self->{coordinate_mapper} = $args{-map_coords} 
     if exists $args{-map_coords} && ref($args{-map_coords}) eq 'CODE';
+  $self->{smart_features}    = $args{-smart_features} if exists $args{-smart_features};
 
   # call with
   #   -file
@@ -67,6 +68,13 @@ sub error {
   my $self = shift;
   my $d = $self->{error};
   $self->{error} = shift if @_;
+  $d;
+}
+
+sub smart_features {
+  my $self = shift;
+  my $d = $self->{smart_features};
+  $self->{smart_features} = shift if @_;
   $d;
 }
 
@@ -100,10 +108,12 @@ sub parse_text {
   my $text = shift;
 
   $self->{seenit} = {};
+  $self->{features} = {};
   foreach (split /\r?\n|\r\n?/,$text) {
     $self->parse_line($_);
   }
   $self->consolidate_groups;
+  delete $self->{seenit};
 }
 
 sub parse_line {
@@ -129,7 +139,6 @@ sub parse_line {
     $self->{current_tag} = $tag;
     return;
   }
-
 
   if (/^\s+(.+)/ && $self->{current_tag}) { # continuation line
       my $value = $1;
@@ -157,7 +166,7 @@ sub parse_line {
     return;
   }
 
-  my($ref,$type,$name,$strand,$bounds,$description);
+  my($ref,$type,$name,$strand,$bounds,$description,$url);
 
   if (@tokens >= 8) { # conventional GFF file
     my ($r,$source,$method,$start,$stop,$score,$s,$phase,@rest) = @tokens;
@@ -166,18 +175,21 @@ sub parse_line {
     $bounds = join '..',$start,$stop;
     $strand = $s;
     if ($group) {
-      my $notes;
+      my ($notes,@notes);
       (undef,$self->{groupname},undef,undef,$notes) = split_group($group);
-      $description = join '; ',@$notes if @$notes;
+      foreach (@$notes) {
+	if (m!^(http|ftp)://!) { $url = $_ } else { push @notes,$_ }
+      }
+      $description = join '; ',@notes if @notes;
     }
     $name ||= $self->{groupname};
     $ref = $r;
   }
 
   elsif ($tokens[2] =~ /^[+-]$/) { # old simplified version
-    ($type,$name,$strand,$bounds,$description) = @tokens;
+    ($type,$name,$strand,$bounds,$description,$url) = @tokens;
   } else {                              # new simplified version
-    ($type,$name,$bounds,$description) = @tokens;
+    ($type,$name,$bounds,$description,$url) = @tokens;
   }
 
   $type ||= $self->{grouptype};
@@ -211,13 +223,21 @@ sub parse_line {
 									  -segments => \@parts,
 									  -source   => $description,
 									  -ref      => $ref,
+									  -url      => $url,
 									 );
+    $feature->configurator($self) if $self->smart_features;
     if ($self->{grouptype}) {
       push @{$self->{groups}{$self->{grouptype}}{$self->{groupname}}},$feature;
     } else {
       push @{$self->{features}{$type}},$feature;
     }
   }
+}
+
+# break circular references
+sub destroy {
+  my $self = shift;
+  delete $self->{features};
 }
 
 # return configuration information
@@ -345,13 +365,16 @@ sub split_group {
 }
 
 # render our features onto a panel using configuration data
+# return the number of tracks inserted
 sub render {
   my $self = shift;
   my $panel = shift;
-  my $position_to_insert = shift;
+  my ($position_to_insert,$options) = @_;
 
   $panel ||= $self->new_panel;
 
+  # count up number of tracks inserted
+  my $tracks = 0;
   my $color;
   my %types = map {$_=>1} $self->configured_types;
 
@@ -360,13 +383,19 @@ sub render {
 
   my @base_config = $self->style('general');
 
+  $options ||= 0;
+  my @override = ();
+  push @override,(-bump => 1) if $options >= 1;
+  push @override,(-label =>1) if $options >= 2;
+
   for my $type (@configured_types,@unconfigured_types) {
     my @config = ( -glyph   => 'segments',         # really generic
 		   -bgcolor => $COLORS[$color++ % @COLORS],
 		   -label   => 1,
 		   -key     => $type,
-		   @base_config,             # global
+		   @base_config,         # global
 		   $self->style($type),  # feature-specificp
+		   @override,
 		 );
     my $features = $self->features($type);
     if (defined($position_to_insert)) {
@@ -374,8 +403,9 @@ sub render {
     } else {
       $panel->add_track($features,@config);
     }
+    $tracks++;
   }
-  $panel;
+  $tracks;
 }
 
 # create a panel if needed
@@ -422,6 +452,67 @@ sub refs {
   keys %$refs;
 }
 
+sub feature2label {
+  my $self = shift;
+  my $feature = shift;
+  my $type  = $feature->type;
+  my $label = $self->type2label($type) || $self->type2label($feature->primary_tag) || $type;
+  $label;
+}
+sub label2link {
+  my $self = shift;
+  my $label = shift;
+  $self->setting($label,'link') || $self->setting('general','link');
+}
+
+sub make_link {
+  my $self     = shift;
+  my $feature  = shift;
+  my $label    = $self->feature2label($feature) or return;
+  my $linkrule = $self->get_linkrule($label)    or return;
+  $self->_link($feature,$linkrule);
+}
+
+sub get_linkrule {
+  my $self = shift;
+  my $label = shift;
+  return $self->{_link}{$label} ||= $self->label2link($label);
+}
+
+sub _link {
+  my $self = shift;
+  my ($feature,$link) = @_;
+  $link =~ s/\$(\w+)/
+    $1 eq 'name'   ? $feature->name
+      : $1 eq 'class'  ? $feature->class
+      : $1 eq 'type'   ? $feature->method
+      : $1 eq 'method' ? $feature->method
+      : $1 eq 'source' ? $feature->source
+      : $1
+       /exg;
+  return $link;
+}
+
+# given a feature type, return its label
+sub type2label {
+  my $self = shift;
+  my $type = shift;
+  $self->{_type2label} ||= $self->invert_types;
+  $self->{_type2label}{$type};
+}
+
+sub invert_types {
+  my $self = shift;
+  my $config  = $self->{config} or return;
+  my %inverted;
+  for my $label (keys %{$config}) {
+    my $feature = $config->{$label}{feature} or next;
+    foreach (shellwords($feature)) {
+      $inverted{$_} = $label;
+    }
+  }
+  \%inverted;
+}
 
 1;
 

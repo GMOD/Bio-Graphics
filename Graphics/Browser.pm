@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.10 2001-12-17 04:11:21 lstein Exp $
+# $Id: Browser.pm,v 1.11 2001-12-21 15:52:25 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -71,47 +71,13 @@ sub default_label_indexes {
 sub feature2label {
   my $self = shift;
   my $feature = shift;
-  my $conf = $self->config;
-  my $type  = $feature->type;
-  my $label = $conf->type2label($type) || $conf->type2label($feature->primary_tag) || $type;
-  $label;
+  return $self->config->feature2label($feature);
 }
 
 sub make_link {
-  my $self     = shift;
-  my $feature  = shift;
-  my $label = $self->feature2label($feature) or return;
-  my $link  = $self->get_link($label) or return;
-  if (ref $link eq 'CODE') {
-    return $link->($feature);
-  }
- 
-  else {
-    $link =~ s/\$(\w+)/
-      $1 eq 'name'   ? $feature->name
-      : $1 eq 'class'  ? $feature->class
-      : $1 eq 'method' ? $feature->method
-      : $1 eq 'source' ? $feature->source
-      : $1
-       /exg;
-    return $link;
-  }
-}
-
-sub get_link {
   my $self = shift;
-  my $label = shift;
-
-  unless (exists $self->{_link}{$label}) {
-    my $link = $self->{_link}{$label} = $self->config->label2link($label);
-    if ($link =~ /^sub\s+\{/) { # a subroutine
-      my $coderef = eval $link;
-      warn $@ if $@;
-      $self->{_link}{$label} = $coderef;
-    }
-  }
-
-  return $self->{_link}{$label};
+  my $feature = shift;
+  return $self->config->make_link($feature);
 }
 
 sub labels {
@@ -135,23 +101,22 @@ sub width {
 # Generate the image and the box list, and return as a two-element list.
 # arguments:
 # $segment       A feature iterator that responds to next_feature() methods
-# $feature_file  A Bio::Graphics::FeatureFile object containing 3d party features
-# $labels        An array of indexes into the labels list
-# $order         An array of label indexes indicating order of tracks
+# $feature_files A list of Bio::Graphics::FeatureFile objects containing 3d party features
+# $show          An array of booleans indicating which labels should be shown
 # $options       An array of options, where 0=auto, 1=force bump, 2=force label
+# $order         An array of label indexes indicating order of tracks
 sub image_and_map {
   my $self = shift;
-  my ($segment,$feature_file,
-      $labels,$order,$options) = @_;
+  my ($segment,$feature_files,$show,$order,$options) = @_;
 
-  my %ok = map {$_=>1} @$labels;
   my @labels = $self->labels;
 
   my $width = $self->width;
   my $conf  = $self->config;
   my $max_labels = $conf->setting(general=>'label density') || 10;
   my $max_bump   = $conf->setting(general=>'bump density')  || 50;
-  my @feature_types = map {$conf->label2type($labels[$_])} @$labels;
+
+  my @feature_types = map {$conf->label2type($labels[$_])} grep {$show->[$_]} (0..@labels-1);
 
   # Create the tracks that we will need
   my $panel = Bio::Graphics::Panel->new(-segment => $segment,
@@ -164,16 +129,18 @@ sub image_and_map {
 		    -tick=>2,
 		   );
 
-  my (%tracks,%options,$extra_track);
+  my (%tracks,%options,@blank_tracks);
   $order ||= [0..$self->labels-1];
+
   for (my $i = 0; $i < @$order; $i++) {
     my $l        = $order->[$i];
     my $label    = $labels[$l];
-    next unless $ok{$l};
 
-    # mark where the third party annotations are inserted
+    # skip this if it isn't in the @$show array
+    next unless $show->[$l];
+    # if we don't have a configured label, then it is a third party annotation
     unless ($label) {
-      $extra_track = $i;
+      push @blank_tracks,$i;
       next;
     }
 
@@ -185,51 +152,65 @@ sub image_and_map {
     $options{$label} = $options->[$l];
   }
 
-  my $iterator = $segment->features(-type=>\@feature_types,-iterator=>1);
-  my (%similarity,%feature_count);
+  if (@feature_types) {  # don't do anything unless we have features to fetch!
+    my $iterator = $segment->features(-type=>\@feature_types,-iterator=>1);
+    my (%similarity,%feature_count);
 
-  while (my $feature = $iterator->next_feature) {
+    while (my $feature = $iterator->next_feature) {
 
-    my $label = $self->feature2label($feature);
-    my $track = $tracks{$label} or next;
+      my $label = $self->feature2label($feature);
+      my $track = $tracks{$label} or next;
 
-    $feature_count{$label}++;
+      $feature_count{$label}++;
 
-    # special case to handle paired EST reads
-    if ($feature->method =~ /^(similarity|alignment)$/) {
-      push @{$similarity{$label}},$feature;
-      next;
+      # special case to handle paired EST reads
+      if ($feature->method =~ /^(similarity|alignment)$/) {
+	push @{$similarity{$label}},$feature;
+	next;
+      }
+      $track->add_feature($feature);
     }
-    $track->add_feature($feature);
-  }
 
-  # handle the similarities as a special case
-  for my $label (keys %similarity) {
-    my $set = $similarity{$label};
-    my %pairs;
-    for my $a (@$set) {
-      (my $base = $a->name) =~ s/\.[fr35]$//i;
-      push @{$pairs{$base}},$a;
+    # handle the similarities as a special case
+    for my $label (keys %similarity) {
+      my $set = $similarity{$label};
+      my %pairs;
+      for my $a (@$set) {
+	(my $base = $a->name) =~ s/\.[fr35]$//i;
+	push @{$pairs{$base}},$a;
+      }
+      my $track = $tracks{$label};
+      foreach (values %pairs) {
+	$track->add_group($_);
+      }
     }
-    my $track = $tracks{$label};
-    foreach (values %pairs) {
-      $track->add_group($_);
-    }
-  }
 
-  # configure the tracks based on their counts
-  for my $label (keys %tracks) {
-    next unless $feature_count{$label};
-    my $do_bump  = $options{$label} >= 1 || $feature_count{$label} <= $max_bump;
-    my $do_label = $options{$label} >= 2 || $feature_count{$label} <= $max_labels;
-    $tracks{$label}->configure(-bump  => $do_bump,
-			       -label => $do_label,
-			       -description => $do_label && $tracks{$label}->option('description'),
-			      );
+    # configure the tracks based on their counts
+    for my $label (keys %tracks) {
+      next unless $feature_count{$label};
+      $options{$label} ||= 0;
+      my $do_bump  = $options{$label} >= 1 || $feature_count{$label} <= $max_bump;
+      my $do_label = $options{$label} >= 2 || $feature_count{$label} <= $max_labels;
+      $tracks{$label}->configure(-bump  => $do_bump,
+				 -label => $do_label,
+				 -description => $do_label && $tracks{$label}->option('description'),
+				);
+    }
   }
 
   # add additional features, if any
-  $feature_file->render($panel,1+$extra_track) if $feature_file && defined($extra_track);
+  $feature_files ||= [];
+  my $offset = 0;
+  for my $track (@blank_tracks) {
+    my $feature = $order->[$track];
+
+    # Implicitly, the third party features begin at the end of our internal
+    # feature label list.
+    my $file    = $feature_files->[$feature - @labels] or next;
+    $track += $offset + 1;
+    my $inserted = $file->render($panel,$track,$options->[$feature]);
+    $offset += $inserted;
+  }
 
   my $boxes    = $panel->boxes;
   my $gd       = $panel->gd;
@@ -314,8 +295,6 @@ sub read_configuration {
   return \%config;
 }
 
-
-
 package Bio::Graphics::BrowserConfig;
 use strict;
 use Bio::Graphics::FeatureFile;
@@ -335,12 +314,6 @@ sub label2type {
   return shellwords($self->setting($label,'feature'));
 }
 
-sub label2link {
-  my $self = shift;
-  my $label = shift;
-  $self->setting($label,'link') || $self->setting('general','link');
-}
-
 sub label2index {
   my $self = shift;
   my $label = shift;
@@ -349,13 +322,6 @@ sub label2index {
     $self->{label2index} = { map {$_=>$index++} $self->labels };
   }
   return $self->{label2index}{$label};
-}
-
-sub type2label {
-  my $self = shift;
-  my $type = shift;
-  $self->{_type2label} ||= $self->invert_types;
-  $self->{_type2label}{$type};
 }
 
 sub invert_types {
@@ -395,6 +361,43 @@ sub summary_mode {
     $pairs{$_} = \@l
   }
   \%pairs;
+}
+
+# override get_linkrule to allow for code references
+sub get_linkrule {
+  my $self = shift;
+  my $label = shift;
+
+  unless (exists $self->{_link}{$label}) {
+    my $link = $self->{_link}{$label} = $self->label2link($label);
+    if ($link =~ /^sub\s+\{/) { # a subroutine
+      my $coderef = eval $link;
+      warn $@ if $@;
+      $self->{_link}{$label} = $coderef;
+    }
+  }
+
+  return $self->{_link}{$label};
+}
+
+# override _link() method to allow code references
+sub _link {
+  my $self     = shift;
+  my ($feature,$link) = @_;
+  if (ref $link eq 'CODE') {
+    return $link->($feature);
+  }
+
+  else {
+    $link =~ s/\$(\w+)/
+      $1 eq 'name'   ? $feature->name
+      : $1 eq 'class'  ? $feature->class
+      : $1 eq 'method' ? $feature->method
+      : $1 eq 'source' ? $feature->source
+      : $1
+       /exg;
+    return $link;
+  }
 }
 
 1;

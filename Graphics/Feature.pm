@@ -2,13 +2,15 @@ package Bio::Graphics::Feature;
 use strict;
 
 use vars '$VERSION';
-$VERSION = 1.1;
+$VERSION = 1.2;
 
 *stop        = \&end;
 *info        = \&name;
 *seqname     = \&name;
 *type        = \&primary_tag;
 *exons       = *sub_SeqFeature = *merged_segments = \&segments;
+*class       = *method = \&type;
+*source      = \&source_tag;
 
 # usage:
 # Bio::Graphics::Feature->new(
@@ -36,6 +38,7 @@ sub new {
   $self->{start}   = $arg{-start};
   $self->{stop}    = $arg{-end} || $arg{-stop};
   $self->{ref}     = $arg{-ref};
+  $self->{url}     = $arg{-url} if $arg{-url};
 
   # fix start, stop
   if (defined $self->{stop} && defined $self->{start}
@@ -132,6 +135,39 @@ sub introns {
   my $self = shift;
   return;
 }
+
+# get/set the configurator (Bio::Graphics::FeatureFile) for this feature
+sub configurator {
+  my $self = shift;
+  my $d = $self->{configurator};
+  $self->{configurator} = shift if @_;
+  $d;
+}
+
+# get/set the url for this feature
+sub url {
+  my $self = shift;
+  my $d = $self->{url};
+  $self->{url} = shift if @_;
+  $d;
+}
+
+# make a link
+sub make_link {
+  my $self = shift;
+  if (my $url = $self->url) {
+    return $url;
+  }
+
+  elsif (my $configurator = $self->configurator) {
+    return $configurator->make_link($self);
+  }
+
+  else {
+    return;
+  }
+}
+
 
 1;
 

@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.15 2001-12-17 04:11:21 lstein Exp $
+# $Id: gbrowse.PLS,v 1.16 2001-12-21 15:52:26 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -29,9 +29,10 @@ use Bio::Graphics::Browser;
 use Digest::MD5 'md5_hex';
 use File::Path 'mkpath';
 use Text::Tabs;
+use Text::Shellwords;
 use Carp;
 use CGI qw(:standard escape center *table *dl *TR *td);
-use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT $HEADER $HTML $tabstop);
+use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT $HEADER $HTML $UA $tabstop);
 
 # if you change the zoom/nav icons, you must change this as well.
 use constant MAG_ICON_HEIGHT => 20;
@@ -42,8 +43,11 @@ use constant DEFAULT_SEGMENT => 100_000;
 use constant OVERVIEW_RATIO  => 0.9;
 use constant ANNOTATION_EDIT_ROWS => 25;
 use constant ANNOTATION_EDIT_COLS => 100;
+use constant URL_FETCH_TIMEOUT    => 5;  # five seconds max!
+use constant URL_FETCH_MAX_SIZE   => 1_000_000;  # don't accept any files larger than 1 Meg
 
 # if true, turn on surrounding rectangles for debugging the image map
+use constant DEBUG => 0;
 use constant DEBUGGING_RECTANGLES => 0;
 
 ###################################################################
@@ -73,7 +77,6 @@ if ($ENV{MOD_PERL}) {
     $CONF_DIR = Apache->server_root_relative($conf) if $conf;
 }
 $CONF_DIR ||= CONF_DIR;
-
 
 # preliminaries -- set up some globals
 $CONFIG         = Bio::Graphics::Browser->new($CONF_DIR)
@@ -133,10 +136,18 @@ if(param('Download Data') && $page_settings->{'3d_party'}) {
 ## HANDLING FILE UPLOADS ######################################################################
 if (my $file = param('upload_annotations')) {
   handle_upload($page_settings,$file);
-} elsif (my $data = param('a_data')) {
+}
+
+elsif (defined(my $data = param('a_data'))) {
   handle_edit($page_settings,$data);
 }
 
+elsif ($data = param('quickie')) {
+  handle_quickie($page_settings,$data);
+}
+
+clear_3d_party($page_settings) if param('Delete Data');
+adjust_tracks($page_settings);
 
 ## UPDATING THE PERSISTENT SETTINGS##############################################################
 print header(-cookie => settings2cookie($page_settings)) unless $HEADER++;
@@ -149,8 +160,7 @@ my $segment;
 print
   start_html(-title => 'Genome browser',
 	     -style  => {src=>$CONFIG->setting('stylesheet')},
-	    ),
-  h1($description) unless $HTML++;
+	    ) unless $HTML++;
 
 ## HANDLE 3d PARTY EDITS ########################################################################
 if (param('Edit Data...')) {
@@ -166,13 +176,15 @@ elsif (param('Set Track Options...') ||
 elsif (param('Revert to Defaults')) {
   set_default_tracks($page_settings);
   set_track_options($page_settings);
+} elsif (param('help')) {
+  help(param('help'),$CONF_DIR);
 }
 
 
 
 ## MAIN DISPLAY
 else {
-  clear_3d_party($page_settings) if param('Delete Data');
+  print h1($description);
   main_display(\@segments,$page_settings);
 }
 
@@ -180,8 +192,11 @@ else {
 print
   $CONFIG->setting('footer') || '',
   p(i(font({-size=>'small'},
-	   'Note: This page uses cookie to save and restore preference information. No information is shared.'))),
+	   'Note: This page uses cookie to save and restore preference information.',
+	   'No information is shared.'))),
   end_html;
+
+#--------------------------------- lots of subroutines --------------------------
 
 sub main_display {
   my ($segments,$page_settings) = @_;
@@ -202,7 +217,8 @@ sub main_display {
   }
 
   # get the third party features
-  my $feature_file = load_3d_party_features($segment,$page_settings);
+  my @feature_file = load_3d_party_features($segment,$page_settings);
+  push @feature_file,load_external_sources($segment,$page_settings);
 
   print start_multipart_form(-action=>url(-relative=>1,-path_info=>1)),
     navigation_table($segment,$page_settings);
@@ -211,7 +227,7 @@ sub main_display {
     my $cell = overview($segment,$page_settings);
     $cell .= br();
     if ($segment->length <= $MAX_SEGMENT) {
-      $cell .= image_and_map($segment,$feature_file,$page_settings);
+      $cell .= image_and_map($segment,\@feature_file,$page_settings);
     } else {
       $cell .= i(
 		 "Detailed view is limited to",
@@ -225,7 +241,15 @@ sub main_display {
 	       );
   }
   print hidden('ref'),hidden('start'),hidden('stop');
-  print settings_table($page_settings,$feature_file), end_form();
+  print settings_table($page_settings);
+  print p(),custom_table($page_settings,\@feature_file);
+  print p(),external_table($page_settings,\@feature_file);
+  print end_form();
+
+  # clean us up
+  foreach (@feature_file) {
+    $_ && $_->destroy;
+  }
 }
 
 
@@ -247,46 +271,56 @@ sub get_settings {
   my %settings = cookie("gbrowse_$source");
 
   my $ok = 1;
-  my @labels = labels();
+  my @labels = $CONFIG->labels;
   if (%settings) {  # if cookie is there, then validate it
     $ok &&= defined $settings{width} && $settings{width} > 100 && $settings{width} < 5000;
+    warn "ok 1 = $ok" if DEBUG;
+
     my %ok_sources = map {$_=>1} $CONFIG->sources;
     $ok &&= $ok_sources{$settings{source}};
+    warn "ok 2 = $ok" if DEBUG;
 
-    # the labels array is delimited by $;
-    # labels that are turned on
-    my @selected_labels = split $;,$settings{labels} if defined $settings{labels};
-    foreach (@selected_labels) {
-      $ok &&= (/^\d+$/ && $_ >= 0 && $_ < @labels);
-    }
-    $settings{labels} = \@selected_labels if $ok;
+    my @labels   = split $;,$settings{labels} if defined $settings{labels};
+    $settings{labels} = \@labels if @labels && $ok;
+
+    warn "ok 3 = $ok" if DEBUG;
+
+    my @external = grep {m!^(\w+)://!} split $;,$settings{eurl};
+    $settings{eurl} = \@external;
+
+    warn "ok 4 = $ok" if DEBUG;
+    $ok &&= $settings{id} =~ /^[a-z0-9]+$/;
 
     # track order definitions
     my %seen;
     my @track_order     = split $;,$settings{track} if defined $settings{track};
     foreach (@track_order) {
-      $ok &&= (/^\d+$/ && $_ >= 0 && $_ < @labels);
+      $ok &&= /^\d+$/;
       $seen{$_}++;
     }
     $ok &&= keys %seen == @track_order;
     $settings{track} =  \@track_order     if $ok && @track_order;
+    warn "ok 5 = $ok" if DEBUG;
 
     # label options
     my @track_options       = split $;,$settings{options} if defined $settings{options};
-    $ok &&= (@track_options == @labels);
+
+    $ok &&= @track_options >= $CONFIG->labels;
 
     for (my $i=0; $i < @track_options; $i++) {
-      $ok &&= ($track_options[$i]=~ /^\d+$/ && $track_options[$i] >= 0 && $track_options[$i] <= 2);
+      warn "track_options = $track_options[$i]" if DEBUG;
+      $ok &&= ($track_options[$i]=~ /^[\d-]+$/ && $track_options[$i] >= -1 && $track_options[$i] <= 2);
     }
     $settings{options} = \@track_options   if $ok && @track_options;
+    warn "ok 6 = $ok" if DEBUG;
   }
-
 
   if (!$ok || !%settings) {
     %settings = ();
     @settings{'name','ref','start','stop'} = ('','','','');
     $settings{width}   = $CONFIG->setting('default width');
     $settings{source}  = $CONFIG->source;
+    $settings{id}      = md5_hex(rand);  # new identity
     set_default_tracks(\%settings);
   }
   \%settings;
@@ -294,15 +328,19 @@ sub get_settings {
 
 sub set_default_tracks {
   my $settings = shift;
-  my @labels = labels();
-  $settings->{labels}  = [$CONFIG->default_label_indexes,@labels-1];  # turn on last one by default
+  my @labels = labels($settings);
   $settings->{track}   = [0 .. @labels-1];
+  $settings->{labels}  = [(0) x (scalar @labels)];
   $settings->{options} = [(0) x (scalar @labels)];
+  foreach ($CONFIG->default_label_indexes) {
+    $settings->{labels}[$_] = 1;
+  }
 }
 
 sub settings2cookie {
   my $settings = shift;
   my %settings = %$settings;
+  local $^W = 0;
   for my $key (keys %settings) {
     if (ref($settings{$key}) eq 'ARRAY') {
       $settings{$key} = join $;,@{$settings{$key}};
@@ -322,7 +360,8 @@ sub settings2cookie {
 sub adjust_settings {
   my $settings = shift;
   if (my @selected = param('label')) {
-    $settings->{labels} = \@selected;
+    $settings->{labels} = [];
+    $settings->{labels}[$_] = 1 foreach @selected;
   }
   $settings->{width}  = param('width')   if param('width');
 
@@ -334,15 +373,17 @@ sub adjust_settings {
     $settings->{name} = "$settings->{ref}:$settings->{start}..$settings->{stop}";
     param(name => $settings->{name});
   }
-  $settings->{name}   = param('name')    if param('name');
-  $settings->{source} = param('source')  if param('source');
+  $settings->{name}   = param('name')                       if param('name');
+  $settings->{source} = param('source')                     if param('source');
+  $settings->{eurl}   = [grep {m!^([\w.-]+)://!} param('eurl')] if defined param('eurl');
 
-  if (param('Submit Changes...')||param('Update')) {
+  if (defined(param('track')) && (param('Submit Changes...') || param('Update'))) {
     my $tracks           = adjust_track_order($settings);
     $settings->{track}   = $tracks;
     my $options          = adjust_track_options($settings);
     $settings->{options} = $options;
   }
+
 }
 
 # prints the zooming and navigation bar
@@ -362,9 +403,8 @@ sub navigation_table {
 		     td({-align=>'left', -colspan=>2},
 			'To center on a location, click the ruler.  User the Scroll/Zoom buttons to',
 			'change magnification and position.',
-			'To save this view, bookmark',a({-href=>bookmark_link($settings)},'this link.')
-		       )
-		    ),
+			'To save this view,',a({-href=>bookmark_link($settings)},'bookmark this link.')
+		       )),
 		  TR({-class=>'searchtitle', -align=>'left'},
 		     td({-class=>'searchtitle',-colspan=>$segment ? 1 : 2}, b('Landmark or Region'),
 			textfield(-name=>'name',-size=>28),
@@ -425,11 +465,15 @@ sub zoomBar {
 }
 
 sub labels {
-  return ($CONFIG->labels,'Uploaded Annotations');
+  my $settings = shift;
+  my @labels = $CONFIG->labels;
+  push @labels,'Uploaded Annotations' if $settings->{'3d_party'};
+  push @labels,@{$settings->{eurl}}   if $settings->{eurl};
+  @labels;
 }
 
 sub settings_table {
-  my ($settings,$feature_file) = @_;
+  my $settings = shift;
 
   my @widths = split /\s+/,$CONFIG->setting('image widths');
   @widths = (640,800,1024) unless @widths;
@@ -444,25 +488,36 @@ sub settings_table {
 
   my $ds        = join(', ', (map{a({-href=>"@$_->[1]"},"@$_->[0]")} @dumps));
 
-  my @labels = labels();
+  my @labels = labels($settings);
   my %labels = map {$_=>$labels[$_]} (0..@labels-1);
-  my $selected_labels = $settings->{labels};
+
+  my @defaults;
+  for (my $i = 0; $i < @labels; $i++) {
+    push @defaults,$i if $settings->{labels}[$i];
+  }
 
   my $sTable 	= '';
   $sTable.= table({-border=>0,-width=>$settings->{width}},
+		  # row
 		  TR(
 		     th({-class=>'searchtitle', -colspan=>3, -align=>'left'},'Genome Browser Search Settings:')),
+
 		  TR( td({-class=>'searchbody'},'Dump view as: '),
 		      td({-class=>'searchbody',-colspan=>2}, $ds)),
+
 		  TR(	td({-class=>'searchbody', -valign=>'top'}, 'Show features: '),
-			td({-class=>'searchbody',-colspan=>2,-width=>'80%'},
+			td({-class=>'searchbody',-colspan=>2,-width=>'85%'},
 			   checkbox_group(-name=>'label',
-					  -values   => [0..@labels-1],
+					  # use the track ordering to adjust the order of the checkboxes
+					  # this is an array slice
+					  -values   => [@{$settings->{track}}[0..@labels-1]],
 					  -labels   => \%labels,
-					  -defaults => $selected_labels,
+					  -defaults => \@defaults,
 					  -cols     => 3,
 					  -override => 1,
 					 ))),
+
+		  # row
 		  $CONFIG->sources > 1 ?
 		  (TR({-class=>'searchbody'},
 		      td('Data Source:'),
@@ -473,6 +528,8 @@ sub settings_table {
 				    -default => $CONFIG->source
 				   )))
 		   ) : '',
+
+		  # row
 		  TR({-class=>'searchbody'},
 		     td('Image Width: '),
 		     td(
@@ -488,31 +545,79 @@ sub settings_table {
 			b(submit(-name => 'Update Image'))
 		       )
 		    ),
+
+		 );
+  return $sTable;
+}
+
+sub annotation_help {
+  return url(-relative=>1,-path_info=>1) . "?help=annotation";
+}
+
+sub custom_table {
+  my $settings      = shift;
+  my $feature_files = shift;
+
+  my @info =   (a({-href=>url(-relative=>1,-path_info=>1)."?Download+Data=1"},
+		  "[".$settings->{'3d_party'}."]"),
+		get_3d_party_info($settings->{labels}[scalar $CONFIG->labels] && $feature_files->[0]))
+    if $settings->{'3d_party'};
+
+  my $cTable= table({-border=>0,-width=>$settings->{width}},
+		  # row
 		  TR(
-		     th({-class=>'searchtitle', -colspan=>3, -align=>'left'},
-			'Upload your own annotations:')
+		     th({-class=>'datatitle', -colspan=>3, -align=>'left'},
+			'Upload your own annotations:',
+			a({-href=>annotation_help(),-target=>'_new'},'[Help]'))
 		    ),
-		  $settings->{'3d_party'} ?
-		  TR(
-		     td({-class=>'searchtitle', -colspan=>3, -align=>'center'},
-			get_3d_party_info($feature_file)
-		       )
-		     )
-		  : '',
-		  TR({-class=>'searchbody'},
+
+		  # row
+		  TR({-class=>'databody'},
 		     td('Upload a File: '),
 		     td({-colspan=>2},
 			filefield(-size=>40,-name=>'upload_annotations'),
-			submit(-name=>'Upload'))
+			submit(-name=>'Upload'),br,@info
+		       )
 		    ),
-		  TR({-class=>'searchbody'},
-		     td('Create/Modify Annotation Data:'),
+
+		  # row
+		  TR({-class=>'databody'},
+		     td('Create or Modify:'),
 		     td({-colspan=>2},
 			submit(-name=>'Edit Data...').'&nbsp;'.
 			submit(-name=>'Download Data').'&nbsp;'.
 			submit(-name=>'Delete Data'))),
 		 );
-  return $sTable;
+  $cTable;
+}
+
+# URLs for external annotations
+sub external_table {
+  my $settings = shift;
+  my $feature_files = shift;
+  my @rows;
+  if (my $urls     = $settings->{eurl}) {
+    for (my $i=0;$i<@$urls;$i++) {
+      push @rows,th({-align=>'RIGHT'},"URL",$i+1).
+	td(textfield(-name=>'eurl',-size=>50,-value=>$urls->[$i],-override=>1),br,
+	   a({-href=>$urls->[$i],-target=>'_new'},'[download]'),
+	   get_3d_party_info($settings->{labels}[$CONFIG->labels+$i+1] && $feature_files->[$i+1])
+	  );
+    }
+  }
+  push @rows,th({-align=>'RIGHT'},
+		"Enter Remote Annotation URL").
+		  td(textfield(-name=>'eurl',-size=>50,-value=>'',-override=>1));
+
+  return table({-border=>0,-width=>$settings->{width}},
+	       TR({-class=>'datatitle'},
+		  th({-align=>'LEFT',-colspan=>2},
+		     'Add Remote Annotations:',a({-href=>annotation_help().'#remote',-target=>'_new'},'[Help]'))),
+	       TR({-class=>'databody'},\@rows),
+	       TR({-class=>'databody'},
+		  th({-align=>'RIGHT',-colspan=>2},
+		     submit(-name=>'eurl',-value=>'Update URLs')))
+	      ).hidden(-name=>'eurl',-value=>1,-override=>1);  # dummy variable
 }
 
 # computes the new values for start and stop when the user made use of the zooming bar or navigation bar
@@ -542,10 +647,10 @@ sub zoomnav {
   }
 
   elsif (defined $navlevel){
-    if($navlevel == 0){ $start -= int($span / 2); $stop -= int($span / 2)}
-    if($navlevel == 1){ $start -= int($span / 4); $stop -= int($span / 4)}
-    if($navlevel == 2){ $start += int($span / 4); $stop += int($span / 4)}
-    if($navlevel == 3){ $start += int($span / 2); $stop += int($span / 2)}
+    if($navlevel == 0){ $start -= int($span); $stop -= int($span )       }
+    if($navlevel == 1){ $start -= int($span / 2); $stop -= int($span / 2)}
+    if($navlevel == 2){ $start += int($span / 2); $stop += int($span / 2)}
+    if($navlevel == 3){ $start += int($span); $stop += int($span)        }
   }
 
   elsif (defined $overview_x && defined $segment_length) {
@@ -568,6 +673,11 @@ sub get_segment {
   my @segments;
 
   my $db = open_database();
+  unless ($db) {
+    error("ERROR: Unable to open database",$CONFIG->setting('description'));
+    return;
+  }
+
   $db->debug(0);
 
   if (my $name = $settings->{name}) {
@@ -673,7 +783,7 @@ sub open_database {
   if (my @aggregators = split /\s+/,$CONFIG->setting('aggregators')) {
     push @argv,(-aggregator => \@aggregators);
   }
-  $DB{$source} = Bio::DB::GFF->new(@argv) or die "Couldn't open database: ",Bio::DB::GFF->error;
+  $DB{$source} = eval {Bio::DB::GFF->new(@argv)};
   return $DB{$source};
 }
 
@@ -696,16 +806,18 @@ sub image_and_map {
   if (DEBUGGING_RECTANGLES) { debugging_rectangles($image,$map) }
 
   my ($width,$height) = $image->getBounds;
+  my @mtimes = map {$_ && $_->mtime} @$additional_features;
 
+  local $^W = 0;
   my $signature = md5_hex($segment,@{$settings->{labels}},
 			  $settings->{width},
 			  $CONFIG->source || '',
 			  $settings->{id} || '',
-			  ref($additional_features) && $additional_features->mtime,
+			  @mtimes,
 			  ref($settings->{track}) && @{$settings->{track}},
 			  ref($settings->{options}) && @{$settings->{options}}
 			 );
-  my $url       = generate_image($image,$signature);
+  my $url     = generate_image($image,$signature);
   my $img     = img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0});
   my $img_map = make_map($map);
   return join "\n",$img,$img_map;
@@ -732,7 +844,7 @@ sub overview {
 sub generate_image {
   my ($image,$signature) = @_;
   my $extension = $image->can('png') ? 'png' : 'gif';
-  my ($uri,$path) = tmpdir($CONFIG->source);
+  my ($uri,$path) = tmpdir($CONFIG->source.'/img');
   my $url         = sprintf("%s/%s.%s",$uri,$signature,$extension);
   my $imagefile   = sprintf("%s/%s.%s",$path,$signature,$extension);
   open (F,">$imagefile") || die("Can't open image file $imagefile for writing: $!\n");
@@ -773,9 +885,9 @@ sub make_map {
   $map .= make_centering_map($ruler);
 
   foreach (@$boxes){
-    next unless $_->[0]->isa('Bio::DB::GFF::RelSegment');
+    next unless $_->[0]->can('primary_tag');
+    my $href  = make_href($_->[0]) or next;
     my $alt   = make_alt($_->[0]);
-    my $href  = make_href($_->[0]);
     $map .= qq(<AREA SHAPE="RECT" COORDS="$_->[1],$_->[2],$_->[3],$_->[4]" 
 	       HREF="$href" ALT="$alt" TITLE="$alt">\n);
   }
@@ -818,8 +930,11 @@ sub make_centering_map {
 
 sub make_href {
   my $feature = shift;
-  my $href    = $CONFIG->make_link($feature);
-  return $href;
+  if ($feature->can('make_link')) {
+    return $feature->make_link;
+  } else {
+    return $CONFIG->make_link($feature);
+  }
 }
 
 sub make_alt {
@@ -997,13 +1112,12 @@ sub debugging_rectangles {
 ########## upload stuff ########
 sub handle_upload {
   my ($settings,$fh) = @_;
-  my $id = $settings->{id} ||= md5_hex(rand);  # new identity
-  my $fh_out = open_3d_party_file($settings,'>');
+  $settings->{'3d_party'} = "$fh";
+  my $fh_out = open_3d_party_file($settings,'>') or return;
   while (<$fh>) {
     print $fh_out $_;
   }
   close $fh_out;
-  $settings->{'3d_party'}++;
 }
 
 sub handle_edit {
@@ -1011,21 +1125,49 @@ sub handle_edit {
   my @lines = unexpand(split /\r?\n|\r\n?/,$data);
   $data = join "\n",@lines;
   $data .= "\n";
-
-  my $id = $settings->{id} ||= md5_hex(rand);  # new identity
   my $fh = open_3d_party_file($settings,'>');
   print $fh $data;
   close $fh;
-  $settings->{'3d_party'}++;
+  $settings->{'3d_party'} ||= 'auto';
+}
+
+sub handle_quickie {
+  my ($settings,$data) = @_;
+  return unless $data;
+  # format of quickie data is reference+type+name+start-stop,start-stop,start-stop
+  my ($reference,$type,$name,$position) = shellwords($data);
+  my $out = open_3d_party_file($settings,">>") or return;
+  print $out "\nreference=$reference\n";
+  $type .= " " . localtime;
+  print $out join ("\t",qq("$type"),$name,$position),"\n";
+  close $out;
+  $settings->{'3d_party'} = 'auto';
+}
+
+sub name_3d_party_file {
+  my $settings = shift;
+  my $id = $settings->{id} or return;
+  my (undef,$tmpdir) = tmpdir($CONFIG->source."/3d_party/$id");
+  $settings->{'3d_party'} ||= 'auto';
+  return "$tmpdir/$settings->{'3d_party'}";
 }
 
 sub open_3d_party_file {
   my $settings = shift;
   my $mode     = shift || '<';
-  my $id = $settings->{id} or return;
-  my (undef,$tmpdir) = tmpdir('3d_party');
-  my $file = "$tmpdir/$id";
-  open (F,$mode,$file) or return;
+  my $file = name_3d_party_file($settings);
+  unless ($file) {
+    error("Can't find the file named $settings->{'3d_party'}.  Perhaps it has been purged?");
+    return;
+  }
+
+  my $result = open (F,$mode,$file);
+
+  unless ($result) {
+    warn "Can't open the file named $settings->{'3d_party'}.  Perhaps it has been purged? (error: $!)";
+    return;
+  }
+
   return \*F;
 }
 
@@ -1033,11 +1175,10 @@ sub load_3d_party_features {
   my ($segment,$settings) = @_;
   return unless $settings->{'3d_party'};
 
-  my $db = open_database();
   my $width = $settings->{width} or return;
   my $fh = open_3d_party_file($settings,"<") or return;
 
-  my $rel2abs = coordinate_mapper($segment,$db) if $segment;
+  my $rel2abs = coordinate_mapper($segment) if $segment;
 
   # nasty little bit in which we handle differing line-endings for the various
   # types of operating systems...
@@ -1046,10 +1187,56 @@ sub load_3d_party_features {
   $/ = "\r"    if $agent =~ /Mac/;
   $/ = "\r\n"  if $agent =~ /Win/;
 
-  my $feature_file = Bio::Graphics::FeatureFile->new(-file       => $fh,
-						     -map_coords => $rel2abs);
+  my $feature_file = Bio::Graphics::FeatureFile->new(-file           => $fh,
+						     -map_coords     => $rel2abs,
+						     -smart_features =>1);
   close $fh;
-  return $feature_file
+  return $feature_file;
+}
+
+sub load_external_sources {
+  my ($segment,$settings) = @_;
+  my $rel2abs = coordinate_mapper($segment) if $segment;
+  my @files;
+  for (my $i = 0; $i < @{$settings->{eurl}}; $i++) {
+    my $data;
+    my $label_index = $CONFIG->labels+$i+1;
+    if ($settings->{labels}[$label_index]) { # show it
+      $data = get_remote_feature_data($settings->{eurl}[$i],$rel2abs);
+    } else {
+      $data = undef;
+    }
+    push @files,$data;
+  }
+  return @files;
+}
+
+sub get_remote_feature_data {
+  my $url = shift;
+  my $rel2abs = shift;
+
+  unless ($UA) {
+    unless (eval "require LWP") {
+      error('This browser is not configured to fetch external URLs');
+      return;
+    }
+    $UA = LWP::UserAgent->new(agent   => 'GenericGenomeBrowser/1.0',
+			      timeout => URL_FETCH_TIMEOUT,
+			      max_size => URL_FETCH_MAX_SIZE,
+			     );
+  }
+  my $id = md5_hex($url);  # turn into a filename
+  my (undef,$tmpdir) = tmpdir($CONFIG->source.'/external');
+  my $response = $UA->mirror($url,"$tmpdir/$id");
+  if ($response->is_error) {
+    error("Could not fetch $url: ",$response->message);
+    return;
+  }
+  open (F,"<","$tmpdir/$id") or return;
+  my $feature_file = Bio::Graphics::FeatureFile->new(-file           => \*F,
+						     -map_coords     => $rel2abs,
+						     -smart_features =>1);
+  return $feature_file;
 }
 
 sub print_3d_party_features {
@@ -1062,19 +1249,19 @@ sub print_3d_party_features {
 }
 
 sub get_3d_party_info {
-  my $feature_file = shift or return;
+  my $feature_file = shift or return i("Display off");
   my $modified = localtime($feature_file->mtime);
-  my @refs     = $feature_file->refs;
+  my @refs      = $feature_file->refs;
   my $url      = url(-relative=>1,-path_info=>1);
-  return i("Annotation data last modified $modified.  Reference sequences:",
-	   b(map {a({-href=>"$url?name=$_"},$_)}@refs));
+  my $landmarks = @refs < 20 ? b(map {a({-href=>"$url?name=$_"},$_)} sort @refs)
+                             : b(@refs." landmarks.  Too many to list.");
+  return i("Last modified $modified.  Annotated landmarks:"),$landmarks;
 }
 
 sub clear_3d_party {
   my $settings = shift;
-  my $id = $settings->{id} or return;
-  my (undef,$tmpdir) = tmpdir('3d_party');
-  unlink "$tmpdir/$id";
+  my $file = name_3d_party_file($settings) or return;
+  unlink $file;
   delete $settings->{'3d_party'};
 }
 
@@ -1082,7 +1269,8 @@ sub edit_3d_party {
   my $settings = shift;
   print start_form();
   my $data;
-  if (my $fh = open_3d_party_file($settings)) {
+  if ($settings->{'3d_party'} && 
+      (my $fh = open_3d_party_file($settings))) {
     $data = join '',expand(<$fh>);
   }
   print table({-width=>'100%'},
@@ -1109,14 +1297,15 @@ sub edit_3d_party {
 		),
 	      TR({-class=>'searchtitle'},
 		 th(reset('Undo Changes').'&nbsp;'.
-		    submit('Submit Changes...')))
+		    submit('Cancel').'&nbsp;'.
+		    b(submit('Submit Changes...'))))
 	     );
   print end_form();
 }
 
 sub coordinate_mapper {
   my $current_segment = shift;
-  my $db              = shift;
+  my $db              = $current_segment->factory;
 
   my ($ref,$start,$stop) = ($current_segment->ref,$current_segment->start,$current_segment->stop);
   my %segments;
@@ -1134,13 +1323,14 @@ sub coordinate_mapper {
     my $mapper   = $segments{$refname};
     my $absref   = $mapper->abs_ref;
     my @abs_segs = map {[$mapper->rel2abs($_->[0],$_->[1])]} @ranges;
+    return unless grep { $_->[0] <= $stop && $_->[1] >= $start } @abs_segs;
     return ($absref,@abs_segs);
   };
   return $closure;
 }
 
 sub error {
-  warn "@_";
+  warn "@_" if DEBUG;
   print header() unless $HEADER++;
   print start_html(-title => 'Genome browser',
 		   -style  => {src=>$CONFIG->setting('stylesheet')}) unless $HTML++;
@@ -1150,16 +1340,44 @@ sub error {
 sub bookmark_link {
   my $settings = shift;
   my $q = new CGI('');
-  foreach (qw(start stop ref source width labels)) {
+  my @keys = $settings->{name} ? qw(name source width labels eurl)
+                               : qw(start stop ref source width labels eurl);
+  foreach (@keys) {
     $q->param(-name=>$_,-value=>$settings->{$_});
   }
   return $q->url(-relative=>1,-path_info=>1,-query=>1);
 }
 
+# fix up tracks to adjust for an increase or decrease in their number
+sub adjust_tracks {
+  my $settings = shift;
+  my $old_count     = @{$settings->{track}};
+  my $new_count     = labels($settings);
+#  warn "labels = @{$settings->{labels}}";
+#  warn "options = @{$settings->{options}}";
+
+  if ($old_count < $new_count) {  # grew
+    for ($old_count .. $new_count-1) {
+      $settings->{track}[$_]     = $_;
+      $settings->{options}[$_]   = 0;
+      $settings->{labels}[$_]    = 1;
+    }
+  }
+
+  elsif ($old_count > $new_count) { # shrank
+    $settings->{labels} = [grep {$_ < $new_count} @{$settings->{labels}}];
+    $settings->{track}  = [grep {$_ < $new_count} @{$settings->{track}}];
+    splice(@{$settings->{options}},$old_count-$new_count,$new_count);
+  }
+
+#  warn "labels now = @{$settings->{labels}}";
+#  warn "options now = @{$settings->{options}}";
+}
+
 sub adjust_track_order {
   my $settings = shift;
 
-  my @labels = labels;
+  my @labels = labels($settings);
 
   # tracks[track] => feature
   my @tracks;
@@ -1203,7 +1421,7 @@ sub adjust_track_order {
 
 sub adjust_track_options {
   my $settings = shift;
-  my @option;
+  my @option = @{$settings->{options}};
   foreach (grep {/^option\./} param()) {
     my ($feature) = /(\d+)/;
     my $option    = param($_);
@@ -1216,13 +1434,12 @@ sub set_track_options {
   my $settings = shift;
 
   my $tracks = adjust_track_order($settings);
-  my @labels = labels();
+  my @labels = labels($settings);
 
   my @t      = sort { $labels[$a] cmp $labels[$b] } (0..@labels-1);
   my %labels = map { $_ => $labels[$_] } @t;
   unshift @t,-1;
   $labels{-1} = '';
-  my %on     = map {$_ => 1} @{$settings->{labels}};
 
   my @rows;
   for (my $track = 0; $track < @labels; $track++) {
@@ -1235,7 +1452,7 @@ sub set_track_options {
 	     checkbox(-name  => 'label',
 		      -value => $feature,
 		      -override => 1,
-		      -checked  => $on{$feature},
+		      -checked  => $settings->{labels}[$feature],
 		      -label => '')
 	    ).
           td({-align=>'CENTER',-class=>'searchbody'},
@@ -1254,6 +1471,7 @@ sub set_track_options {
 			-default => -1));
   }
 
+  print h1({-align=>'CENTER'},'Settings for ',$CONFIG->setting('description'));
   print start_form();
   print table({-width=>'100%',-border=>0},
 	      TR({-class=>'searchtitle'},
@@ -1291,6 +1509,24 @@ sub set_track_options {
 	     );
     print end_form();
 }
+
+sub help {
+  my $help_type = shift;
+  my $conf_dir  = shift;
+
+  open(F,"$conf_dir/${help_type}_help.html") or return;
+  my $ref = referer();
+  my $do_close = join('',
+		      start_form(-action=>$ref),
+		      button(-onClick=>'window.close()',-label=>'Close this Window'),
+		      end_form());
+  print div({-align=>'RIGHT'},$do_close);
+  print while <F>;
+  print div({-align=>'RIGHT'},$do_close);
+  close F;
+}
+
+
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";
