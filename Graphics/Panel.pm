@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.86';
+$VERSION = '0.87';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
@@ -630,7 +630,7 @@ Bio::Graphics::Panel - Generate GD images of Bio::Seq objects
 
   my @transcripts = $cosmid->transcripts;
 
-  my $panel = Ace::Graphics::Panel->new(
+  my $panel = Bio::Graphics::Panel->new(
 				      -segment => $cosmid,
 				      -width  => 800
 				     );

@@ -17,7 +17,7 @@ Bio::Graphics - Generate GD images of Bio::Seq objects
 
   my @transcripts = $cosmid->transcripts;
 
-  my $panel = Ace::Graphics::Panel->new(
+  my $panel = Bio::Graphics::Panel->new(
 				      -segment => $cosmid,
 				      -width  => 800
 				     );
