@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.12 2001-12-09 04:32:03 lstein Exp $
+# $Id: gbrowse.PLS,v 1.13 2001-12-09 05:15:52 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -41,27 +41,29 @@ use constant DEFAULT_SEGMENT => 100_000;
 use constant OVERVIEW_RATIO  => 0.9;
 
 ###################################################################
-# Non-modperl users should change this constant if needed
+# Non-modperl users should change this variable if needed to point
+# to the directory in which the configuration files are stored.
 #
-my $CONF_DIR = '/usr/local/apache/conf/gbrowse.conf';
+use constant CONF_DIR => '/usr/local/apache/conf/gbrowse.conf';
 #
 ###################################################################
 
-
-BEGIN {
-  if ($ENV{MOD_PERL}) {
-# causes iterator breakage
-# eval "use Apache::DBI";
-    eval "use Apache";
-    my $conf = Apache->request->dir_config('DasConfigFile');
-    $CONF_DIR ||= Apache->server_root_relative($conf) if $conf;
+BEGIN { 
+    eval "use Apache"; 
     warn <<END if Apache::DBI->can('connect_on_init');
 WARNING: APACHE::DBI DETECTED.
 THIS WILL CAUSE THE GFF DUMP TO FAIL INTERMITTENTLY.
 THIS SCRIPT DOES NOT BENEFIT FROM APACHE::DBI
 END
 ;
-  }
+};
+
+my $CONF_DIR;
+if ($ENV{MOD_PERL}) {
+    my $conf  = Apache->request->dir_config('GBrowseConf');
+    $CONF_DIR = Apache->server_root_relative($conf) if $conf;
+} else {
+    $CONF_DIR = CONF_DIR;
 }
 
 

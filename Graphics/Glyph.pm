@@ -37,14 +37,15 @@ sub new {
   }
 
   if (defined $self->start && defined $self->stop) {
-    my ($left,$right) = $factory->map_pt($self->start,$self->stop);
-    ($left,$right) = ($right,$left) if $left > $right;  # paranoia
-    $self->{left}    = $left;
-    $self->{width}   = $right - $left + 1;
-  } else {
-    $self->{left}    = $subglyphs[0]->{left};
-    my $right        = (sort { $b<=>$a } map {$_->right} @subglyphs)[0];
-    $self->{width}   = $right - $self->{left} + 1;
+      my ($left,$right) = $factory->map_pt($self->start,$self->stop);
+      ($left,$right) = ($right,$left) if $left > $right;  # paranoia
+      $self->{left}    = $left;
+      $self->{width}   = $right - $left + 1;
+  }
+  if (@subglyphs) {
+      $self->{left}    = $subglyphs[0]->{left};
+      my $right        = (sort { $b<=>$a } map {$_->right} @subglyphs)[0];
+      $self->{width}   = $right - $self->{left} + 1;
   }
 
   #Handle glyphs that don't actually fill their space, but merely mark a point.
