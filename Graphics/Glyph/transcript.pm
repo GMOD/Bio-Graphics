@@ -1,9 +1,9 @@
 package Bio::Graphics::Glyph::transcript;
 
 use strict;
-use Bio::Graphics::Glyph::generic;
+use Bio::Graphics::Glyph::segmented_keyglyph;
 use vars '@ISA';
-@ISA = 'Bio::Graphics::Glyph::generic';
+@ISA = 'Bio::Graphics::Glyph::segmented_keyglyph';
 
 sub pad_left  {
   my $self = shift;
@@ -67,7 +67,5 @@ sub description {
   return 0 unless $self->feature->sub_SeqFeature;
   return $self->SUPER::description(@_);
 }
-
-
 
 1;

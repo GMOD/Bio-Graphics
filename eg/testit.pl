@@ -78,8 +78,8 @@ my $panel = Bio::Graphics::Panel->new(
 				      -pad_left => 20,
 				      -pad_right=> 20,
 #				      -bgcolor => 'teal',
-				      -key_style => 'between',
-#				      -key_style => 'bottom',
+#				      -key_style => 'between',
+				      -key_style => 'bottom',
 				     );
 my @colors = $panel->color_names();
 

@@ -386,7 +386,7 @@ sub format_key {
     # and their max size
     for my $track (@{$self->{tracks}}) {
       next unless $track->option('key');
-      my $glyph = $track->keyglyph;
+      my $glyph = $track->parts ? ($track->parts)[0]->keyglyph : $track->keyglyph;
       $tracks{$track} = $glyph;
       my ($h,$w) = ($glyph->layout_height,
 		    $glyph->layout_width);

@@ -19,8 +19,11 @@ Graphics/Glyph/graded_segments.pm
 Graphics/Glyph/group.pm
 Graphics/Glyph/line.pm
 Graphics/Glyph/oval.pm
+Graphics/Glyph/pinsertion.pm
 Graphics/Glyph/primers.pm
+Graphics/Glyph/rndrect.pm
 Graphics/Glyph/segments.pm
+Graphics/Glyph/segmented_keyglyph.pm
 Graphics/Glyph/span.pm
 Graphics/Glyph/toomany.pm
 Graphics/Glyph/track.pm
