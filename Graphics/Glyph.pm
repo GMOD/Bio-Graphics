@@ -517,12 +517,12 @@ sub draw_hat_connector {
     return;
   }
 
-  if ($right - $left > 3) {  # room for the inverted "V"
-      my $middle = $left + ($right - $left)/2;
+  if ($right - $left > 4) {  # room for the inverted "V"
+      my $middle = $left + int(($right - $left)/2);
       $gd->line($left,$center1,$middle,$top1,$color);
-      $gd->line($middle,$top1,$right,$center1,$color);
+      $gd->line($middle,$top1,$right-1,$center1,$color);
     } elsif ($right-$left > 1) { # no room, just connect
-      $gd->line($left,$quarter1,$right,$quarter1,$color);
+      $gd->line($left,$quarter1,$right-1,$quarter1,$color);
     }
 
 }

@@ -159,7 +159,7 @@ sub arrow {
   my $gd   = shift;
   my ($x1,$x2,$y) = @_;
   my $fg     = $self->set_pen;
-  my $height = $self->height/2;
+  my $height = $self->height/3;
 
   $gd->line($x1,$y,$x2,$y,$fg);
   $self->arrowhead($gd,$x2,$y,$height,+1) if $x1 < $x2;
