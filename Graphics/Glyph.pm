@@ -319,6 +319,12 @@ sub fgcolor {
   $self->factory->translate_color($index);
 }
 
+#add for compatibility
+sub fillcolor {
+    my $self = shift;
+    return $self->bgcolor;
+}
+
 # we also look for the "background-color" option for Ace::Graphics compatibility
 sub bgcolor {
   my $self = shift;
