@@ -21,6 +21,7 @@ sub draw {
     $max_score = 0;
     for my $part (@parts) {
       my $s = eval { $part->feature->score };
+      next unless defined $s;
       $max_score = $s if $s > $max_score;
     }
   }

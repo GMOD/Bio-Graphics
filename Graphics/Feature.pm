@@ -64,6 +64,7 @@ sub add_segment {
   for my $seg (@_) {
     if (ref($seg) eq 'ARRAY') {
       my ($start,$stop) = @{$seg};
+      next unless defined $start && defined $stop;  # fixes an obscure bug somewhere above us
       my $strand = $self->{strand};
 
       if ($start > $stop) {
