@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+0.97 Mon Feb 18 22:04:57 EST 2002
+	-Added the "sequence" glyph, which supports display of DNA and protein sequences,
+	as well as GC content.
+
 0.96 Fri Jan 11 13:23:03 EST 2002
 	-Added support for displaying heterogeneous features, such as WABA similarities.
 

@@ -128,6 +128,12 @@ sub length {
   return $self->end - $self->start + 1;
 }
 
+sub seq {
+  my $self = shift;
+  return scalar('n' x $self->length);
+}
+*dna = \&seq;
+
 sub source_tag { 
   my $self = shift;
   my $d = $self->{source};

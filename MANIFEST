@@ -10,6 +10,7 @@ Graphics/Glyph/anchored_arrow.pm
 Graphics/Glyph/arrow.pm
 Graphics/Glyph/box.pm
 Graphics/Glyph/crossbox.pm
+Graphics/Glyph/dna.pm
 Graphics/Glyph/dot.pm
 Graphics/Glyph/ellipse.pm
 Graphics/Glyph/ex.pm
