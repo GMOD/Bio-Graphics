@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.14 2002-04-13 00:46:01 lstein Exp $
+# $Id: transcript.pm,v 1.15 2002-04-23 17:46:53 sshu Exp $
 
 use strict;
 use Bio::Graphics::Glyph::segments;
@@ -66,6 +66,54 @@ sub connector {
   return 'hat';
 }
 
+# overwrite draw to mark start and stop codons
+sub draw {
+  my $self = shift;
+  $self->SUPER::draw(@_);
+  return unless ($self->option('mark_cds'));
+
+  return unless($self->feature->can('start_codon') && $self->feature->can('stop_codon'));
+
+  my $gd = shift;
+  my ($left,$top,$partno,$total_parts) = @_;
+
+  my $startc = $self->option('start_codon_color') || 'mediumseagreen';
+  my $stopc = $self->option('stop_codon_color') || 'red';
+  my ($startcolor, $stopcolor) = ($self->factory->translate_color($startc),
+                                  $self->factory->translate_color($stopc));
+
+  my($x1,$y1,$x2,$y2) = $self->bounds(@_);
+
+  my ($start_codon, $stop_codon) = ($self->feature->start_codon, $self->feature->stop_codon);
+  my ($start, $end);
+  my ($min, $fudge, $width) = (1, 1.5, $self->panel->width);
+  #start codon
+  $start = $start_codon->start;
+  $end = $start_codon->can('stop') ? $start_codon->stop : $start_codon->end;
+  $end = $self->feature->strand < 0 ? $start + 3 : $start - 3 if ($start == $end); #?
+  ($x1, $x2) = $self->map_pt($start, $end);
+  ($x1, $x2) = ($x2, $x1) if ($x1 > $x2);
+  ($x1, $x2) = ($left + $x1, $left + $x2);
+  my $diff = ($x2-$x1) || 1;
+  $min = $diff + (($fudge+$diff)/$width) * $width;
+  $x2 = $x1 + $min if ($x2 - $x1 < $min); #exagerating
+  if ($x1 >= $self->panel->left && $x1 <= $self->panel->right - $self->panel->pad_right) {
+      $gd->filledRectangle($x1, $y1, $x2, $y2, $startcolor);
+  }
+  #stop codon
+  $start = $stop_codon->stop;
+  $end = $stop_codon->can('end') ? $stop_codon->end : $stop_codon->stop;
+  $end = $self->feature->strand < 0 ? $start - 3 : $start + 3 if ($start == $end); #?
+  ($x1, $x2) = $self->map_pt($start, $end);
+  ($x1, $x2) = ($x2, $x1) if ($x1 > $x2);
+  ($x1, $x2) = ($left + $x1, $left + $x2);
+  my $diff = ($x2-$x1) || 1;
+  $min = $diff + (($fudge+$diff)/$width) * $width;
+  $x2 = $x1 + $min if ($x2 - $x1 < $min); #exagerating
+  if ($x1 >= $self->panel->left && $x1 <= $self->panel->right - $self->panel->pad_right) {
+      $gd->filledRectangle($x1, $y1, $x2, $y2, $stopcolor);
+  }
+}
 
 1;
 
