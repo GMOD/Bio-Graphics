@@ -85,7 +85,6 @@ sub get_description {
   my $tag = $feature->source_tag;
   return undef if $tag eq '';
   $tag;
-
 }
 
 sub draw {

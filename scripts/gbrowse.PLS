@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.2 2001-11-18 01:46:49 lstein Exp $
+# $Id: gbrowse.PLS,v 1.3 2001-11-18 15:10:39 lstein Exp $
 
 use lib '/home/lstein/projects/Bio-Graphics/blib/lib';
 use strict;
@@ -675,8 +675,6 @@ sub commas {
   $i = reverse $i;
   $i;
 }
-
-__END__
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";
