@@ -101,7 +101,8 @@ sub draw_label {
   my $label = $self->label or return;
   my $x = $self->left + $left;
   $x = $self->panel->left + 1 if $x <= $self->panel->left;
-  $gd->string($self->font,
+  my $font = $self->option('labelfont') || $self->font;
+  $gd->string($font,
 	      $x,
 	      $self->top + $top,
 	      $label,

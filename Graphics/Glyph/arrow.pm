@@ -6,6 +6,10 @@ use vars '@ISA';
 use Bio::Graphics::Glyph::generic;
 @ISA = 'Bio::Graphics::Glyph::generic';
 
+my %UNITS = (K => 1000,
+	     M => 1_000_000,
+	     T => 1_000_000_000);
+
 sub pad_bottom {
   my $self = shift;
   my $val = $self->SUPER::pad_bottom(@_);
@@ -88,7 +92,10 @@ sub draw_parallel {
     my $offset   = $relative ? $self->feature->start-1 : 0;
     my $reversed = $self->feature->strand < 0;
 
-    my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font);
+    my $units = $self->option('units');
+    my $divisor = $UNITS{$units} || 1 if $units;
+
+    my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font,$divisor);
 
     ## Does the user want to override the internal scale?
     my $scale = $self->option('scale');
@@ -101,8 +108,9 @@ sub draw_parallel {
 	                             : $self->map_pt($i + $offset));
       next if $tickpos < $left or $tickpos > $right;
       $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
-      my $middle = $tickpos - (length($i) * $width)/2;
       my $label = $scale ? $i / $scale : $i;
+      $label = int($label/$divisor) . $units if $units;
+      my $middle = $tickpos - (length($label) * $width)/2;
       $gd->string($font,$middle,$center+$a2-1,$label,$font_color);
     }
 

@@ -20,8 +20,9 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.1 2001-11-16 17:51:44 lstein Exp $
+# $Id: gbrowse.PLS,v 1.2 2001-11-18 01:46:49 lstein Exp $
 
+use lib '/home/lstein/projects/Bio-Graphics/blib/lib';
 use strict;
 use Bio::DB::GFF;
 use Bio::Graphics;
@@ -30,12 +31,14 @@ use Digest::MD5 'md5_hex';
 use File::Path 'mkpath';
 use Carp;
 use CGI qw(:standard 'center');
-use vars qw($CONFIG %DB);
+use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT);
 
 # if you change the zoom/nav icons, you must change this as well.
 use constant MAG_ICON_HEIGHT => 20;
 use constant MAG_ICON_WIDTH  => 8;
-use constant MAX_SEGMENT     => 1000000;
+use constant MAX_SEGMENT     => 1_000_000;
+use constant DEFAULT_SEGMENT => 100_000;
+use constant OVERVIEW_RATIO  => 0.8;
 
 ###################################################################
 # Non-modperl users should change this constant if needed
@@ -65,6 +68,9 @@ END
 # preliminaries -- set up some globals
 $CONFIG         = Bio::Graphics::Browser->new($CONF_DIR)
   or die "Couldn't open configuration directory: $!";
+
+$MAX_SEGMENT     = $CONFIG->setting('max segment')     || MAX_SEGMENT;
+$DEFAULT_SEGMENT = $CONFIG->setting('default segment') || DEFAULT_SEGMENT;
 
 ## PAGE SETTINGS ##############################################################################
 #
@@ -108,25 +114,34 @@ print
 	    ),
   h1($description);
 
-print h2("Showing",$segment->length,"bp from",
-	 $segment->ref.":".commas($segment->start)."..".commas($segment->stop))
+print h2("Showing",commas($segment->length),"bp from",
+	 $segment->ref.", positions ".commas($segment->start)." to ".commas($segment->stop))
   if $segment;
 
 print h2({-class=>'error'},"The landmark named",i(param('name')),"is not recognized.",
-	 "You may need to qualify it with the type, as in",i("gene:".param('name')))
+	 "You may need to qualify it with the type, as in",i("PCR_Product:".param('name')))
   if $page_settings->{name} && !$segment;
 
 print start_form(-action=>url(-relative=>1));
+
 print navigation_table($segment,$page_settings);
 
 if ($segment) {
-  print $segment->length > MAX_SEGMENT 
-    ? p(font({-color=>'red'},"Sorry, but detailed view is limited to",MAX_SEGMENT,"bases"))
-    : image_and_map($segment,$page_settings),
+  print overview($segment,$page_settings);
+
+  if ($segment->length <= $MAX_SEGMENT) {
+    print image_and_map($segment,$page_settings);
+  } else {
+    print p(i(
+	      "Detailed view is limited to",
+	      commas($MAX_SEGMENT),"bases.",
+	      "Click in the overview to select a region",commas($DEFAULT_SEGMENT),'bp wide.'));
+  }
 }
 
 print settings_table($page_settings);
-print  end_form(), $CONFIG->setting('footer'),end_html;
+
+print end_form(), $CONFIG->setting('footer'),end_html;
 
 ###############################################################################################
 
@@ -174,7 +189,7 @@ sub settings2cookie {
   }
   my $cookie = cookie(-name    => 'gbrowse',
 		      -value   => \%settings,
-		      -expires => '+3m');
+		      -expires => '+3M');
   return $cookie;
 }
 
@@ -187,7 +202,7 @@ sub adjust_settings {
   $settings->{width} = param('width')   if param('width');
   $settings->{source} = param('source') if param('source');
 
-  if (param('ref') && grep {/zoom|nav/} param() ) {
+  if (param('ref') && grep {/zoom|nav|overview/} param() ) {
     $settings->{ref}   = param('ref');
     $settings->{start} = param('start') if param('start') =~ /^[\d-]+/;
     $settings->{stop}  = param('stop')  if param('stop')  =~ /^[\d-]+/;
@@ -213,7 +228,7 @@ sub navigation_table {
 		  TR({-class=>'searchbody'},
 		     td({-align=>'left', -colspan=>2},
 			'Search using a sequence name, gene name, locus, or other landmark.',
-			'Examples:',i('I:120000..130000,'),i('gene:unc-9,'),i('clone:B0019,'),
+			'Examples:',i('IV,'),i('CHROMOSOME_IV,'),i('I:120000..130000,'),i('unc-9,'),i('clone:B0019,'),
 			i('PCR_Product:sjj_B0019.1'))
 		    ),
 		  TR({-class=>'searchbody'},
@@ -347,6 +362,8 @@ sub zoomnav {
   # get zoom parameters
   my ($zoom) = grep {/^zoom\d+/} param();
   my ($nav)  = grep {/^nav\d+/}  param();
+  my $overview_x     = param('overview.x');
+  my $segment_length = param('seg_length');
 
   my $zoomlevel = $1 if $zoom && $zoom =~ /(\d+)/;
   my $navlevel  = $1 if $nav && $nav  =~ /(\d+)/;
@@ -359,7 +376,6 @@ sub zoomnav {
     $center	    = int($span / 2) + $start;
     my $range	    = int(($ranges[$zoomlevel])/2);
     ($start, $stop) = ($center - $range , $center + $range -1);
-
   }
 
   elsif (defined $navlevel){
@@ -367,6 +383,14 @@ sub zoomnav {
     if($navlevel == 1){ $start -= int($span / 4); $stop -= int($span / 4)}
     if($navlevel == 2){ $start += int($span / 4); $stop += int($span / 4)}
     if($navlevel == 3){ $start += int($span / 2); $stop += int($span / 2)}
+  }
+
+  elsif (defined $overview_x && defined $segment_length) {
+    my $overview_width = $settings->{width} * OVERVIEW_RATIO;
+    my $click_position = $segment_length * $overview_x/$overview_width;
+    $span = $DEFAULT_SEGMENT if $span > $MAX_SEGMENT;
+    $start = int($click_position - $span/2);
+    $stop  = $start + $span - 1;
   }
 
   $start = 1 if $start < 1;
@@ -419,6 +443,14 @@ sub get_segment {
     if (!$segment && $name =~ /[a-zA-Z]-?\d+/) {
       $segment = $db->segment(Locus => $name);
     }
+
+    # try to remove the chr CHROMOSOME_I
+    if (!$segment && $name =~ /^(chromosome_?|chr)/i) {
+      (my $chr = $name) =~ s/^(chromosome_?|chr)//i;
+      warn "chr = $chr";
+      $segment = $db->segment($chr);
+    }
+
   }
 
   elsif (my $ref = $settings->{ref}) {
@@ -468,27 +500,56 @@ sub open_database {
 sub image_and_map {
   my ($segment,$settings) = @_;
   return unless $segment;
+
   $CONFIG->width($settings->{width});
 
   my($image,$map) = $CONFIG->image_and_map($segment,$settings->{labels});
   my ($width,$height) = $image->getBounds;
 
   my $signature = md5_hex($segment,@{$settings->{labels}},$settings->{width},$settings->{source});
-  my $extension = $image->can('png') ? 'png' : 'gif';
+  my $url       = generate_image($image,$signature);
+  my $img     = center(img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0}));
+  my $img_map = make_map($map);
+  return join "\n",$img,$img_map;
+}
 
+sub overview {
+  my ($segment,$settings) = @_;
+  return unless $segment;
+  $CONFIG->width($settings->{width}*OVERVIEW_RATIO);
+
+  my ($image,$length) = $CONFIG->overview($segment) or return;
+  my ($width,$height) = $image->getBounds;
+  my $signature = md5_hex($segment,$width);
+  my $url = generate_image($image,$signature);
+  return table(TR(
+		  td({-class=>'searchbody',-align=>'CENTER'},
+		     image_button(-name=>'overview',
+				  -src=>$url,
+				  -width=>$width,
+				  -height=>$height,
+				  -border=>0,
+				  -align=>'MIDDLE')
+		    )
+		 )
+	      ).hidden(-name=>'seg_length',-value=>$length,-override=>1);
+}
+
+sub generate_image {
+  my ($image,$signature) = @_;
+
+  my $extension = $image->can('png') ? 'png' : 'gif';
   my ($uri,$path) = picture_tmpdir();
   my $url         = sprintf("%s/%s.%s",$uri,$signature,$extension);
   my $imagefile   = sprintf("%s/%s.%s",$path,$signature,$extension);
   open (F,">$imagefile") || die("Can't open image file $imagefile for writing: $!\n");
   print F $image->can('png') ? $image->png : $image->gif;
   close F;
-  my $img     = center(img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0}));
-  my $img_map = make_map($map);
-  return join "\n",$img,$img_map;
+  return $url;
 }
 
 sub picture_tmpdir {
-  my $tmpuri = $CONFIG->setting('tmpimages') or die "no tmpimages option defined";
+  my $tmpuri = $CONFIG->setting('tmpimages') or die "no tmpimages option defined, can't generate a picture";
   my $tmpdir;
   if ($ENV{MOD_PERL}) {
     my $r = Apache->request;
@@ -614,6 +675,8 @@ sub commas {
   $i = reverse $i;
   $i;
 }
+
+__END__
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";

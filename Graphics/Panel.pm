@@ -462,10 +462,12 @@ sub draw_grid {
 # calculate major and minor ticks, given a start position
 sub ticks {
   my $self = shift;
-  my ($start,$end,$font) = @_;
+  my ($start,$end,$font,$divisor) = @_;
   $start   = $self->{offset}+1             unless defined $start;
   $end     = $start + $self->{length} - 1  unless defined $end;
   $font ||= gdSmallFont;
+  $divisor ||= 1;
+
   my (@major,@minor);
 
   # figure out tick mark scale
@@ -476,7 +478,7 @@ sub ticks {
 
   my $interval = 1;
   my $mindist =  30;
-  my $widest = 5 + (CORE::length($end) * $width);
+  my $widest = 5 + (CORE::length(int($end/$divisor)) * $width);
   $mindist = $widest if $widest > $mindist;
 
   while (1) {

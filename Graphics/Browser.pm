@@ -1,9 +1,10 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.1 2001-11-16 17:51:43 lstein Exp $
+# $Id: Browser.pm,v 1.2 2001-11-18 01:46:49 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
 use Carp 'carp';
+use GD 'gdMediumBoldFont';
 
 use constant DEFAULT_WIDTH => 800;
 use vars '$VERSION';
@@ -118,7 +119,6 @@ sub image_and_map {
 				       );
   $panel->add_track($segment   => 'arrow',
 		    -double => 1,
-		    -bump =>1,
 		    -tick=>2,
 		   );
 
@@ -177,6 +177,50 @@ sub image_and_map {
   my $boxes    = $panel->boxes;
   my $gd       = $panel->gd;
   return ($gd,$boxes);
+}
+
+# generate the overview, if requested, and return it as a GD
+sub overview {
+  my $self = shift;
+  my ($partial_segment) = @_;
+
+  my $segment = $partial_segment->factory->segment($partial_segment->ref);
+
+  my $conf  = $self->config;
+  my $landmarks = $self->setting('overview landmarks') or return;
+
+  my @types = split /\s+/,$landmarks;
+
+  my $width = $self->width;
+  my $panel = Bio::Graphics::Panel->new(-segment => $segment,
+					-width   => $width,
+					-bgcolor => $self->setting('overview bgcolor') || 'moccasin',
+				       );
+  $panel->add_track($segment   => 'arrow',
+		    -double    => 1,
+		    -label     => sub {"Overview of ".$segment->ref},
+		    -labelfont => gdMediumBoldFont,
+		    -units     => 'M',
+		    -tick=>2,
+		   );
+  my $track = $panel->add_track(-glyph  => 'generic',
+				-height  => 3,
+				-label   => 1,
+				-fgcolor => 'black',
+				-bgcolor => 'black');
+  my $iterator = $segment->features(-type=>\@types,-iterator=>1,-rare=>1);
+  while (my $feature = $iterator->next_feature) {
+    $track->add_feature($feature);
+  }
+  my $gd = $panel->gd;
+  my $red = $gd->colorClosest(255,0,0);
+  my ($x1,$x2) = $panel->map_pt($partial_segment->start,$partial_segment->stop);
+  my ($y1,$y2) = (0,$panel->height-1);
+  $x1 = $x2 if $x2-$x1 <= 1;
+  $x2 = $panel->right-1 if $x2 >= $panel->right;
+  $gd->rectangle($x1,$y1,$x2,$y2,$red);
+
+  return ($gd,$segment->length);
 }
 
 sub read_configuration {
@@ -298,7 +342,7 @@ sub image_and_map {
 
   my $panel = Bio::Graphics::Panel->new(-segment => $segment,
 					-width   => $width,
-					-keycolor => 'moccasin',
+					-keycolor => $self->setting('detailed bgcolor') || 'moccasin',
 					-grid => 1,
 				       );
   $panel->add_track($segment   => 'arrow',
