@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.2 2001-11-18 01:46:49 lstein Exp $
+# $Id: Browser.pm,v 1.3 2001-11-19 02:48:29 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -214,7 +214,7 @@ sub overview {
   }
   my $gd = $panel->gd;
   my $red = $gd->colorClosest(255,0,0);
-  my ($x1,$x2) = $panel->map_pt($partial_segment->start,$partial_segment->stop);
+  my ($x1,$x2) = $panel->map_pt($partial_segment->start,$partial_segment->end);
   my ($y1,$y2) = (0,$panel->height-1);
   $x1 = $x2 if $x2-$x1 <= 1;
   $x2 = $panel->right-1 if $x2 >= $panel->right;
@@ -399,7 +399,7 @@ sub sort_features {
 
   my (%similarity,%other);
   while (my $feature = $iterator->next_feature) {
-    warn "got feature $feature, start = ",$feature->start," stop = ",$feature->stop,"\n";
+    warn "got feature $feature, start = ",$feature->start," stop = ",$feature->end,"\n";
 
     my $label = $self->feature2label($feature);
 
