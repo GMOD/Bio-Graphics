@@ -104,7 +104,7 @@ $panel->add_track($segment,
 		  -tick => 2,
 		 );
 $panel->unshift_track(generic => [$segment,$zk154_1,$zk154_2,$zk154_3,[$xyz4,$zed_27]],
-		      -label     => 1,
+		      -label     => sub { my $feature = shift; $feature->sub_SeqFeature>0},
 		      -bgcolor   => sub { shift->primary_tag eq 'predicted' ? 'olive' : 'red'},
 		      -connector => sub { my $feature = shift;
 					  my $type = $feature->primary_tag;
@@ -122,7 +122,7 @@ $panel->unshift_track(generic => [$segment,$zk154_1,$zk154_2,$zk154_3,[$xyz4,$ze
 		 );
 
 my $track = $panel->add_track('transcript2',
-			      -label   => sub { 1 } ,
+			      -label   => sub { $_[-1]->level == 0 } ,
 			      -connector => sub { return shift->type eq 'group' ? 'dashed' : ''},
 			      -point  => 0,
 			      -orient => 'N',
@@ -157,7 +157,7 @@ $panel->add_track(
 #		  -tkcolor => $colors[rand @colors],
 		  -key => 'Portents',
 		 );
-$panel->add_track(generic => [$segment,$zk154_1,[$zk154_2,$xyz4]],
+$panel->add_track(segments => [$segment,$zk154_1,[$zk154_2,$xyz4]],
 		  -label     => 1,
 		  -bgcolor   => sub { shift->primary_tag eq 'predicted' ? 'green' : 'blue'},
 		  -connector => sub { my $primary_tag = shift->primary_tag;

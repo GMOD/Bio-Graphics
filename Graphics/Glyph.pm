@@ -19,10 +19,12 @@ sub new {
 
   my $feature = $arg{-feature} or die "No feature";
   my $factory = $arg{-factory} || $class->default_factory;
+  my $level   = $arg{-level} || 0;
 
   my $self = bless {},$class;
   $self->{feature} = $feature;
   $self->{factory} = $factory;
+  $self->{level}   = $level;
   $self->{top} = 0;
 
   my @subglyphs;
@@ -31,7 +33,7 @@ sub new {
   if (@subfeatures) {
 
     # dynamic glyph resolution
-    @subglyphs = sort { $a->left  <=> $b->left }  $factory->make_glyph(@subfeatures);
+    @subglyphs = sort { $a->left  <=> $b->left }  $factory->make_glyph($level+1,@subfeatures);
 
     $self->{parts}   = \@subglyphs;
   }
@@ -112,7 +114,7 @@ sub add_feature {
     if (ref $feature eq 'ARRAY') {
       $self->add_group(@$feature);
     } else {
-      push @{$self->{parts}},$factory->make_glyph($feature);
+      push @{$self->{parts}},$factory->make_glyph(0,$feature);
     }
   }
 }
@@ -459,8 +461,14 @@ sub draw {
   else {  # no part
     $self->draw_component($gd,$left,$top);
     $self->draw_connectors($gd,$left,$top)
-      if $connector && $connector ne 'none' && !$self->is_recursive;
+      if $connector && $connector ne 'none' && $self->{level} == 0;
   }
+}
+
+# the "level" is the level of testing of the glyph
+# groups are level -1, top level glyphs are level 0, subcomponents are level 1 and so forth.
+sub level {
+  shift->{level};
 }
 
 sub draw_connectors {
@@ -485,19 +493,24 @@ sub draw_connectors {
 
 sub _connector {
   my $self = shift;
-  my ($gd,$dx,$dy,$xl,$xt,$xr,$xb,$yl,$yt,$yr,$yb) = @_;
-    my $left   = $dx + $xr;
-    my $right  = $dx + $yl;
-    my $top1     = $dy + $xt;
-    my $bottom1  = $dy + $xb;
-    my $top2     = $dy + $yt;
-    my $bottom2  = $dy + $yb;
-    return unless $right-$left > 1;
+  my ($gd,
+      $dx,$dy,
+      $xl,$xt,$xr,$xb,
+      $yl,$yt,$yr,$yb) = @_;
+  my $left   = $dx + $xr;
+  my $right  = $dx + $yl;
+  my $top1     = $dy + $xt;
+  my $bottom1  = $dy + $xb;
+  my $top2     = $dy + $yt;
+  my $bottom2  = $dy + $yb;
+  # restore this comment if you don't like the group dash working
+  # its way backwards.
+  #    return unless $right-$left > 1;
 
-    $self->draw_connector($gd,
-			  $top1,$bottom1,$left,
-			  $top2,$bottom2,$right,
-			 );
+  $self->draw_connector($gd,
+			$top1,$bottom1,$left,
+			$top2,$bottom2,$right,
+		       );
 }
 
 sub draw_connector {
@@ -506,6 +519,7 @@ sub draw_connector {
 
   my $color          = $self->connector_color;
   my $connector_type = $self->connector or return;
+
   if ($connector_type eq 'hat') {
     $self->draw_hat_connector($gd,$color,@_);
   } elsif ($connector_type eq 'solid') {
@@ -653,16 +667,16 @@ sub filled_arrow {
     $gd->line($x2,($y2+$y1)/2,$x2-$indent,$y2,$fg);
     $gd->line($x2-$indent,$y2,$x1,$y2,$fg);
     $gd->line($x1,$y2,$x1,$y1,$fg);
-    $gd->fillToBorder($x1+1,($y1+$y2)/2,$fg,$self->bgcolor);
+    my $left = $self->panel->left > $x1 ? $self->panel->left : $x1;
+    $gd->fillToBorder($left+1,($y1+$y2)/2,$fg,$self->bgcolor);
   } else {
     $gd->line($x1,($y2+$y1)/2,$x1+$indent,$y1,$fg);
     $gd->line($x1+$indent,$y1,$x2,$y1,$fg);
     $gd->line($x2,$y2,$x1+$indent,$y2,$fg);
     $gd->line($x1+$indent,$y2,$x1,($y1+$y2)/2,$fg);
     $gd->line($x2,$y1,$x2,$y2,$fg);
-    if ($x2 > 0 && $x2<=$self->panel->right) {
-       $gd->fillToBorder($x2-1,($y1+$y2)/2,$fg,$self->bgcolor);
-    }
+    my $right = $self->panel->right < $x2 ? $self->panel->right : $x2;
+    $gd->fillToBorder($right-1,($y1+$y2)/2,$fg,$self->bgcolor);
   }
 }
 
@@ -739,7 +753,7 @@ sub keyglyph {
   $factory->set_option(label => 1);
   $factory->set_option(bump  => 0);
   $factory->set_option(connector  => 'solid');
-  return $factory->make_glyph($feature);
+  return $factory->make_glyph(0,$feature);
 }
 
 # synthesize a key glyph
@@ -764,21 +778,11 @@ sub all_callbacks {
   my $self = shift;
   my $track_level = $self->option('all_callbacks');
   return $track_level if defined $track_level;
-  return $self->panel->all_callbacks; 
+  return $self->panel->all_callbacks;
 }
 
 sub default_factory {
   croak "no default factory implemented";
-}
-
-# This returns true if the underlying feature is fully recursive, like Bio::DB::GFF or
-# Gadfly, false if the underlying feature has split locations, like Bio::Seq::RichSeq.
-# Play with this if you start getting labels appearing on each element of a segmented
-# glyph.
-sub is_recursive {
-  my $self = shift;
-  return $self->{_recursive} if exists $self->{_recursive};
-  return $self->{_recursive} = !$self->feature->isa('Bio::SeqFeature::Generic');
 }
 
 1;
@@ -819,7 +823,7 @@ end-developer code.
 
 =over 4
 
-=item $glyph = Bio::Graphics::Glyph->new(-feature=>$feature,-factory=>$factory)
+=item $glyph = Bio::Graphics::Glyph-E<gt>new(-feature=E<gt>$feature,-factory=E<gt>$factory)
 
 Given a sequence feature, creates an Bio::Graphics::Glyph object to
 display it.  The B<-feature> argument points to the Bio:SeqFeatureI
@@ -841,28 +845,28 @@ Retrieving glyph context:
 
 =over 4
 
-=item $factory = $glyph->factory
+=item $factory = $glyph-E<gt>factory
 
 Get the Bio::Graphics::Glyph::Factory associated with this object.
 This cannot be changed once it is set.
 
-=item $panel = $glyph->panel
+=item $panel = $glyph-E<gt>panel
 
 Get the Bio::Graphics::Panel associated with this object.  This cannot
 be changed once it is set.
 
-=item $feature = $glyph->feature
+=item $feature = $glyph-E<gt>feature
 
 Get the sequence feature associated with this object.  This cannot be
 changed once it is set.
 
-=item $feature = $glyph->add_feature(@features)
+=item $feature = $glyph-E<gt>add_feature(@features)
 
 Add the list of features to the glyph, creating subparts.  This is
 most common done with the track glyph returned by
-Ace::Graphics::Panel->add_track().
+Ace::Graphics::Panel-E<gt>add_track().
 
-=item $feature = $glyph->add_group(@features)
+=item $feature = $glyph-E<gt>add_group(@features)
 
 This is similar to add_feature(), but the list of features is treated
 as a group and can be configured as a set.
@@ -873,53 +877,59 @@ Retrieving glyph options:
 
 =over 4
 
-=item $fgcolor = $glyph->fgcolor
+=item $fgcolor = $glyph-E<gt>fgcolor
 
-=item $bgcolor = $glyph->bgcolor
+=item $bgcolor = $glyph-E<gt>bgcolor
 
-=item $fontcolor = $glyph->fontcolor
+=item $fontcolor = $glyph-E<gt>fontcolor
 
-=item $fontcolor = $glyph->font2color
+=item $fontcolor = $glyph-E<gt>font2color
 
-=item $fillcolor = $glyph->fillcolor
+=item $fillcolor = $glyph-E<gt>fillcolor
 
 These methods return the configured foreground, background, font,
 alternative font, and fill colors for the glyph in the form of a
 GD::Image color index.
 
-=item $color = $glyph->tkcolor
+=item $color = $glyph-E<gt>tkcolor
 
 This method returns a color to be used to flood-fill the entire glyph
 before drawing (currently used by the "track" glyph).
 
-=item $width = $glyph->width([$newwidth])
+=item $width = $glyph-E<gt>width([$newwidth])
 
 Return the width of the glyph, not including left or right padding.
 This is ordinarily set internally based on the size of the feature and
 the scale of the panel.
 
-=item $width = $glyph->layout_width
+=item $width = $glyph-E<gt>layout_width
 
 Returns the width of the glyph including left and right padding.
 
-=item $width = $glyph->height
+=item $width = $glyph-E<gt>height
 
 Returns the height of the glyph, not including the top or bottom
 padding.  This is calculated from the "height" option and cannot be
 changed.
 
 
-=item $font = $glyph->font
+=item $font = $glyph-E<gt>font
 
 Return the font for the glyph.
 
-=item $option = $glyph->option($option)
+=item $option = $glyph-E<gt>option($option)
 
 Return the value of the indicated option.
 
-=item $index = $glyph->color($color)
+=item $index = $glyph-E<gt>color($color)
 
 Given a symbolic or #RRGGBB-form color name, returns its GD index.
+
+=item $level = $glyph-E<gt>level
+
+The "level" is the nesting level of the glyph.
+Groups are level -1, top level glyphs are level 0,
+subparts (e.g. exons) are level 1 and so forth.
 
 =back
 
@@ -927,7 +937,7 @@ Setting an option:
 
 =over 4
 
-=item $glyph->configure(-name=>$value)
+=item $glyph-E<gt>configure(-name=E<gt>$value)
 
 You may change a glyph option after it is created using set_option().
 This is most commonly used to configure track glyphs.
@@ -938,19 +948,19 @@ Retrieving information about the sequence:
 
 =over 4
 
-=item $start = $glyph->start
+=item $start = $glyph-E<gt>start
 
-=item $end   = $glyph->end
+=item $end   = $glyph-E<gt>end
 
 These methods return the start and end of the glyph in base pair
 units.
 
-=item $offset = $glyph->offset
+=item $offset = $glyph-E<gt>offset
 
 Returns the offset of the segment (the base pair at the far left of
 the image).
 
-=item $length = $glyph->length
+=item $length = $glyph-E<gt>length
 
 Returns the length of the sequence segment.
 
@@ -961,32 +971,32 @@ Retrieving formatting information:
 
 =over 4
 
-=item $top = $glyph->top
+=item $top = $glyph-E<gt>top
 
-=item $left = $glyph->left
+=item $left = $glyph-E<gt>left
 
-=item $bottom = $glyph->bottom
+=item $bottom = $glyph-E<gt>bottom
 
-=item $right = $glyph->right
+=item $right = $glyph-E<gt>right
 
 These methods return the top, left, bottom and right of the glyph in
 pixel coordinates.
 
-=item $height = $glyph->height
+=item $height = $glyph-E<gt>height
 
 Returns the height of the glyph.  This may be somewhat larger or
 smaller than the height suggested by the GlyphFactory, depending on
 the type of the glyph.
 
-=item $scale = $glyph->scale
+=item $scale = $glyph-E<gt>scale
 
 Get the scale for the glyph in pixels/bp.
 
-=item $height = $glyph->labelheight
+=item $height = $glyph-E<gt>labelheight
 
 Return the height of the label, if any.
 
-=item $label = $glyph->label
+=item $label = $glyph-E<gt>label
 
 Return a human-readable label for the glyph.
 
@@ -997,12 +1007,12 @@ process:
 
 =over 4
 
-=item $glyph->move($dx,$dy)
+=item $glyph-E<gt>move($dx,$dy)
 
 Move the glyph in pixel coordinates by the indicated delta-x and
 delta-y values.
 
-=item ($x1,$y1,$x2,$y2) = $glyph->box
+=item ($x1,$y1,$x2,$y2) = $glyph-E<gt>box
 
 Return the current position of the glyph.
 
@@ -1012,25 +1022,25 @@ These methods are intended to be overridden in subclasses:
 
 =over 4
 
-=item $glyph->calculate_height
+=item $glyph-E<gt>calculate_height
 
 Calculate the height of the glyph.
 
-=item $glyph->calculate_left
+=item $glyph-E<gt>calculate_left
 
 Calculate the left side of the glyph.
 
-=item $glyph->calculate_right
+=item $glyph-E<gt>calculate_right
 
 Calculate the right side of the glyph.
 
-=item $glyph->draw($gd,$left,$top)
+=item $glyph-E<gt>draw($gd,$left,$top)
 
 Optionally offset the glyph by the indicated amount and draw it onto
 the GD::Image object.
 
 
-=item $glyph->draw_label($gd,$left,$top)
+=item $glyph-E<gt>draw_label($gd,$left,$top)
 
 Draw the label for the glyph onto the provided GD::Image object,
 optionally offsetting by the amounts indicated in $left and $right.
@@ -1041,18 +1051,18 @@ These methods are useful utility routines:
 
 =over 4
 
-=item $pixels = $glyph->map_pt($bases);
+=item $pixels = $glyph-E<gt>map_pt($bases);
 
 Map the indicated base position, given in base pair units, into
 pixels, using the current scale and glyph position.
 
-=item $glyph->filled_box($gd,$x1,$y1,$x2,$y2)
+=item $glyph-E<gt>filled_box($gd,$x1,$y1,$x2,$y2)
 
 Draw a filled rectangle with the appropriate foreground and fill
 colors, and pen width onto the GD::Image object given by $gd, using
 the provided rectangle coordinates.
 
-=item $glyph->filled_oval($gd,$x1,$y1,$x2,$y2)
+=item $glyph-E<gt>filled_oval($gd,$x1,$y1,$x2,$y2)
 
 As above, but draws an oval inscribed on the rectangle.
 
@@ -1158,7 +1168,7 @@ it.  We first call our inherited draw() method to generate the filled
 box and label.  We then call calculate_boundaries() to return the
 coordinates of the glyph, disregarding any extra space taken by
 labels.  We call fgcolor() to return the desired foreground color, and
-then call $gd->line() twice to generate the criss-cross.
+then call $gd-E<gt>line() twice to generate the criss-cross.
 
 For more complex draw() methods, see Bio::Graphics::Glyph::transcript
 and Bio::Graphics::Glyph::segments.
@@ -1187,7 +1197,7 @@ L<Bio::Graphics::Glyph::wormbase_transcript>
 
 =head1 AUTHOR
 
-Lincoln Stein <lstein@cshl.org>.
+Lincoln Stein E<lt>lstein@cshl.orgE<gt>
 
 Copyright (c) 2001 Cold Spring Harbor Laboratory
 

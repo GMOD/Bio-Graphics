@@ -1,5 +1,6 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.18 2002-03-06 11:54:06 lstein Exp $
+
+# $Id: FeatureFile.pm,v 1.19 2002-03-24 19:15:05 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -628,7 +629,7 @@ L<Bio::Graphics::FeatureFile>
 
 =head1 AUTHOR
 
-Lincoln Stein <lstein@cshl.org>.
+Lincoln Stein E<lt>lstein@cshl.orgE<gt>.
 
 Copyright (c) 2001 Cold Spring Harbor Laboratory
 
