@@ -45,6 +45,14 @@ sub draw {
   $self->SUPER::draw(@_);
 }
 
+sub subseq {
+  my $class = shift;
+  my $feature = shift;
+  return $feature->segments        if $feature->can('segments');
+  return $feature->sub_SeqFeature  if $feature->can('sub_SeqFeature');
+  return;
+}
+
 # synthesize a key glyph
 sub keyglyph {
   my $self = shift;
