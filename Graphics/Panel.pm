@@ -485,14 +485,14 @@ sub ticks {
   my (@major,@minor);
 
   # figure out tick mark scale
-  # we want no more than 1 tick mark every 30 pixels
+  # we want no more than 1 major tick mark every 40 pixels
   # and enough room for the labels
   my $scale = $self->scale;
   my $width = $font->width;
 
   my $interval = 1;
-  my $mindist =  40;
-  my $widest = 5 + (CORE::length(int($end/$divisor)) * $width);
+  my $mindist  = 4 + $width*8;
+  my $widest   = 4 + (CORE::length(int($end/$divisor)) * $width);
   $mindist = $widest if $widest > $mindist;
 
   while (1) {
