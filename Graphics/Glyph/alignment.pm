@@ -1,4 +1,4 @@
-package Bio::Graphics::Glyph::segments;
+package Bio::Graphics::Glyph::alignment;
 
 use strict;
 
