@@ -31,7 +31,7 @@ sub draw_perpendicular {
   $ne = $sw = 1 unless defined($ne) || defined($sw);
 
   # draw a perpendicular arrow at position indicated by $x1
-  my $fg = $self->fgcolor;
+  my $fg = $self->set_pen;
   my $a2 = ($y2-$y1)/4;
 
   my @positions = $x1 == $x2 ? ($x1) : ($x1,$x2);
@@ -58,7 +58,7 @@ sub draw_parallel {
   my ($dx,$dy) = @_;
   my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
 
-  my $fg = $self->fgcolor;
+  my $fg = $self->set_pen;
   my $a2 = ($y2-$y1)/2;
   my $center = $y1+$a2;
 
@@ -69,12 +69,10 @@ sub draw_parallel {
 
   $gd->line($x1,$center,$x2,$center,$fg);
   if ($sw) {  # west arrow
-    $gd->line($x1,$center,$x1+$a2,$center-$a2,$fg);
-    $gd->line($x1,$center,$x1+$a2,$center+$a2,$fg);
+    $self->arrowhead($gd,$x1,$center,$a2,-1);
   }
   if ($ne) {  # east arrow
-    $gd->line($x2,$center,$x2-$a2,$center+$a2,$fg);
-    $gd->line($x2,$center,$x2-$a2,$center-$a2,$fg);
+    $self->arrowhead($gd,$x2,$center,$a2,+1);
   }
 
   # turn on ticks
@@ -102,12 +100,15 @@ sub draw_parallel {
     }
 
     my $first_tick = $interval * int(0.5 + $self->start/$interval);
+    my $pl = $self->panel->pad_left;
 
     for (my $i = $first_tick; $i < $self->end; $i += $interval) {
       my $tickpos = $left + $self->map_pt($i);
-      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
+      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg)
+	unless $tickpos <= $pl;
       my $middle = $tickpos - (length($i) * $width)/2;
-      $gd->string($font,$middle,$center+$a2-1,$i,$font_color);
+      $gd->string($font,$middle,$center+$a2-1,$i,$font_color)
+	unless $middle <= $pl;
     }
 
     if ($self->option('tick') >= 2) {

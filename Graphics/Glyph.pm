@@ -5,6 +5,8 @@ use strict;
 use Carp 'croak';
 use constant BUMP_SPACING => 2; # vertical distance between bumped glyphs
 
+my %LAYOUT_COUNT;
+
 # a bumpable graphical object that has bumpable graphical subparts
 
 # args:  -feature => $feature_object (may contain subsequences)
@@ -28,13 +30,13 @@ sub new {
       $factory->make_glyph(@subfeatures);  # dynamic glyph resolution
 
     $self->{left}    = $subglyphs[0]->{left};
-    my $right        = (sort { $b<=>$a } map {$_->{left} + $_->{width} - 1} @subglyphs)[0];
+    my $right        = (sort { $b<=>$a } map {$_->right} @subglyphs)[0];
     $self->{width}   = $right - $self->{left} + 1;
     $self->{parts}   = \@subglyphs;
   }
 
   else {
-    my ($left,$right) = $factory->map_pt($feature->start,$feature->stop);
+    my ($left,$right) = $factory->map_pt($self->start,$self->stop);
     ($left,$right) = ($right,$left) if $left > $right;  # paranoia
     $self->{left}    = $left;
     $self->{width}   = $right - $left + 1;
@@ -52,10 +54,42 @@ sub feature { shift->{feature} }
 sub factory { shift->{factory} }
 sub panel   { shift->factory->panel }
 sub scale   { shift->factory->scale }
-sub start   { shift->{feature}->start}
-sub stop    { shift->{feature}->stop}
-sub end     { shift->{feature}->stop}
+sub start   {
+  my $self = shift;
+  return $self->{start} if exists $self->{start};
+  $self->{start} = $self->{feature}->start;
+}
+sub stop    {
+  my $self = shift;
+  return $self->{stop} if exists $self->{stop};
+  $self->{stop} = $self->{feature}->stop;
+}
+sub end     { shift->stop }
 sub map_pt  { shift->{factory}->map_pt(@_) }
+
+# add a feature (or array ref of features) to the list
+sub add_feature {
+  my $self       = shift;
+  my $factory    = $self->factory;
+  for my $feature (@_) {
+    if (ref $feature eq 'ARRAY') {
+      $self->add_group(@$feature);
+    } else {
+      push @{$self->{parts}},$factory->make_glyph($feature);
+    }
+  }
+}
+
+# link a set of features together so that they bump as a group
+sub add_group {
+  my $self = shift;
+  my @features = @_;
+  my $f    = Bio::Graphics::Feature->new(
+				     -segments=>\@features,
+				     -type => 'group'
+					);
+  $self->add_feature($f);
+}
 
 sub top {
   my $self = shift;
@@ -65,11 +99,13 @@ sub top {
 }
 sub left {
   my $self = shift;
-  $self->{left} - $self->pad_left;
+  return $self->{cache_left} if exists $self->{cache_left};
+  $self->{cache_left} = $self->{left} - $self->pad_left;
 }
 sub right {
   my $self = shift;
-  $self->left + $self->layout_width - 1;
+  return $self->{cache_right} if exists $self->{cache_right};
+  $self->{cache_right} = $self->left + $self->layout_width - 1;
 }
 sub bottom {
   my $self = shift;
@@ -126,7 +162,7 @@ sub boxes {
       push @result,$part->boxes($left+$self->left,$top+$self->top);
     } else {
       my ($x1,$y1,$x2,$y2) = $part->box;
-      push @result,[$part->feature,$left+$x1,$top+$self->top+$y1,$left+$x2,$top+$self->top+$y2];
+      push @result,[$part->feature,$x1,$top+$self->top+$y1,$x2,$top+$self->top+$y2];
     }
   }
   return wantarray ? @result : \@result;
@@ -158,6 +194,10 @@ sub move {
   my ($dx,$dy) = @_;
   $self->{left} += $dx;
   $self->{top}  += $dy;
+
+  # because the feature parts use *absolute* not relative addressing
+  # we need to move each of the parts horizontally, but not vertically
+  $_->move($dx,0) foreach $self->parts;
 }
 
 # get an option
@@ -206,6 +246,11 @@ sub fontcolor {
   my $self = shift;
   $self->color('fontcolor') || $self->fgcolor;
 }
+sub font2color {
+  my $self = shift;
+  $self->color('font2color') || $self->fontcolor;
+}
+sub tkcolor { shift->color('tkcolor') } # "track color"
 sub connector_color {
   my $self = shift;
   my $partno = shift;
@@ -217,25 +262,32 @@ sub layout {
   my $self = shift;
   return $self->{layout_height} if exists $self->{layout_height};
 
-  my @parts = $self->parts 
-    or return $self->{layout_height} = $self->height + $self->pad_top + $self->pad_bottom;
-  my $bump_direction = $self->bump;
+  (my @parts = $self->parts)
+    || return $self->{layout_height} = $self->height + $self->pad_top + $self->pad_bottom;
 
-  unless ($bump_direction) { # no layout to do.  everything overlaps 
-    return $self->{layout_height} = $self->height;
-  }
+  my $bump_direction = $self->bump;
 
   $_->layout foreach @parts;  # recursively lay out
 
+  if (@parts == 1 || !$bump_direction) {
+    my $highest = 0;
+    foreach (@parts) {
+      my $height = $_->layout_height;
+      $highest = $height > $highest ? $height : $highest;
+    }
+    return $self->{layout_height} = $highest + $self->pad_top + $self->pad_bottom;
+  }
+
   my @occupied;
-  my $rightmost = -2;
+
+  warn "bump...\n";
   for my $g (sort { $a->left <=> $b->left} @parts) {
 
     my $pos = 0;
+
     while (1) {
       # look for collisions
-      last if $g->left > $rightmost + 2;
-      my $bottom = $pos + $g->layout_height;
+      my $bottom = $pos + $g->{layout_height};
 
       my $collision = 0;
       for my $old (@occupied) {
@@ -246,16 +298,19 @@ sub layout {
 	last;
       }
       last unless $collision;
+
+      warn (($g->parts)[0]->label," collides with ",($collision->parts)[0]->label,"\n");
+
       if ($bump_direction > 0) {
-	$pos += $collision->height + BUMP_SPACING;                    # collision, so bump
+	$pos += $collision->{layout_height} + BUMP_SPACING;                    # collision, so bump
 
       } else {
-	$pos -= $g->height - BUMP_SPACING;
+	$pos -= $g->{layout_height} - BUMP_SPACING;
       }
     }
     $g->move(0,$pos);
+
     @occupied = sort { $b->right <=> $a->right } ($g,@occupied);
-    $rightmost = $g->right if $g->right > $rightmost;
   }
 
   # If -1 bumping was allowed, then normalize so that the top glyph is at zero
@@ -389,18 +444,28 @@ sub filled_box {
   my $gd = shift;
   my ($x1,$y1,$x2,$y2) = @_;
 
+  my $fg = $self->fgcolor;
+  my $bg = $self->bgcolor;
   my $linewidth = $self->option('linewidth') || 1;
-  $gd->filledRectangle($x1,$y1,$x2,$y2,$self->bgcolor);
-  $gd->rectangle($x1,$y1,$x2,$y2,$self->fgcolor);
+
+  $gd->filledRectangle($x1,$y1,$x2,$y2,$bg);
+
+  $fg = $self->set_pen($linewidth,$fg) if $linewidth > 1;
+
+  # draw a box
+  $gd->rectangle($x1,$y1,$x2,$y2,$fg);
 
   # if the left end is off the end, then cover over
   # the leftmost line
   my ($width) = $gd->getBounds;
-  $gd->line($x1,$y1,$x1,$y2,$self->bgcolor)
-    if $x1 < 0;
 
-  $gd->line($x2,$y1,$x2,$y2,$self->bgcolor)
-    if $x2 > $width;
+  $bg = $self->set_pen($linewidth,$bg) if $linewidth > 1;
+
+  $gd->line($x1,$y1+$linewidth,$x1,$y2-$linewidth,$bg)
+    if $x1 < $self->panel->pad_left;
+
+  $gd->line($x2,$y1+$linewidth,$x2,$y2-$linewidth,$bg)
+    if $x2 > $width - $self->panel->pad_right;
 }
 
 sub filled_oval {
@@ -410,19 +475,20 @@ sub filled_oval {
   my $cx = ($x1+$x2)/2;
   my $cy = ($y1+$y2)/2;
 
-  my $linewidth = $self->option('linewidth') || 1;
-  if ($linewidth > 1) {
-    my $pen = $self->make_pen($linewidth);
-    # draw a box
-    $gd->setBrush($pen);
-    $gd->arc($cx,$cy,$x2-$x1,$y2-$y1,0,360,gdBrushed);
-  } else {
-    $gd->arc($cx,$cy,$x2-$x1,$y2-$y1,0,360,$self->fgcolor);
-  }
+  my $fg = $self->fgcolor;
+  my $linewidth = $self->linewidth;
+
+  $fg = $self->set_pen($linewidth) if $linewidth > 1;
+  $gd->arc($cx,$cy,$x2-$x1,$y2-$y1,0,360,$fg);
 
   # and fill it
   $gd->fill($cx,$cy,$self->bgcolor);
 }
+
+sub linewidth {
+  shift->option('linewidth') || 1;
+}
+
 sub fill {
   my $self = shift;
   my $gd   = shift;
@@ -430,6 +496,14 @@ sub fill {
   if ( ($x2-$x1) >= 2 && ($y2-$y1) >= 2 ) {
     $gd->fill($x1+1,$y1+1,$self->bgcolor);
   }
+}
+sub set_pen {
+  my $self = shift;
+  my ($linewidth,$color) = @_;
+  $linewidth ||= $self->linewidth;
+  $color     ||= $self->fgcolor;
+  return $color unless $linewidth > 1;
+  $self->panel->set_pen($linewidth,$color);
 }
 
 sub draw_component {
@@ -448,6 +522,38 @@ sub subseq {
   return $feature->merged_segments if $feature->can('merged_segments');
   return $feature->segments        if $feature->can('segments');
   return $feature->sub_SeqFeature  if $feature->can('sub_SeqFeature');
+  return;
+}
+
+# synthesize a key glyph
+sub keyglyph {
+  my $self = shift;
+
+  my $scale = 1/$self->scale;  # base pairs/pixel
+
+  # two segments, at pixels 0->50, 60->80
+  my $offset = $self->panel->offset;
+
+
+  my $feature =
+    Bio::Graphics::Feature->new(
+				-segments=>[ [ 0*$scale +$offset,50*$scale+$offset],
+					     [60*$scale+$offset, 80*$scale+$offset]
+					   ],
+				-name => $self->option('key'),
+				-strand => '+1');
+  my $factory = $self->factory->clone;
+  $factory->set_option(label => 1);
+  $factory->set_option(bump  => 0);
+  $factory->set_option(connector  => 'solid');
+  return $factory->make_glyph($feature);
+}
+
+sub all_callbacks {
+  my $self = shift;
+  my $track_level = $self->option('all_callbacks');
+  return $track_level if defined $track_level;
+  return $self->panel->all_callbacks; 
 }
 
 sub default_factory {

@@ -5,11 +5,12 @@ use GD;
 
 my %LOADED_GLYPHS = ();
 my %GENERIC_OPTIONS = (
-		       bgcolor    => 'cyan',
+		       bgcolor    => 'turquoise',
 		       fgcolor    => 'black',
+		       fontcolor  => 'black',
+		       font2color => 'turquoise',
 		       height     => 10,
 		       font       => gdSmallFont,
-		       fontcolor  => 'black',
 		       bump       => +1,       # bump by default (perhaps a mistake?)
 		       connector  => 'none',
 		       );
@@ -27,6 +28,12 @@ sub new {
 		options    => $options,
 		panel      => $panel,
 		},$class;
+}
+sub clone {
+  my $self = shift;
+  my %new = %$self;
+  my $new = bless \%new,ref($self);
+  $new;
 }
 sub stylesheet { shift->{stylesheet}  }
 sub glyph_map  { shift->{glyph_map}   }
@@ -84,22 +91,41 @@ sub feature_to_glyph {
   return $map->{$feature->type} || 'generic';
 }
 
+sub set_option {
+  my $self = shift;
+  my ($option_name,$option_value) = @_;
+  $self->{overriding_options}{lc $option_name} = $option_value;
+}
+
+# options:
+#    the overriding_options hash has precedence
+#    ...followed by the option_map
+#    ...followed by the stylesheet
+#    ...followed by generic options
 sub option {
   my $self = shift;
   my ($glyph,$option_name,$partno) = @_;
   return unless defined $option_name;
   $option_name = lc $option_name;   # canonicalize
 
+  return $self->{overriding_options}{$option_name} 
+    if exists $self->{overriding_options} && exists $self->{overriding_options}{$option_name};
+
+  if (my $map    = $self->option_map) {
+    if (defined(my $value  = $map->{$option_name})) {
+      my $feature = $glyph->feature;
+      return $value unless ref $value eq 'CODE';
+      return $value->($feature,$option_name,$partno);
+    }
+  }
+
   if (my $ss = $self->stylesheet) {
     my($glyph,%options) = $ss->glyph($glyph->feature);
-    return $options{$option_name};
+    my $value = $options{$option_name};
+    return $value if defined $value;
   }
-  my $map    = $self->option_map    or return $GENERIC_OPTIONS{$option_name};
-  my $value  = $map->{$option_name} or return $GENERIC_OPTIONS{$option_name};
 
-  my $feature = $glyph->feature;
-  return $value unless ref $value eq 'CODE';
-  return $value->($feature,$option_name,$partno);
+  return $GENERIC_OPTIONS{$option_name};
 }
 
 1;

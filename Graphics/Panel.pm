@@ -1,15 +1,20 @@
 package Bio::Graphics::Panel;
-use Bio::Graphics::Glyph::Factory;
-use GD;
+
+require 5.6.0;
 
 use strict;
+use Bio::Graphics::Glyph::Factory;
+use Bio::Graphics::Feature;
 use Carp 'cluck';
-our $VERSION = '0.50';
+use GD;
 
-use constant KEYLABELFONT => gdSmallFont;
+our $VERSION = '1.00';
+
+use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
 use constant KEYPADTOP    => 5;  # extra padding before the key starts
-use constant KEYCOLOR     => 'cornsilk';
+use constant KEYCOLOR     => 'wheat';
+use constant KEYSTYLE     => 'bottom';
 
 my %COLORS;  # translation table for symbolic color names to RGB triple
 
@@ -22,13 +27,21 @@ sub new {
   $class->read_colors() unless %COLORS;
 
   my $length = $options{-length} || 0;
-  my $offset = $options{-offset} || 0;
+  my $offset = $options{-offset}  || 0;
   my $spacing = $options{-spacing} || 5;
-  my $keycolor = $options{-keycolor} || KEYCOLOR;
-  my $keyspacing = $options{-keyspacing} || KEYSPACING;
+  my $bgcolor = $options{-bgcolor} || 0;
+  my $keyfont = $options{-key_font} || KEYLABELFONT;
+  my $keycolor = $options{-key_color} || KEYCOLOR;
+  my $keyspacing = $options{-key_spacing} || KEYSPACING;
+  my $keystyle = $options{-key_style} || KEYSTYLE;
+  my $allcallbacks = $options{-all_callbacks} || 0;
 
-  $length   ||= $options{-segment}->length  if $options{-segment};
   $offset   ||= $options{-segment}->start-1 if $options{-segment};
+  $length   ||= $options{-segment}->length  if $options{-segment};
+
+  $offset   ||= $options{-start}-1 if defined $options{-start};
+  $length   ||= $options{-stop}-$options{-start}+1 
+     if defined $options{-start} && defined $options{-stop};
 
   return bless {
 		tracks => [],
@@ -39,10 +52,14 @@ sub new {
 		pad_right  => $options{-pad_right}||0,
 		length => $length,
 		offset => $offset,
+		bgcolor => $bgcolor,
 		height => 0, # AUTO
 		spacing => $spacing,
-		keycolor => $keycolor,
-		keyspacing => $keyspacing,
+		key_font => $keyfont,
+		key_color => $keycolor,
+		key_spacing => $keyspacing,
+		key_style => $keystyle,
+		all_callbacks => $allcallbacks,
 	       },$class;
 }
 
@@ -74,28 +91,41 @@ sub map_pt {
   my $self = shift;
   my $offset = $self->{offset};
   my $scale  = $self->scale;
+  my $pl = $self->pad_left;
+  my $pr = $self->width - $self->pad_right;
   my @result;
   foreach (@_) {
-    push @result,($_-$offset) * $scale;
+    my $val = $pl + ($_-$offset) * $scale;
+    $val = $pl-1 if $val < $pl;
+    $val = $pr+1 if $val > $pr;
+    push @result,$val;
   }
   @result;
 }
 sub scale {
   my $self = shift;
-  $self->{scale} ||= $self->width/$self->length;
+  $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right)/$self->length;
 }
-
+sub offset { shift->{offset} }
 sub width {
   my $self = shift;
   my $d = $self->{width};
   $self->{width} = shift if @_;
-  $d + $self->pad_left + $self->pad_right;
+  $d;
+#  $d + $self->pad_left + $self->pad_right;
 }
 
 sub spacing {
   my $self = shift;
   my $d = $self->{spacing};
   $self->{spacing} = shift if @_;
+  $d;
+}
+
+sub key_spacing {
+  my $self = shift;
+  my $d = $self->{key_spacing};
+  $self->{key_spacing} = shift if @_;
   $d;
 }
 
@@ -110,15 +140,29 @@ sub length {
   $d;
 }
 
+sub all_callbacks { shift->{all_callbacks} }
+
+sub add_track {
+  my $self = shift;
+  $self->_do_add_track(+1,@_);
+}
+
+sub unshift_track {
+  my $self = shift;
+  $self->_do_add_track(-1,@_);
+}
+
+
 # create a feature and factory pair
 # see Factory.pm for the format of the options
 # The thing returned is actually a generic Glyph
-sub add_track {
+sub _do_add_track {
   my $self = shift;
+  my $direction = shift;
 
   # due to indecision, we accept features
   # and/or glyph types in the first two arguments
-  my ($features,$glyph_name) = ([],'generic');
+  my ($features,$glyph_name) = ([],undef);
   while ( @_ && $_[0] !~ /^-/) {
     my $arg = shift;
     $features   = $arg and next if ref($arg);
@@ -130,7 +174,7 @@ sub add_track {
 
   foreach (keys %args) {
     (my $canonical = lc $_) =~ s/^-//;
-    if ($canonical eq 'map') {
+    if ($canonical eq 'glyph') {
       $map = $args{$_};
       delete $args{$_};
     } elsif ($canonical eq 'stylesheet') {
@@ -141,7 +185,10 @@ sub add_track {
     }
   }
 
-  my $panel_map = $map 
+  $glyph_name ||= $map;
+  $glyph_name ||= 'generic';
+
+  my $panel_map = ref($map) eq 'CODE'
     ?  sub {
           my $feature = shift;
 	  return 'track' if $feature->type eq 'track';
@@ -156,7 +203,7 @@ sub add_track {
 	  return $glyph_name;
 	};
 
-  $self->_add_track($features,+1,-map=>$panel_map,-stylesheet=>$ss,-options=>\%options);
+  $self->_add_track($features,$direction,-map=>$panel_map,-stylesheet=>$ss,-options=>\%options);
 }
 
 sub _add_track {
@@ -178,6 +225,8 @@ sub _add_track {
   # top-level glyph is the track
   my $feature = Bio::Graphics::Feature->new(
 					    -segments=>$features,
+					    -start => $self->offset+1,
+					    -stop  => $self->offset+$self->length,
 					    -type => 'track'
 					   );
 
@@ -195,9 +244,10 @@ sub _add_track {
 sub height {
   my $self = shift;
   my $spacing    = $self->spacing;
+  my $key_height = $self->format_key;
   my $height = 0;
   $height += $_->layout_height + $spacing foreach @{$self->{tracks}};
-  $height + $self->pad_top + $self->pad_bottom;
+  return $height + $key_height + $self->pad_top + $self->pad_bottom;
 }
 
 sub gd {
@@ -207,6 +257,7 @@ sub gd {
 
   my $width  = $self->width;
   my $height = $self->height;
+
   my $gd = GD::Image->new($width,$height);
   my %translation_table;
   for my $name ('white','black',keys %COLORS) {
@@ -216,15 +267,28 @@ sub gd {
 
   $self->{translations} = \%translation_table;
   $self->{gd}                = $gd;
-  my $offset = 0;
+  $gd->fill(0,0,$self->bgcolor) if $self->bgcolor;
+
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
+  my $offset = $pt;
 
   for my $track (@{$self->{tracks}}) {
-    $track->draw($gd,$pl,$offset+$pt,0,1);
+    $gd->filledRectangle($pl,
+			 $offset,
+			 $width-$self->pad_right,
+			 $offset+$track->layout_height 
+			 + ($self->{key_style} eq 'between' ? $self->{key_font}->height : 0),
+			 $track->tkcolor)
+      if defined $track->tkcolor;
+
+    $offset += $self->draw_between_key($gd,$track,$offset)
+      if $self->{key_style} eq 'between' && $track->option('key');
+    $track->draw($gd,0,$offset,0,1);
     $offset += $track->layout_height + $self->spacing;
   }
 
+  $self->draw_bottom_key($gd,$pl,$offset) if $self->{key_style} eq 'bottom';
   return $self->{gd} = $gd;
 }
 
@@ -234,12 +298,109 @@ sub boxes {
   my $offset = 0;
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
+  my $between = $self->{key_style} eq 'between';
   for my $track (@{$self->{tracks}}) {
-    my $boxes = $track->boxes($pl,$offset+$pt);
+    $offset += $self->{key_font}->height if $between && $track->option('key');
+    my $boxes = $track->boxes(0,$offset+$pt);
     push @boxes,@$boxes;
     $offset += $track->layout_height + $self->spacing;
   }
   return wantarray ? @boxes : \@boxes;
+}
+
+# draw the keys -- between
+sub draw_between_key {
+  my $self   = shift;
+  my ($gd,$track,$offset) = @_;
+  my $key = $track->option('key') or return 0;
+  my $x = ($self->width - CORE::length($key) * $self->{key_font}->width)/2;
+  $gd->string($self->{key_font},$x,$offset,$key,1);
+  return $self->{key_font}->height;
+}
+
+# draw the keys -- bottom
+sub draw_bottom_key {
+  my $self = shift;
+  my ($gd,$left,$top) = @_;
+  my $key_glyphs = $self->{key_glyphs} or return;
+
+  my $color = $self->translate_color($self->{key_color});
+  $gd->filledRectangle($left,$top,$self->width - $self->pad_right,$self->height-$self->pad_bottom,$color);
+  $gd->string($self->{key_font},$left,KEYPADTOP+$top,"KEY:",1);
+  $top += $self->{key_font}->height + KEYPADTOP;
+
+  $_->draw($gd,$left,$top) foreach @$key_glyphs;
+}
+
+# Format the key section, and return its height
+sub format_key {
+  my $self = shift;
+
+  return $self->{key_height} if defined $self->{key_height};
+
+  if ($self->{key_style} eq 'between') {
+    my @key_tracks = grep {$_->option('key')} @{$self->{tracks}};
+    return $self->{key_height} = @key_tracks * $self->{key_font}->height;
+  } elsif ($self->{key_style} eq 'bottom') {
+
+    my ($height,$width) = (0,0);
+    my %tracks;
+    my @glyphs;
+
+    # determine how many glyphs become part of the key
+    # and their max size
+    for my $track (@{$self->{tracks}}) {
+      next unless $track->option('key');
+      my $glyph = $track->keyglyph;
+      $tracks{$track} = $glyph;
+      my ($h,$w) = ($glyph->layout_height,
+		    $glyph->layout_width);
+      $height = $h if $h > $height;
+      $width  = $w if $w > $width;
+      push @glyphs,$glyph;
+    }
+
+    $width += $self->key_spacing;
+
+    # no key glyphs, no key
+    return $self->{key_height} = 0 unless @glyphs;
+
+    # now height and width hold the largest glyph, and $glyph_count
+    # contains the number of glyphs.  We will format them into a
+    # box that is roughly 3 height/4 width (golden mean)
+    my $rows = 0;
+    my $cols = 0;
+    my $maxwidth = $self->width - $self->pad_left - $self->pad_right;
+    while (++$rows) {
+      $cols = @glyphs / $rows;
+      $cols = int ($cols+1) if $cols =~ /\./;  # round upward for fractions
+      my $total_width  = $cols * $width;
+      my $total_height = $rows * $width;
+      last if $total_width < $maxwidth;
+    }
+
+    # move glyphs into row-major format
+    my $spacing = $self->key_spacing;
+    my $i = 0;
+    for (my $c = 0; $c < $cols; $c++) {
+      for (my $r = 0; $r < $rows; $r++) {
+	my $x = $c * ($width  + $spacing);
+	my $y = $r * ($height + $spacing);
+	next unless defined $glyphs[$i];
+	$glyphs[$i]->move($x,$y);
+	$i++;
+      }
+    }
+
+    $self->{key_glyphs} = \@glyphs;     # remember our key glyphs
+    # remember our key height
+    return $self->{key_height} =
+      ($height+$spacing) * $rows + $self->{key_font}->height +KEYPADTOP;
+  }
+
+  else {  # no known key style, neither "between" nor "bottom"
+    return $self->{key_height} = 0;
+  }
 }
 
 # reverse of translate(); given index, return rgb tripler
@@ -263,10 +424,16 @@ sub translate_color {
   }
 }
 
+sub bgcolor {
+   my $self = shift;
+   return unless $self->{bgcolor};
+   $self->translate_color($self->{bgcolor});
+}
+
 sub set_pen {
   my $self = shift;
   my ($linewidth,$color) = @_;
-  return $self->{pens}{$linewidth} if $self->{pens}{$linewidth};
+  return $self->{pens}{$linewidth,$color} if $self->{pens}{$linewidth,$color};
 
   my $pen = $self->{pens}{$linewidth} = GD::Image->new($linewidth,$linewidth);
   my @rgb = $self->rgb($color);
@@ -274,6 +441,7 @@ sub set_pen {
   my $fg = $pen->colorAllocate(@rgb);
   $pen->fill(0,0,$fg);
   $self->{gd}->setBrush($pen);
+  return gdBrushed;
 }
 
 sub png {
@@ -441,3 +609,438 @@ whitesmoke           F5           F5            F5
 yellow               FF           FF            00
 yellowgreen          9A           CD            32
 __END__
+
+=head1 NAME
+
+Bio::Graphics::Panel - Generate GD images of Bio::Seq objects
+
+=head1 SYNOPSIS
+
+  use Ace::Sequence;  # or any Bio::Seq factory
+  use Bio::Graphics::Panel;
+
+  my $db     = Ace->connect(-host=>'brie2.cshl.org',-port=>2005) or die;
+  my $cosmid = Ace::Sequence->new(-seq=>'Y16B4A',
+				  -db=>$db,-start=>-15000,-end=>15000) or die;
+
+  my @transcripts = $cosmid->transcripts;
+
+  my $panel = Ace::Graphics::Panel->new(
+				      -segment => $cosmid,
+				      -width  => 800
+				     );
+
+
+  $panel->add_track(arrow => $cosmid,
+ 		  -bump => 0,
+ 		  -tick=>2);
+
+  $panel->add_track(transcript => \@transcripts,
+ 		    -bgcolor   =>  'wheat',
+ 		    -fgcolor   =>  'black',
+                    -key       => 'Curated Genes',
+ 		    -bump      =>  +1,
+ 		    -height    =>  10,
+ 		    -label     =>  1);
+
+  my $boxes = $panel->boxes;
+  print $panel->png;
+
+=head1 DESCRIPTION
+
+The Bio::Graphics::Panel class provides drawing and formatting
+services for any object that implements the Bio::SeqFeatureI
+interface, including Ace::Sequence::Feature and Das::Segment::Feature
+objects.  It can be used to draw sequence annotations, physical
+(contig) maps, or any other type of map in which a set of discrete
+ranges need to be laid out on the number line.
+
+The module supports a drawing style in which each type of feature
+occupies a discrete "track" that spans the width of the display.  Each
+track will have its own distinctive "glyph", a configurable graphical
+representation of the feature.
+
+The module also supports a more flexible style in which several
+different feature types and their associated glyphs can occupy the
+same track.  The choice of glyph is under run-time control.
+
+Semantic zooming (for instance, changing the type of glyph depending
+on the density of features) is supported by a callback system for
+configuration variables.  The module has built-in support for Bio::Das
+stylesheets, and stylesheet-driven configuration can be intermixed
+with semantic zooming, if desired.
+
+You can add a key to the generated image using either of two key
+styles.  One style places the key captions at the top of each track.
+The other style generates a graphical key at the bottom of the image.
+
+Note that this modules depends on GD.
+
+=head1 METHODS
+
+This section describes the class and object methods for
+Bio::Graphics::Panel.
+
+Typically you will begin by creating a new Bio::Graphics::Panel
+object, passing it the desired width of the image to generate and an
+origin and length describing the coordinate range to display.  The
+Bio::Graphics::Panel->new() method has may configuration variables
+that allow you to control the appearance of the image.
+
+You will then call add_track() one or more times to add sets of
+related features to the picture.  add_track() places a new horizontal
+track on the image, and is likewise highly configurable.  When you
+have added all the features you desire, you may call png() to convert
+the image into a PNG-format image, or boxes() to return coordinate
+information that can be used to create an imagemap.
+
+=head2 CONSTRUCTORS
+
+new() is the constructor for Bio::Graphics::Panel:
+
+=over 4
+
+=item $panel = Bio::Graphics::Panel->new(@options)
+
+The new() method creates a new panel object.  The options are
+a set of tag/value pairs as follows:
+
+  Option      Value                                  Default
+  ------      -----                                  -------
+
+  -offset     Base pair to place at extreme left     none
+	      of image, in zero-based coordinates
+
+  -length     Length of sequence segment, in bp      none
+
+  -start      Start of range, in 1-based             none
+              coordinates.
+
+  -stop       Stop of range, in 1-based              none
+	      coordinates.
+
+  -segment    A Bio::SeqI or Das::Segment            none
+              object, used to derive sequence
+	      range if not otherwise specified.
+
+  -width      Desired width of image, in pixels      600
+
+  -spacing    Spacing between tracks, in pixels      5
+
+  -pad_top    Additional whitespace between top      0
+	      of image and contents, in pixels
+
+  -pad_bottom Additional whitespace between top      0
+	      of image and bottom, in pixels
+
+  -pad_left   Additional whitespace between left     0
+	      of image and contents, in pixels
+
+  -pad_right  Additional whitespace between right    0
+	      of image and bottom, in pixels
+
+  -bgcolor    Background color for the panel as a    white
+	      whole
+
+  -key_color  Background color for the key printed   wheat
+              at bottom of panel (if any)
+
+  -key_spacing Spacing between key glyphs in the     10
+               key printed at bottom of panel
+               (if any)
+
+  -key_font    Font to use in printed key            gdMediumBoldFont
+	       captions.
+
+  -key_style   Whether to print key at bottom of     none
+	       panel ("bottom"), between each
+	       track ("between"), or not at all
+	       ("none").
+
+  -all_callbacks Whether to invoke callbacks on      false
+               the automatic "track" and "group"
+               glyphs.
+
+Typically you will pass new() an object that implements the
+Bio::RangeI interface, providing a length() method, from which the
+panel will derive its scale.
+
+  $panel = Bio::Graphics::Panel->new(-segment => $sequence,
+				     -width   => 800);
+
+new() will return undef in case of an error.
+
+=back
+
+=head2 OBJECT METHODS
+
+=over 4
+
+=item $track = $panel->add_track($glyph,$features,@options)
+
+The add_track() method adds a new track to the image. 
+
+Tracks are horizontal bands which span the entire width of the panel.
+Each track contains a number of graphical elements called "glyphs",
+corresponding to a sequence feature. 
+
+There are a large number of glyph types.  By default, each track will
+be homogeneous on a single glyph type, but you can mix several glyph
+types on the same track by providing a code reference to the -glyph
+argument.  Other options passed to add_track() control the color and
+size of the glyphs, whether they are allowed to overlap, and other
+formatting attributes.  The height of a track is determined from its
+contents and cannot be directly influenced.
+
+The first two arguments are the glyph name and an array reference
+containing the list of features to display.  The order of the
+arguments is irrelevant, allowing either of these idioms:
+
+  $panel->add_track(arrow => \@features);
+  $panel->add_track(\@features => 'arrow');
+
+The glyph name indicates how each feature is to be rendered.  A
+variety of glyphs are available, and the number is growing.
+Currently, the following glyphs are available:
+
+  Name        Description
+  ----        -----------
+
+  generic      A filled rectangle, nondirectional.
+
+  arrow	      An arrow; can be unidirectional or bidirectional.
+	      It is also capable of displaying a scale with
+	      major and minor tickmarks, and can be oriented
+	      horizontally or vertically.
+
+  segments    A set of filled rectangles connected by solid lines.
+	      Used for interrupted features, such as gapped
+	      alignments.
+
+  transcript  Similar to segments, but the connecting line is
+	      a "hat" shape, and the direction of transcription
+	      is indicated by a small arrow.
+
+  oval        Similar to transcript, but the connecting line is
+	      a "hat" shape, and the direction of transcription
+	      is indicated by a small arrow.
+
+  primers     Two inward pointing arrows connected by a line.
+	      Used for STSs.
+
+  group	      A group of related features connected by a dashed line.
+	      This is used internally by Panel.
+
+  track	      A group of related features not connected by a line.
+	      This is used internally by Panel.
+
+If the glyph name is omitted from add_track(), the "generic" glyph will be
+used by default.
+
+The @options array is a list of name/value pairs that control the
+attributes of the track.  The options are in turn passed to the
+glyphs.  Each glyph has its own specialized subset of options, but
+some are shared by all glyphs:
+
+  Option      Description                  Default
+  ------      -----------                  -------
+
+  -fgcolor    Foreground color		   black
+
+  -bgcolor    Background color             turquoise
+
+  -tkcolor    Track color                  white
+
+  -linewidth  Width of lines drawn by	   1
+	      glyph
+
+  -height     Height of glyph		   10
+
+  -font       Glyph font		   gdSmallFont
+
+  -label      Whether to draw a label	   false
+
+  -bump	      Bump direction		   0
+
+  -connector  Type of connector to         none
+	      use to connect related
+	      features.  Options are
+	      "hat", "dashed" and
+	      "none" (see below).
+
+  -key        Description of track for     undef
+	      use in key.
+
+  -all_callbacks Whether to invoke
+              callbacks for autogenerated
+              "track" and "group" glyphs
+
+Colors can be expressed in either of two ways: as symbolic names such
+as "cyan" and as HTML-style #RRGGBB triples.  The symbolic names are
+the 140 colors defined in the Netscape/Internet Explorer color cube,
+and can be retrieved using the Bio::Graphics::Panel->color_names()
+method.
+
+The backgrond color controls the background used for filled boxes and
+other "solid" glyphs.  The foreground color controls the color of
+lines and strings.  The -tkcolor argument controls the background
+color of the entire track.
+
+The -label argument controls whether or not the ID of the feature
+should be printed next to the feature.  It is accepted by most, but
+not all of the glyphs.  -label can be a constant string or a code
+reference; see below.
+
+The -bump argument controls what happens when glyphs collide.  By
+default, they will simply overlap (value 0).  A -bump value of +1 will
+cause overlapping glyphs to bump downwards until there is room for
+them.  A -bump value of -1 will cause overlapping glyphs to bump
+upwards.  This argument can also be a code reference; see below.
+
+The -key argument declares that the track is to be shown in a key
+appended to the bottom of the image.  The key contains a picture of a
+glyph and a label describing what the glyph means.  The label is
+specified in the argument to -key.
+
+add_track() returns an Bio::Graphics::Track object.  You can use this
+object to add additional features or to control the appearance of the
+track with greater detail, or just ignore it.  Tracks are added in
+order from the top of the image to the bottom.  To add tracks to the
+top of the image, use unshift_track().
+
+Typical usage is:
+
+ $panel->add_track( thistle    => \@genes,
+ 		    -fillcolor =>  'green',
+ 		    -fgcolor   =>  'black',
+ 		    -bump      =>  +1,
+ 		    -height    => 10,
+ 		    -label     => 1);
+
+=item $track = unshift_track($glyph,$features,@options)
+
+unshift_track() works like add_track(), except that the new track is
+added to the top of the image rather than the bottom.
+
+B<Adding groups of features:> It is not uncommon to add a group of
+features which are logically connected, such as the 5' and 3' ends of
+EST reads.  To group features into sets that remain on the same
+horizontal position and bump together, pass the sets as an anonymous
+array.  To connect the groups by a dashed line, pass the
+-connect_groups argument with a true value.  For example:
+
+  $panel->add_track(segments => [[$abc_5,$abc_3],
+				 [$xxx_5,$xxx_3],
+				 [$yyy_5,$yyy_3]],
+		    -connect_groups => 1);
+
+=item $gd = $panel->gd
+
+The gd() method lays out the image and returns a GD::Image object
+containing it.  You may then call the GD::Image object's png() or
+jpeg() methods to get the image data.
+
+=item $png = $panel->png
+
+The png() method returns the image as a PNG-format drawing, without
+the intermediate step of returning a GD::Image object.
+
+=item $boxes = $panel->boxes
+
+=item @boxes = $panel->boxes
+
+The boxes() method returns the coordinates of each glyph, useful for
+constructing an image map.  In a scalar context, boxes() returns an
+array ref.  In an list context, the method returns the array directly.
+
+Each member of the list is an anonymous array of the following format:
+
+  [ $feature, $x1, $y1, $x2, $y2 ]
+
+The first element is the feature object; either an
+Ace::Sequence::Feature, a Das::Segment::Feature, or another Bioperl
+Bio::SeqFeatureI object.  The coordinates are the topleft and
+bottomright corners of the glyph, including any space allocated for
+labels.
+
+=back
+
+=head2 ACCESSORS
+
+The following accessor methods provide access to various attributes of
+the panel object.  Called with no arguments, they each return the
+current value of the attribute.  Called with a single argument, they
+set the attribute and return its previous value.
+
+Note that in most cases you must change attributes prior to invoking
+gd(), png() or boxes().  These three methods all invoke an internal
+layout() method which places the tracks and the glyphs within them,
+and then caches the result.
+
+   Accessor Name      Description
+   -------------      -----------
+
+   width()	      Get/set width of panel
+   spacing()	      Get/set spacing between tracks
+   length()	      Get/set length of segment (bp)
+   pad_top()	      Get/set top padding
+   pad_left()	      Get/set left padding
+   pad_bottom()	      Get/set bottom padding
+   pad_right()	      Get/set right padding
+
+=head2 INTERNAL METHODS
+
+The following methods are used internally, but may be useful for those
+implementing new glyph types.
+
+=over 4
+
+=item @names = Bio::Graphics::Panel->color_names
+
+Return the symbolic names of the colors recognized by the panel
+object.  In a scalar context, returns an array reference.
+
+=item @rgb = $panel->rgb($index)
+
+Given a GD color index (between 0 and 140), returns the RGB triplet
+corresponding to this index.  This method is only useful within a
+glyph's draw() routine, after the panel has allocated a GD::Image and
+is populating it.
+
+=item $index = $panel->translate($color)
+
+Given a color, returns the GD::Image index.  The color may be
+symbolic, such as "turquoise", or a #RRGGBB triple, as in #F0E0A8.
+This method is only useful within a glyph's draw() routine, after the
+panel has allocated a GD::Image and is populating it.
+
+=item $panel->set_pen($width,$color)
+
+Changes the width and color of the GD drawing pen to the values
+indicated.  This is called automatically by the GlyphFactory fgcolor()
+method.
+
+=back
+
+=head1 BUGS
+
+Please report them.
+
+=head1 SEE ALSO
+
+L<Ace::Sequence>,L<Ace::Sequence::Feature>,
+L<Bio::Graphics::Track>,L<Bio::Graphics::Glyph>,
+L<GD>
+
+=head1 AUTHOR
+
+Lincoln Stein <lstein@cshl.org>.
+
+Copyright (c) 2001 Cold Spring Harbor Laboratory
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut
+

@@ -4,10 +4,10 @@ use strict;
 use base 'Bio::Graphics::Glyph';
 
 # new options are 'label'       -- short label to print over glyph
-#                 'long_label'  -- long label to print under glyph
-# label and long_label can be flags or coderefs.
+#                 'description'  -- long label to print under glyph
+# label and description can be flags or coderefs.
 # If a flag, label will be taken from seqname, if it exists or primary_tag().
-#            long_label will be taken from source_tag().
+#            description will be taken from source_tag().
 
 sub font {
   my $self = shift;
@@ -16,13 +16,22 @@ sub font {
 sub pad_top {
   my $self = shift;
   my $pad = $self->SUPER::pad_top;
-  $pad   += $self->labelheight if defined $self->label ;
+  $pad   += $self->labelheight if $self->label;
   $pad;
 }
 sub pad_bottom {
   my $self = shift;
   my $pad = $self->SUPER::pad_bottom;
-  $pad   += $self->labelheight if defined $self->long_label;
+  $pad   += $self->labelheight if $self->description;
+  $pad;
+}
+sub pad_right {
+  my $self = shift;
+  my $pad = $self->SUPER::pad_right;
+  my $label_width = length($self->label||'') * $self->font->width;
+  my $description_width = length($self->description||'') * $self->font->width;
+  my $max = $label_width > $description_width ? $label_width : $description_width;
+  $pad = $max - ($self->width+$pad) if $max > ($self->width+$pad);
   $pad;
 }
 
@@ -35,10 +44,10 @@ sub label {
   return exists $self->{label} ? $self->{label}
                                : $self->{label} = $self->_label;
 }
-sub long_label {
+sub description {
   my $self = shift;
-  return exists $self->{long_label} ? $self->{long_label}
-                                    : $self->{long_label} = $self->_long_label;
+  return exists $self->{description} ? $self->{description}
+                                    : $self->{description} = $self->_description;
 }
 sub _label {
   my $self = shift;
@@ -55,32 +64,35 @@ sub _label {
   return $f->seqname if $f->can('seqname');
   return $f->primary_tag;
 }
-sub _long_label {
+sub _description {
   my $self = shift;
 
   # allow caller to specify the long label
-  my $label = $self->option('long_label');
+  my $label = $self->option('description');
   return unless defined $label;
   return $label unless $label eq '1';
 
-  # fetch deeply-imbedded acedb sequence object information
-  # for backward compatibility with wormbase implementation
+  # fetch modularity-breaking acedb sequence object information
+  # for backward compatibility with wormbase requirements
   my $f = $self->feature;
   my $acedb_info = eval {
     my $t       = $f->info;
-    my $id      = $f->Brief_identification;
+    my $id      = $t->Brief_identification;
     my $comment = $t->Locus;
     $comment   .= $comment ? " ($id)" : $id if $id;
     $comment;
   };
   return $acedb_info if $acedb_info;
-  return $f->source_tag;
+  my $tag = $f->source_tag;
+  return undef if $tag eq '';
+  $tag;
 }
 
 sub draw {
   my $self = shift;
   $self->SUPER::draw(@_);
-  $self->draw_label(@_) if $self->option('label');
+  $self->draw_label(@_)      if $self->option('label');
+  $self->draw_description(@_) if $self->option('description');
 }
 
 sub draw_label {
@@ -93,6 +105,57 @@ sub draw_label {
 	      $label,
 	      $self->fontcolor);
 }
+sub draw_description {
+  my $self = shift;
+  my ($gd,$left,$top,$partno,$total_parts) = @_;
+  my $label = $self->description or return;
+  $gd->string($self->font,
+	      $self->left   + $left,
+	      $self->bottom - $self->pad_bottom + $top,
+	      $label,
+	      $self->font2color);
+}
 
+sub arrowhead {
+  my $self = shift;
+  my $gd   = shift;
+  my ($x,$y,$height,$orientation) = @_;
+  my $fg = $self->set_pen;
+  my $style = $self->option('arrowstyle') || 'regular';
+
+  if ($style eq 'filled') {
+    my $poly = new GD::Polygon;
+    if ($orientation >= 0) {
+      $poly->addPt($x-$height,$y-$height);
+      $poly->addPt($x,$y);
+      $poly->addPt($x-$height,$y+$height,$y);
+    } else {
+      $poly->addPt($x+$height,$y-$height);
+      $poly->addPt($x,$y);
+      $poly->addPt($x+$height,$y+$height,$y);
+    }
+    $gd->filledPolygon($poly,$fg);
+  } else {
+    if ($orientation >= 0) {
+      $gd->line($x-$height,$y-$height,$x,$y,$fg);
+      $gd->line($x,$y,$x-$height,$y+$height,$fg);
+    } else {
+      $gd->line($x+$height,$y-$height,$x,$y,$fg);
+      $gd->line($x,$y,$x+$height,$y+$height,$fg);
+    }
+  }
+}
+
+sub arrow {
+  my $self = shift;
+  my $gd   = shift;
+  my ($x1,$x2,$y) = @_;
+  my $fg     = $self->set_pen;
+  my $height = $self->height/2;
+
+  $gd->line($x1,$y,$x2,$y,$fg);
+  $self->arrowhead($gd,$x2,$y,$height,+1) if $x1 < $x2;
+  $self->arrowhead($gd,$x2,$y,$height,-1) if $x2 < $x1;
+}
 
 1;

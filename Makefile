@@ -50,9 +50,9 @@ AR_STATIC_ARGS = cr
 NAME = Bio::Graphics
 DISTNAME = Bio-Graphics
 NAME_SYM = Bio_Graphics
-VERSION = 0.50
-VERSION_SYM = 0_50
-XS_VERSION = 0.50
+VERSION = 1.00
+VERSION_SYM = 1_00
+XS_VERSION = 1.00
 INST_BIN = blib/bin
 INST_EXE = blib/script
 INST_LIB = blib/lib
@@ -157,17 +157,31 @@ PERL_ARCHIVE =
 
 TO_INST_PM = Graphics/Feature.pm \
 	Graphics/Glyph.pm \
+	Graphics/Glyph.pm~ \
 	Graphics/Glyph/Factory.pm \
+	Graphics/Glyph/Factory.pm~ \
 	Graphics/Glyph/arrow.pm \
+	Graphics/Glyph/arrow.pm~ \
 	Graphics/Glyph/generic.pm \
+	Graphics/Glyph/generic.pm~ \
 	Graphics/Glyph/group.pm \
 	Graphics/Glyph/oval.pm \
 	Graphics/Glyph/track.pm \
 	Graphics/Glyph/transcript.pm \
+	Graphics/Glyph/transcript.pm~ \
 	Graphics/Glyph/transcript2.pm \
-	Graphics/Panel.pm
+	Graphics/Panel.pm \
+	Graphics/Panel.pm~
 
-PM_TO_BLIB = Graphics/Glyph/generic.pm \
+PM_TO_BLIB = Graphics/Glyph/generic.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/generic.pm~ \
+	Graphics/Glyph/transcript.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ \
+	Graphics/Glyph/arrow.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ \
+	Graphics/Glyph/Factory.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ \
+	Graphics/Glyph/generic.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/generic.pm \
 	Graphics/Glyph/arrow.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm \
@@ -175,16 +189,20 @@ PM_TO_BLIB = Graphics/Glyph/generic.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/group.pm \
 	Graphics/Glyph/transcript.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm \
-	Graphics/Feature.pm \
-	$(INST_LIBDIR)/Graphics/Feature.pm \
 	Graphics/Glyph/oval.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/oval.pm \
+	Graphics/Feature.pm \
+	$(INST_LIBDIR)/Graphics/Feature.pm \
 	Graphics/Glyph/Factory.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm \
+	Graphics/Panel.pm~ \
+	$(INST_LIBDIR)/Graphics/Panel.pm~ \
 	Graphics/Glyph/track.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
 	Graphics/Glyph.pm \
 	$(INST_LIBDIR)/Graphics/Glyph.pm \
+	Graphics/Glyph.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph.pm~ \
 	Graphics/Panel.pm \
 	$(INST_LIBDIR)/Graphics/Panel.pm \
 	Graphics/Glyph/transcript2.pm \
@@ -449,7 +467,7 @@ clean ::
 # Delete temporary files (via clean) and also delete installed files
 realclean purge ::  clean
 	rm -rf $(INST_AUTODIR) $(INST_ARCHAUTODIR)
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/generic.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ $(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ $(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Panel.pm~ $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm $(INST_LIBDIR)/Graphics/Glyph.pm~ $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm
 	rm -rf Makefile Makefile.old
 
 
@@ -688,7 +706,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"0,50,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i586-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
+	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"1,00,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i586-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
 
 # --- MakeMaker pm_to_blib section:
 

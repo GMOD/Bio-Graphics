@@ -1,7 +1,7 @@
 package Bio::Graphics::Feature;
 
 use strict;
-*stop        = \&end;
+*end         = \&stop;
 *info        = \&name;
 *seqname     = \&name;
 *primary_tag = \&type;
@@ -26,11 +26,11 @@ sub new {
   $self->{strand} = $arg{-strand} >= 0 ? +1 : -1;
   $self->{name}   = $arg{-name};
   $self->{type}   = $arg{-type}   || 'feature';
-  $self->{source} = $arg{-source} || $arg{-source_tag} || 'dummy';
+  $self->{source} = $arg{-source} || $arg{-source_tag} || '';
 
+  my @segments;
   if (my $s = $arg{-segments}) {
 
-    my @segments;
     for my $seg (@$s) {
       if (ref($seg) eq 'ARRAY') {
 	push @segments,$class->new(-start=>$seg->[0],
@@ -41,22 +41,22 @@ sub new {
 	push @segments,$seg;
       }
     }
-
-    $self->{segments} = [ sort {$a->start <=> $b->start } @segments ];
-    $self->{start} = $self->{segments}[0]->start;
-    ($self->{end}) = sort { $b <=> $a } map { $_->stop} @segments;
-
-  } else {
-    $self->{start} = $arg{-start};
-    $self->{end}   = $arg{-end} || $arg{-stop};
   }
 
+  if (@segments) {
+    $self->{segments} = [ sort {$a->start <=> $b->start } @segments ];
+    $self->{start} = $self->{segments}[0]->start;
+    ($self->{stop}) = sort { $b <=> $a } map { $_->stop} @segments;
+  } else {
+    $self->{start} = $arg{-start};
+    $self->{stop}   = $arg{-end} || $arg{-stop};
+  }
   $self;
 }
 
 sub segments {
   my $self = shift;
-  my $s = $self->{segments} or return;
+  my $s = $self->{segments} or return wantarray ? () : 0;
   @$s;
 }
 sub type     { shift->{type}        }
@@ -66,13 +66,13 @@ sub start    {
   my $self = shift;
   return $self->{start};
 }
-sub end    {
+sub stop    {
   my $self = shift;
-  return $self->{end};
+  return $self->{stop};
 }
 sub length {
   my $self = shift;
-  return $self->end - $self->start + 1;
+  return $self->stop - $self->start + 1;
 }
 sub introns {
   my $self = shift;
