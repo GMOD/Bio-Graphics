@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.6 2001-11-24 14:36:21 lstein Exp $
+# $Id: Browser.pm,v 1.7 2001-11-26 14:42:39 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -76,15 +76,36 @@ sub make_link {
   my $self     = shift;
   my $feature  = shift;
   my $label = $self->feature2label($feature) or return;
-  my $link  = $self->config->label2link($label) or return;
-  $link =~ s/\$(\w+)/
-     $1 eq 'name'   ? $feature->name
-   : $1 eq 'class'  ? $feature->class
-   : $1 eq 'method' ? $feature->method
-   : $1 eq 'source' ? $feature->source
-   : $1
-    /exg;
-  $link;
+  my $link  = $self->get_link($label) or return;
+  if (ref $link eq 'CODE') {
+    return $link->($feature);
+  }
+ 
+  else {
+    $link =~ s/\$(\w+)/
+      $1 eq 'name'   ? $feature->name
+      : $1 eq 'class'  ? $feature->class
+      : $1 eq 'method' ? $feature->method
+      : $1 eq 'source' ? $feature->source
+      : $1
+       /exg;
+    return $link;
+  }
+}
+
+sub get_link {
+  my $self = shift;
+  my $label = shift;
+  if (exists $self->{_link}{$label}) {
+    return $self->{_link}{$label}
+  } else {
+    my $link = $self->{_link}{$label} = $self->config->label2link($label);
+    if ($link =~ /^sub\s+\{/) { # a subroutine
+      my $coderef = eval $link;
+      warn $@ if $@;
+      $self->{_link}{$label} = $coderef;
+    }
+  }
 }
 
 sub labels {
