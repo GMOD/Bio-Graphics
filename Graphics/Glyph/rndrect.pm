@@ -30,7 +30,7 @@ sub draw_component {
   } else {
       $poly->addPt($x1, $y1);
       $poly->addPt($x2, $y1);
-      
+
       $poly->addPt($x2, $y2);
       $poly->addPt($x1, $y2);
   }
@@ -55,3 +55,44 @@ sub bump {
 
 
 1;
+
+
+=head1 NAME
+
+Bio::Graphics::Glyph::rndrect
+
+=head1 SYNOPSIS
+
+  See L<Bio::Graphics::Panel> and L<Bio::Graphics::Glyph>.
+
+=head1 DESCRIPTION
+
+This glyph was designed to show seq features in round edge rectangles.
+The glyph will be a rectangle if its width is < 4 pixels
+
+=head1 BUGS
+
+Please report them.
+
+=head1 SEE ALSO
+
+L<Ace::Sequence>, L<Ace::Sequence::Feature>, L<Bio::Graphics::Panel>,
+L<Bio::Graphics::Track>, L<Bio::Graphics::Glyph::anchored_arrow>,
+L<Bio::Graphics::Glyph::arrow>,
+L<Bio::Graphics::Glyph::box>,
+L<Bio::Graphics::Glyph::primers>,
+L<Bio::Graphics::Glyph::segments>,
+L<Bio::Graphics::Glyph::toomany>,
+L<Bio::Graphics::Glyph::transcript>,
+
+=head1 AUTHOR
+
+Shengqiang Shu (sshu@bdgp.lbl.gov)
+
+Copyright (c) 2001 BDGP
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut
