@@ -130,4 +130,15 @@ sub option {
   return $GENERIC_OPTIONS{$option_name};
 }
 
+# return names of all the options in the option hashes
+sub options {
+  my $self = shift;
+  my %options;
+  if (my $map    = $self->option_map) {
+    $options{lc($_)}++ foreach keys %$map;
+  }
+  $options{lc($_)}++ foreach keys %GENERIC_OPTIONS;
+  return keys %options;
+}
+
 1;

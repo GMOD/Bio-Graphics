@@ -127,7 +127,12 @@ sub length {
   return $self->end - $self->start + 1;
 }
 
-sub source_tag { shift->{source} }
+sub source_tag { 
+  my $self = shift;
+  my $d = $self->{source};
+  $self->{source} = shift if @_;
+  $d;
+}
 
 # This probably should be deleted.  Not sure why it's here, but might
 # have been added for Ace::Sequence::Feature-compliance.
