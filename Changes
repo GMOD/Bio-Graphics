@@ -1,6 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
-1.03 Fri Apr 12 00:26:12 EDT 2002
+1.04 Fri Apr 12 08:20:35 EDT 2002
 	- This is the same version that is in BioPerl version 1.01.
+	- Take advantage of optimizations in Bio::DB::GFF::Feature so don't
+	have to retrieve subfeatures at low magnifications (when you can't
+	see 'em anyway).
+1.03 Fri Apr 12 00:26:12 EDT 2002
 	- Fixes to handle case of a transcript glyph that is zoomed in so
 	far that only an intron shows (no exons).
 1.02 Sun Mar 31 16:19:35 EST 2002
