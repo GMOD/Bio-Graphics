@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.15 2002-04-23 17:46:53 sshu Exp $
+# $Id: transcript.pm,v 1.16 2002-04-25 17:46:58 sshu Exp $
 
 use strict;
 use Bio::Graphics::Glyph::segments;
@@ -74,6 +74,8 @@ sub draw {
 
   return unless($self->feature->can('start_codon') && $self->feature->can('stop_codon'));
 
+  return if ($self->panel->length > 100005);#showing codon is meaningless 4 longer annot seq on a page
+
   my $gd = shift;
   my ($left,$top,$partno,$total_parts) = @_;
 
@@ -85,8 +87,8 @@ sub draw {
   my($x1,$y1,$x2,$y2) = $self->bounds(@_);
 
   my ($start_codon, $stop_codon) = ($self->feature->start_codon, $self->feature->stop_codon);
-  my ($start, $end);
-  my ($min, $fudge, $width) = (1, 1.5, $self->panel->width);
+  my ($start, $end, $cwidth);
+  my ($min, $fudge, $width) = (1, 1.3, $self->panel->width);
   #start codon
   $start = $start_codon->start;
   $end = $start_codon->can('stop') ? $start_codon->stop : $start_codon->end;
@@ -94,8 +96,8 @@ sub draw {
   ($x1, $x2) = $self->map_pt($start, $end);
   ($x1, $x2) = ($x2, $x1) if ($x1 > $x2);
   ($x1, $x2) = ($left + $x1, $left + $x2);
-  my $diff = ($x2-$x1) || 1;
-  $min = $diff + (($fudge+$diff)/$width) * $width;
+  $cwidth = ($x2-$x1) || 0.5;
+  $min = $cwidth + (($fudge+$cwidth)/$width) * $width * $fudge;
   $x2 = $x1 + $min if ($x2 - $x1 < $min); #exagerating
   if ($x1 >= $self->panel->left && $x1 <= $self->panel->right - $self->panel->pad_right) {
       $gd->filledRectangle($x1, $y1, $x2, $y2, $startcolor);
@@ -107,8 +109,8 @@ sub draw {
   ($x1, $x2) = $self->map_pt($start, $end);
   ($x1, $x2) = ($x2, $x1) if ($x1 > $x2);
   ($x1, $x2) = ($left + $x1, $left + $x2);
-  my $diff = ($x2-$x1) || 1;
-  $min = $diff + (($fudge+$diff)/$width) * $width;
+  $cwidth = ($x2-$x1) || 0.5;
+  $min = $cwidth + (($fudge+$cwidth)/$width) * $width * $fudge;
   $x2 = $x1 + $min if ($x2 - $x1 < $min); #exagerating
   if ($x1 >= $self->panel->left && $x1 <= $self->panel->right - $self->panel->pad_right) {
       $gd->filledRectangle($x1, $y1, $x2, $y2, $stopcolor);
@@ -164,6 +166,17 @@ L<Bio::Graphics::Glyph> for a full explanation.
   -label        Whether to draw a label	       0 (false)
 
   -description  Whether to draw a description  0 (false)
+
+  -mark_cds     if to mark start/stop codon    0 (false)
+
+  -start_codon_color
+                start codon color (if mark_cds
+				true)                          mediumseagreen
+
+  -stop_codon_color
+                stop codon color (if mark_cds
+				true)                          red
+				
 
 In addition, the alignment glyph recognizes the following
 glyph-specific options:
