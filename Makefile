@@ -50,9 +50,9 @@ AR_STATIC_ARGS = cr
 NAME = Bio::Graphics
 DISTNAME = Bio-Graphics
 NAME_SYM = Bio_Graphics
-VERSION = 1.00
-VERSION_SYM = 1_00
-XS_VERSION = 1.00
+VERSION = 0.80
+VERSION_SYM = 0_80
+XS_VERSION = 0.80
 INST_BIN = blib/bin
 INST_EXE = blib/script
 INST_LIB = blib/lib
@@ -113,6 +113,7 @@ HTMLLIBPODS    =
 HTMLSCRIPTPODS = 
 MAN1PODS = 
 MAN3PODS = Graphics/Feature.pm \
+	Graphics/Glyph.pm \
 	Graphics/Glyph/arrow.pm \
 	Graphics/Panel.pm
 HTMLEXT = html
@@ -174,6 +175,7 @@ TO_INST_PM = Graphics/Feature.pm \
 	Graphics/Glyph/group.pm~ \
 	Graphics/Glyph/oval.pm \
 	Graphics/Glyph/oval.pm~ \
+	Graphics/Glyph/segments.pm \
 	Graphics/Glyph/track.pm \
 	Graphics/Glyph/track.pm~ \
 	Graphics/Glyph/transcript.pm \
@@ -186,6 +188,8 @@ PM_TO_BLIB = Graphics/Glyph/track.pm~ \
 	$(INST_LIBDIR)/Graphics/Glyph/track.pm~ \
 	Graphics/Glyph/generic.pm~ \
 	$(INST_LIBDIR)/Graphics/Glyph/generic.pm~ \
+	Graphics/Glyph/segments.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/segments.pm \
 	Graphics/Glyph/generic.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/generic.pm \
 	Graphics/Glyph/arrow.pm \
@@ -460,11 +464,14 @@ POD2MAN = $(PERL) -we '%m=@ARGV;for (keys %m){' \
 -e 'chmod(oct($(PERM_RW))), $$m{$$_} or warn "chmod $(PERM_RW) $$m{$$_}: $$!\n";}'
 
 manifypods : pure_all Graphics/Feature.pm \
+	Graphics/Glyph.pm \
 	Graphics/Panel.pm \
 	Graphics/Glyph/arrow.pm
 	@$(POD2MAN) \
 	Graphics/Feature.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Feature.$(MAN3EXT) \
+	Graphics/Glyph.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph.$(MAN3EXT) \
 	Graphics/Panel.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Panel.$(MAN3EXT) \
 	Graphics/Glyph/arrow.pm \
@@ -495,7 +502,7 @@ clean ::
 # Delete temporary files (via clean) and also delete installed files
 realclean purge ::  clean
 	rm -rf $(INST_AUTODIR) $(INST_ARCHAUTODIR)
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/track.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics/Panel.pm~ $(INST_LIBDIR)/Graphics/Glyph/oval.pm~ $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm~ $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ $(INST_LIBDIR)/Graphics/Feature.pm~ $(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ $(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ $(INST_LIBDIR)/Graphics/Glyph/group.pm~ $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm~ $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Glyph.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/track.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm~ $(INST_LIBDIR)/Graphics/Glyph/segments.pm $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics/Panel.pm~ $(INST_LIBDIR)/Graphics/Glyph/oval.pm~ $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm~ $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ $(INST_LIBDIR)/Graphics/Feature.pm~ $(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ $(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ $(INST_LIBDIR)/Graphics/Glyph/group.pm~ $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm~ $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Glyph.pm
 	rm -rf Makefile Makefile.old
 
 
@@ -734,7 +741,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"1,00,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i586-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
+	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"0,80,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i586-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
 
 # --- MakeMaker pm_to_blib section:
 

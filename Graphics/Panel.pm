@@ -8,7 +8,7 @@ use Bio::Graphics::Feature;
 use Carp 'cluck';
 use GD;
 
-our $VERSION = '1.00';
+our $VERSION = '0.80';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
