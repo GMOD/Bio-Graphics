@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.8 2001-11-26 23:14:06 lstein Exp $
+# $Id: Browser.pm,v 1.9 2001-12-14 16:51:55 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -124,7 +124,7 @@ sub width {
 # Generate the image and the box list, and return as a two-element list.
 sub image_and_map {
   my $self = shift;
-  my ($segment,$labels) = @_;
+  my ($segment,$feature_file,$labels) = @_;
   my %labels = map {$_=>1} @$labels;
 
   my $width = $self->width;
@@ -186,7 +186,7 @@ sub image_and_map {
     }
   }
 
-  # last but not least, configure the tracks based on their counts
+  # configure the tracks based on their counts
   for my $label (keys %tracks) {
     next unless $feature_count{$label};
     my $do_label = $feature_count{$label} <= $max_labels;
@@ -196,6 +196,9 @@ sub image_and_map {
 			       -description => $do_label && $tracks{$label}->option('description'),
 			      );
   }
+
+  # add additional features, if any
+  $feature_file->render($panel) if $feature_file;
 
   my $boxes    = $panel->boxes;
   my $gd       = $panel->gd;
@@ -285,8 +288,8 @@ sub read_configuration {
 package Bio::Graphics::BrowserConfig;
 use strict;
 use Bio::Graphics::FeatureFile;
+use Text::Shellwords;
 use Carp 'croak';
-require 'shellwords.pl';
 
 use vars '@ISA';
 @ISA = 'Bio::Graphics::FeatureFile';

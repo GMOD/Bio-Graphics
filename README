@@ -65,7 +65,7 @@ You can add a key to the generated image using either of two key
 styles.  One style places the key captions at the top of each track.
 The other style generates a graphical key at the bottom of the image.
 
-Note that this modules depends on GD.
+Note that this modules depends on GD and the Text::Shellwords module.
 
 BUILDING AND INSTALLING
 
@@ -118,6 +118,7 @@ is the brief synopsis:
 
 	Bio::Graphics
 	Digest::MD5
+	Text::Shellwords
 	Bio::DB::GFF
 
     These can all be found on CPAN, with the exception of Bio::DB::GFF, which

@@ -7,6 +7,12 @@ bgcolor = green
 height = 5
 key = Curated Introns
 
+[structural:GenePair_STS]
+glyph = primers
+fgcolor = black
+bgcolor = blue
+connect = 1
+
 III	curated	Sequence	2729913	2752540	.	+	.	Sequence "H19M22.2a"
 III	curated	Sequence	2729913	2752540	.	+	.	Sequence "H19M22.2b"
 III	Expr_profile	Expression	2731006	2732545	.	+	.	Expr_profile "H19M22.2"

@@ -7,6 +7,12 @@ use vars '@ISA';
 @ISA = qw(Bio::Graphics::Glyph::segmented_keyglyph
 	  Bio::Graphics::Glyph::generic);
 
+#sub pad_right {
+#  my $self = shift;
+#  my @parts = $self->parts or return $self->SUPER::pad_right;
+#  $parts[-1]->pad_right;
+#}
+
 # group sets connector to 'solid'
 sub connector {
   my $self = shift;

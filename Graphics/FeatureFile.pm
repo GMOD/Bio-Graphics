@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.5 2001-11-19 04:00:53 lstein Exp $
+# $Id: FeatureFile.pm,v 1.6 2001-12-14 16:51:55 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -11,13 +11,25 @@ use strict;
 use Bio::Graphics::Feature;
 use Carp;
 use IO::File;
+use Text::Shellwords;
 use vars '$VERSION';
 $VERSION = '1.01';
+
+# default colors for unconfigured features
+my @COLORS = qw(cyan blue red yellow green wheat turquoise orange);
+use constant WIDTH => 600;
+
+# args array:
+# -file => parse from a file (- allowed for ARGV)
+# -text => parse from a text scalar
+# -map_coords => code ref to do coordinate mapping
+#                called with ($ref,[$start1,$stop1],[$start2,$stop2]...)
+#                returns     ($newref,$new_coord1,$new_coord2...)
 
 sub new {
   my $class = shift;
   my %args  = @_;
-  my $self = bless { 
+  my $self = bless {
 		    config   => {},
 		    features => {},
 		    groups   => {},
@@ -25,7 +37,11 @@ sub new {
 		    types    => [],
 		    max      => undef,
 		    min      => undef,
+		    stat     => [],
+		    refs     => {},
 		   },$class;
+  $self->{coordinate_mapper} = $args{-map_coords} 
+    if exists $args{-map_coords} && ref($args{-map_coords}) eq 'CODE';
 
   # call with
   #   -file
@@ -68,7 +84,8 @@ sub parse_argv {
 
 sub parse_file {
   my $self = shift;
-  my $fh = shift or return;
+  my $fh   = shift or return;
+  $self->_stat($fh);
 
   $self->{seenit} = {};
   while (<$fh>) {
@@ -83,7 +100,7 @@ sub parse_text {
   my $text = shift;
 
   $self->{seenit} = {};
-  foreach (split /\r?\n/,$text) {
+  foreach (split /\r?\n|\r\n?/,$text) {
     $self->parse_line($_);
   }
   $self->consolidate_groups;
@@ -92,6 +109,8 @@ sub parse_text {
 sub parse_line {
   my $self = shift;
   local $_ = shift;
+
+  s/\r//g;  # get rid of carriage returns left over by MS-DOS/Windows systems
 
   return if /^[\#]/;
 
@@ -126,21 +145,23 @@ sub parse_line {
   }
 
   # parse data lines
-  my @tokens = split "\t";
+  my @tokens = eval { shellwords($_) };
+  unshift @tokens,'' if /^\s+/;
 
   # close any open group
   undef $self->{grouptype} if length $tokens[0] > 0;
 
-  if (@tokens < 4) {      # short line; assume a group identifier
+  if (@tokens < 3) {      # short line; assume a group identifier
     $self->{grouptype}     = shift @tokens;
     $self->{groupname}     = shift @tokens;
     return;
   }
 
-  my($type,$name,$strand,$bounds,$description);
+  my($ref,$type,$name,$strand,$bounds,$description);
 
-  if (@tokens >= 8) { # conventional GFF file; notice that the ref is ignored
-    my ($ref,$source,$method,$start,$stop,$score,$s,$phase,$group) = @tokens;
+  if (@tokens >= 8) { # conventional GFF file
+    my ($r,$source,$method,$start,$stop,$score,$s,$phase,@rest) = @tokens;
+    my $group = join ' ',@rest;
     $type   = join(':',$method,$source);
     $bounds = join '..',$start,$stop;
     $strand = $s;
@@ -150,13 +171,24 @@ sub parse_line {
       $description = join '; ',@$notes if @$notes;
     }
     $name ||= $self->{groupname};
+    $ref = $r;
   }
 
-  else { # simplified version
+  elsif ($tokens[2] =~ /^[+-]$/) { # old simplified version
     ($type,$name,$strand,$bounds,$description) = @tokens;
+  } else {                              # new simplified version
+    ($type,$name,$bounds,$description) = @tokens;
   }
 
   $type ||= $self->{grouptype};
+  $type =~ s/\s+$//;  # get rid of excess whitespace
+
+  # the reference is specified by the GFF reference line first,
+  # the last reference line we saw second,
+  # or the reference line in the "general" section.
+  $ref  ||= $self->{config}{$self->{current_config}}{'reference'}
+            || $self->{config}{general}{reference};
+  $self->{refs}{$ref}++ if defined $ref;
 
   my @parts = map { [/(-?\d+)(?:-|\.\.)(-?\d+)/]} split /(?:,| )\s*/,$bounds;
 
@@ -165,15 +197,20 @@ sub parse_line {
     $self->{max} = $_->[1] if !defined $self->{max} || $_->[1] > $self->{max};
   }
 
+  ($ref,@parts) = $self->{coordinate_mapper}->($ref,@parts) if $ref && $self->{coordinate_mapper};
+  return unless $ref;
+
   # either create a new feature or add a segment to it
   if (my $feature = $self->{seenit}{$type,$name}) {
     $feature->add_segment(@parts);
   } else {
     $feature = $self->{seenit}{$type,$name} = Bio::Graphics::Feature->new(-name     => $name,
 									  -type     => $type,
-									  -strand   => make_strand($strand),
+									  $strand ? (-strand   => make_strand($strand))
+                                                                                  : (),
 									  -segments => \@parts,
-									  -source => $description
+									  -source   => $description,
+									  -ref      => $ref,
 									 );
     if ($self->{grouptype}) {
       push @{$self->{groups}{$self->{grouptype}}{$self->{groupname}}},$feature;
@@ -197,7 +234,7 @@ sub style {
   my $self = shift;
   my $type = shift;
 
-  my $config  = $self->{config} or return; 
+  my $config  = $self->{config}  or return;
   my $hashref = $config->{$type} or return;
 
   return map {("-$_" => $hashref->{$_})} keys %$hashref;
@@ -307,6 +344,79 @@ sub split_group {
   return ($gclass,$gname,$tstart,$tstop,\@notes);
 }
 
+# render our features onto a panel using configuration data
+sub render {
+  my $self = shift;
+  my $panel = shift;
+
+  $panel ||= $self->new_panel;
+
+  my $color;
+  my %types = map {$_=>1} $self->configured_types;
+
+  my @configured_types   = grep {exists $self->features->{$_}} $self->configured_types;
+  my @unconfigured_types = sort grep {!exists $types{$_}}      $self->types;
+
+  my @base_config = $self->style('general');
+
+  for my $type (@configured_types,@unconfigured_types) {
+    my @config = ( -glyph   => 'segments',         # really generic
+		   -bgcolor => $COLORS[$color++ % @COLORS],
+		   -label   => 1,
+		   -key     => $type,
+		   @base_config,             # global
+		   $self->style($type),  # feature-specificp
+		 );
+    my $features = $self->features($type);
+    $panel->add_track($features,@config);
+  }
+  $panel;
+}
+
+# create a panel if needed
+sub new_panel {
+  my $self = shift;
+
+  # general configuration of the image here
+  my $width         = $self->setting(general => 'pixels')
+                      || $self->setting(general => 'width')
+			|| WIDTH;
+
+  my ($start,$stop);
+  my $range_expr = '(-?\d+)(?:-|\.\.)(-?\d+)';
+
+  if (my $bases = $self->setting(general => 'bases')) {
+    ($start,$stop) =  $bases =~ /([\d-]+)(?:-|\.\.)([\d-]+)/;
+  }
+
+  if (!defined $start || !defined $stop) {
+    $start = $self->min unless defined $start;
+    $stop  = $self->max unless defined $stop;
+  }
+
+  my $new_segment = Bio::Graphics::Feature->new(-start=>$start,-stop=>$stop);
+  my $panel = Bio::Graphics::Panel->new(-segment   => $new_segment,
+					-width     => $width,
+					-key_style => 'between');
+  $panel;
+}
+
+sub _stat {
+  my $self = shift;
+  my $fh   = shift;
+  $self->{stat} = [stat($fh)];
+}
+
+sub mtime { shift->{stat}->[9];  }
+sub atime { shift->{stat}->[8];  }
+sub ctime { shift->{stat}->[10]; }
+sub size  { shift->{stat}->[7];  }
+sub refs {
+  my $self = shift;
+  my $refs = $self->{refs} or return;
+  keys %$refs;
+}
+
 
 1;
 
@@ -323,29 +433,29 @@ It is simpler than GFF, but still has a lot of expressive power.
 
 Documentation is pending, but see the file format here, and eg/feature_draw.pl for an
 example of usage.
- 
+
  # file begins
  [general]
  pixels = 1024
  bases = 1-20000
  height = 12
- 
+
  [Cosmid]
  glyph = segments
  fgcolor = blue
  key = C. elegans conserved regions
- 
+
  [EST]
  glyph = segments
  bgcolor= yellow
  connector = dashed
  height = 5;
- 
+
  [FGENESH]
  glyph = transcript2
  bgcolor = green
  description = 1
- 
+
  Cosmid	B0511	+	516-619
  Cosmid	B0511	+	3185-3294
  Cosmid	B0511	+	10946-11208

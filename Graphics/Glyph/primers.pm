@@ -42,7 +42,7 @@ sub draw {
 
   # connect the dots if requested
   if ($self->option('connect')) {
-    my $c = $self->color('connect_color');
+    my $c = $self->color('connect_color') || $self->bgcolor;
     $gd->line($x1 + HEIGHT + 2,$center,$x2 - HEIGHT - 2,$center,$c);
   }
 
@@ -81,7 +81,7 @@ options are recognized:
   -connect    Whether to connect the      false
               two arrowheads by a line.
 
-  -connect_color  The color to use for the    fgcolor
+  -connect_color  The color to use for the    bgcolor
               connecting line.
 
 =head1 BUGS

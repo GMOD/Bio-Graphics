@@ -35,6 +35,7 @@ sub new {
   $self->{score}   = $arg{-score}  || 0;
   $self->{start}   = $arg{-start};
   $self->{stop}    = $arg{-end} || $arg{-stop};
+  $self->{ref}     = $arg{-ref};
 
   # fix start, stop
   if (defined $self->{stop} && defined $self->{start}
@@ -93,15 +94,30 @@ sub score    {
   $d;
 }
 sub primary_tag     { shift->{type}        }
-sub strand   { shift->{strand}      }
-sub name     { shift->{name}        }
+sub name            { shift->{name}        }
+sub ref {
+  my $self = shift;
+  my $d = $self->{ref};
+  $self->{ref} = shift if @_;
+  $d;
+}
 sub start    {
   my $self = shift;
-  return $self->{start};
+  my $d = $self->{start};
+  $self->{start} = shift if @_;
+  $d;
 }
 sub end    {
   my $self = shift;
-  return $self->{stop};
+  my $d = $self->{stop};
+  $self->{stop} = shift if @_;
+  $d;
+}
+sub strand { 
+  my $self = shift;
+  my $d = $self->{strand};
+  $self->{strand} = shift if @_;
+  $d;
 }
 sub length {
   my $self = shift;

@@ -11,9 +11,9 @@ sub draw_component {
   my $fg = $self->fgcolor;
   my ($left,$top) = @_;
   my($x1,$y1,$x2,$y2) = $self->bounds(@_);
-  $self->box($gd,
-		     $x1, $y1,
-		     $x2, $y2);
+  $self->unfilled_box($gd,
+		      $x1, $y1,
+		      $x2, $y2);
 
   if ($self->option('bgcolor')){
     my $c = $self->color('bgcolor');

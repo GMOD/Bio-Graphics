@@ -16,7 +16,7 @@ sub draw {
 #  $self->filled_oval($gd,$x1,$y1,$x2,$y2);
   for (my $m = 3;$m > 0;$m--){
     my $stack = $m * $self->height / 2;
-    $self->box($gd,$x1-$stack,$y1-$stack,$x2-$stack,$y2-$stack);
+    $self->unfilled_box($gd,$x1-$stack,$y1-$stack,$x2-$stack,$y2-$stack);
   }
 
   # add a label if requested

@@ -8,16 +8,15 @@ use GD;
 use vars '@ISA';
 @ISA = 'Bio::Graphics::Glyph::generic';
 
-sub calculate_left {
+sub box {
   my $self = shift;
-  my $val = $self->SUPER::calculate_left(@_);
-  $val -= 3;
+  my $half = $self->insertion_width/2;
+  return ($self->left-$half,$self->top,$self->right+$half,$self->bottom);
 }
 
-sub calculate_right {
+sub insertion_width {
   my $self = shift;
-  my $val = $self->SUPER::calculate_right(@_);
-  $val += 3;
+  return $self->option('insertion_width') || 6;
 }
 
 # override draw method
@@ -30,7 +29,7 @@ sub draw {
 
   my $height = $self->height;
 
-  my $half = 3;
+  my $half = $self->insertion_width/2;
 
   my $fill = $self->fillcolor;
 
@@ -57,3 +56,53 @@ sub draw {
 
 
 1;
+
+=head1 NAME
+
+Bio::Graphics::Glyph::pinsertion - The "Drosophila P-element Insertion" glyph
+
+=head1 SYNOPSIS
+
+  See L<Bio::Graphics::Panel> and L<Bio::Graphics::Glyph>.
+
+=head1 DESCRIPTION
+
+This glyph was designed to show P-element insertions in the Drosophila
+genome, but in fact is suitable for any type of zero-width feature.
+Also see the triangle glyph.
+
+=head2 OPTIONS
+
+In addition to the generic options, this glyph recognizes:
+
+ Option Name       Description              Default
+ -----------       -----------              -------
+
+ insertion_width  Width of glyph in pixels    3
+
+=head1 BUGS
+
+Please report them.
+
+=head1 SEE ALSO
+
+L<Ace::Sequence>, L<Ace::Sequence::Feature>, L<Bio::Graphics::Panel>,
+L<Bio::Graphics::Track>, L<Bio::Graphics::Glyph::anchored_arrow>,
+L<Bio::Graphics::Glyph::arrow>,
+L<Bio::Graphics::Glyph::box>,
+L<Bio::Graphics::Glyph::primers>,
+L<Bio::Graphics::Glyph::segments>,
+L<Bio::Graphics::Glyph::toomany>,
+L<Bio::Graphics::Glyph::transcript>,
+
+=head1 AUTHOR
+
+Allen Day <day@cshl.org>.
+
+Copyright (c) 2001 Cold Spring Harbor Laboratory
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut

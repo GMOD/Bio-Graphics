@@ -5,6 +5,22 @@ use strict;
 use vars '@ISA';
 @ISA = 'Bio::Graphics::Glyph::generic';
 
+sub pad_left {
+  my $self = shift;
+  my $left = $self->SUPER::pad_left;
+  return $left unless $self->option('point');
+  my $extra = $self->option('height')/3;
+  return $extra > $left ? $extra : $left;
+}
+
+sub pad_right {
+  my $self = shift;
+  my $right = $self->SUPER::pad_right;
+  return $right unless $self->option('point');
+  my $extra = $self->option('height')/3;
+  return $extra > $right ? $extra : $right;
+}
+
 sub draw_component {
   my $self = shift;
   my $gd = shift;

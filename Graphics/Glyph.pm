@@ -186,15 +186,17 @@ sub bounds {
    $dy + $self->bottom - $self->pad_bottom);
 }
 
+
+
 sub box {
   my $self = shift;
-  my $gd = shift;
+  return ($self->left,$self->top,$self->right,$self->bottom);
+}
 
-  #doing double duty now.
-  unless ($gd) {
-    return ($self->left,$self->top,$self->right,$self->bottom);
-  }
 
+sub unfilled_box {
+  my $self = shift;
+  my $gd   = shift;
   my ($x1,$y1,$x2,$y2) = @_;
 
   my $fg = $self->fgcolor;
@@ -218,6 +220,7 @@ sub box {
   $gd->line($x2,$y1+$linewidth,$x2,$y2-$linewidth,$bg)
     if $x2 > $width - $self->panel->pad_right;
 }
+
 
 # return boxes surrounding each part
 sub boxes {
@@ -259,8 +262,8 @@ sub pad_right {
   my @parts = $self->parts or return 0;
   my $max = 0;
   foreach (@parts) {
-      my $pr = $_->pad_right;
-      $max = $pr if $max < $pr;
+    my $pr = $_->pad_right;
+    $max = $pr if $max < $pr;
   }
   $max;
 }

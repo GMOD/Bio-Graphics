@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.13 2001-12-09 05:15:52 lstein Exp $
+# $Id: gbrowse.PLS,v 1.14 2001-12-14 16:51:55 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -28,9 +28,10 @@ use Bio::Graphics;
 use Bio::Graphics::Browser;
 use Digest::MD5 'md5_hex';
 use File::Path 'mkpath';
+use Text::Tabs;
 use Carp;
 use CGI qw(:standard escape center *table *dl *TR *td);
-use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT);
+use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT $HEADER $HTML $tabstop);
 
 # if you change the zoom/nav icons, you must change this as well.
 use constant MAG_ICON_HEIGHT => 20;
@@ -39,6 +40,11 @@ use constant MAX_SEGMENT     => 1_000_000;
 use constant TOO_MANY_SEGMENTS => 5_000;
 use constant DEFAULT_SEGMENT => 100_000;
 use constant OVERVIEW_RATIO  => 0.9;
+use constant ANNOTATION_EDIT_ROWS => 25;
+use constant ANNOTATION_EDIT_COLS => 100;
+
+# if true, turn on surrounding rectangles for debugging the image map
+use constant DEBUGGING_RECTANGLES => 0;
 
 ###################################################################
 # Non-modperl users should change this variable if needed to point
@@ -48,7 +54,7 @@ use constant CONF_DIR => '/usr/local/apache/conf/gbrowse.conf';
 #
 ###################################################################
 
-BEGIN { 
+BEGIN {
     eval "use Apache"; 
     warn <<END if Apache::DBI->can('connect_on_init');
 WARNING: APACHE::DBI DETECTED.
@@ -58,13 +64,15 @@ END
 ;
 };
 
+$HEADER=0;
+$HTML=0;
+
 my $CONF_DIR;
 if ($ENV{MOD_PERL}) {
     my $conf  = Apache->request->dir_config('GBrowseConf');
     $CONF_DIR = Apache->server_root_relative($conf) if $conf;
-} else {
-    $CONF_DIR = CONF_DIR;
 }
+$CONF_DIR ||= CONF_DIR;
 
 
 # preliminaries -- set up some globals
@@ -113,63 +121,94 @@ if ( (my $dump = param('dump')) && @segments == 1) {
 }
 ###############################################################################################
 
+# This gets called if the user wants to download his annotation data
+if(param('Download Data') && $page_settings->{'3d_party'}) {
+  print header(-attachment   =>  'your_annotations.txt',
+	       -type         => 'application/octet-stream');
+  print_3d_party_features($page_settings);
+  exit 0;
+}
+
+
+## HANDLING FILE UPLOADS ######################################################################
+if (my $file = param('upload_annotations')) {
+  handle_upload($page_settings,$file);
+} elsif (my $data = param('a_data')) {
+  handle_edit($page_settings,$data);
+}
+
 
 ## PRINTING THE PAGE ##########################################################################
-print header(-cookie => settings2cookie($page_settings));
+print header(-cookie => settings2cookie($page_settings)) unless $HEADER++;
 
 my $description = $CONFIG->setting('description');
 my $segment;
 
 print
   start_html(-title => 'Genome browser',
-	    -style  => {src=>$CONFIG->setting('stylesheet')},
+	     -style  => {src=>$CONFIG->setting('stylesheet')},
 	    ),
-  h1($description);
+  h1($description) unless $HTML++;
 
-if (@segments == 1) {
-  $segment = $segments[0];
-  print h2("Showing",commas($segment->length),"bp from",
-	   $segment->ref.", positions ".commas($segment->start)." to ".commas($segment->stop));
-} 
-
-elsif (@segments > 1) {
-  multiple_choices(\@segments,$page_settings);
+if (param('Edit Data')) {
+  edit_3d_party($page_settings);
+}
+else {
+  clear_3d_party($page_settings) if param('Delete Data');
+  main_display(\@segments,$page_settings);
 }
 
-elsif (my $n = $page_settings->{name}) {
-
-  print h2({-class=>'error'},"The landmark named",i($n),"is not recognized.",
-	   "You may need to qualify it with the type, as in",i("PCR_Product:$n"))
-}
-
-print start_form(-action=>url(-relative=>1,-path_info=>1));
-
-print navigation_table($segment,$page_settings);
-
-if ($segment) {
-  my $cell = overview($segment,$page_settings);
-  if ($segment->length <= $MAX_SEGMENT) {
-    $cell .= image_and_map($segment,$page_settings);
-  } else {
-    $cell .= i(
-	       "Detailed view is limited to",
-	       commas($MAX_SEGMENT),"bases.",
-	       "Click in the overview to select a region",commas($DEFAULT_SEGMENT),'bp wide.');
-  }
-  print table({-border=>0,-width=>$page_settings->{width}},
-	      TR({-class=>'searchbody'},
-		 td($cell)
-		)
-	     );
-}
-
-print settings_table($page_settings);
-
-print end_form(), 
+print
   $CONFIG->setting('footer'),
   p(i(font({-size=>'small'},
 	   'Note: This page uses cookie to save and restore preference information. No information is shared.'))),
   end_html;
+
+sub main_display {
+  my ($segments,$page_settings) = @_;
+  my $segment;
+  if (@$segments == 1) {
+    $segment = $segments->[0];
+    print h2("Showing",commas($segment->length),"bp from",
+	     $segment->ref.", positions ".commas($segment->start)." to ".commas($segment->stop));
+  }
+
+  elsif (@$segments > 1) {
+    multiple_choices($segments,$page_settings);
+  }
+
+  elsif (my $n = $page_settings->{name}) {
+    error("The landmark named",i($n),"is not recognized.",
+	  "You may need to qualify it with the type, as in",i("PCR_Product:$n"));
+  }
+
+  # get the third party features
+  my $feature_file = load_3d_party_features($segment,$page_settings);
+
+  print start_multipart_form(-action=>url(-relative=>1,-path_info=>1)),
+    navigation_table($segment,$page_settings);
+
+  if ($segment) {
+    my $cell = overview($segment,$page_settings);
+    $cell .= br();
+    if ($segment->length <= $MAX_SEGMENT) {
+      $cell .= image_and_map($segment,$feature_file,$page_settings);
+    } else {
+      $cell .= i(
+		 "Detailed view is limited to",
+		 commas($MAX_SEGMENT),"bases.",
+		 "Click in the overview to select a region",commas($DEFAULT_SEGMENT),'bp wide.');
+    }
+    print table({-border=>0,-width=>$page_settings->{width}},
+		TR({-class=>'searchbody'},
+		   td({-align=>'CENTER'},$cell)
+		  )
+	       );
+  }
+
+  print settings_table($page_settings,$feature_file), end_form();
+}
+
 
 ###############################################################################################
 
@@ -208,7 +247,6 @@ sub get_settings {
     $settings{source} = $CONFIG->source;
     $settings{labels} = [$CONFIG->default_labels];
   }
-
   \%settings;
 }
 
@@ -330,7 +368,7 @@ sub zoomBar {
 
 
 sub settings_table {
-  my $settings = shift;
+  my ($settings,$feature_file) = @_;
 
   my @widths = split /\s+/,$CONFIG->setting('image widths');
   @widths = (640,800,1024) unless @widths;
@@ -382,7 +420,29 @@ sub settings_table {
 			),
 		      td({-class=>'searchbody',-align=>'left'},
 			 hidden('ref'),hidden('start'),hidden('stop'),
-			 submit(-name=>'Change Settings')))
+			 submit(-name=>'Change Settings'))),
+		  TR(
+		     th({-class=>'searchtitle', -colspan=>3, -align=>'left'},'Add your own annotations:')
+		    ),
+		  $settings->{'3d_party'} ?
+		  TR(
+		     td({-class=>'searchtitle', -colspan=>3, -align=>'center'},
+			get_3d_party_info($feature_file)
+		       )
+		     )
+		  : '',
+		  TR({-class=>'searchbody'},
+		     td('Upload a File: '),
+		     td({-colspan=>2},
+			filefield(-size=>40,-name=>'upload_annotations'),
+			submit(-name=>'Upload'))
+		    ),
+		  TR({-class=>'searchbody'},
+		     td('Create/Modify Annotation DAta:'),
+		     td({-colspan=>2},
+			submit(-name=>'Edit Data').'&nbsp;'.
+			submit(-name=>'Download Data').'&nbsp;'.
+			submit(-name=>'Delete Data'))),
 		 );
   return $sTable;
 }
@@ -443,54 +503,7 @@ sub get_segment {
   $db->debug(0);
 
   if (my $name = $settings->{name}) {
-    my ($class,$start,$stop);
-    if ($name =~ /(\w+):([\d,-]+)(?:-|\.\.)?([\d,-]+)$/) {
-      $name = $1;
-      $start = $2;
-      $stop = $3;
-      $start =~ s/,//g; # get rid of commas
-      $stop  =~ s/,//g;
-    }
-
-    elsif ($name =~ /^(\w+):(.+)$/) {
-      $class = $1;
-      $name  = $2;
-    }
-
-    my @argv = (-name  => $name);
-    push @argv,(-class => $class) if defined $class;
-    push @argv,(-start => $start) if defined $start;
-    push @argv,(-stop  => $stop)  if defined $stop;
-    @segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv);
-
-    # Here starts the heuristic part.  Try various abbreviations that
-    # people tend to use for chromosomal addressing.
-    if (!@segments && $name =~ /^([\dIVXA-F]+)$/) {
-      my $id = $1;
-      foreach (qw(CHROMOSOME_ Chr chr)) {
-	my $n = "${_}${id}";
-	my @argv = (-name  => $n);
-	push @argv,(-class => $class) if defined $class;
-	push @argv,(-start => $start) if defined $start;
-	push @argv,(-stop  => $stop)  if defined $stop;
-	@segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv) unless @segments;
-      }
-    }
-
-    # try to remove the chr CHROMOSOME_I
-    if (!@segments && $name =~ /^(chromosome_?|chr)/i) {
-      (my $chr = $name) =~ s/^(chromosome_?|chr)//i;
-      @segments = $db->segment($chr);
-    }
-
-    # try any "automatic" classes that have been defined in the config file
-    if (!@segments && !$class && 
-	(my @automatic = split /\s+/,$CONFIG->setting('automatic classes'))) {
-      foreach $class (@automatic) {
-	@segments = $db->segments($class => $name);
-	last if @segments;
-      }
-    }
+    @segments = name2segments($name,$db);
   }
 
   elsif (my $ref = $settings->{ref}) {
@@ -513,6 +526,63 @@ sub get_segment {
   $settings->{stop}  = $segments[0]->stop;
 
   return $segments[0];
+}
+
+# try to guess the reference segment from the name, given the variety of
+# ways that people abuse names.
+sub name2segments {
+  my $name = shift;
+  my $db   = shift || open_database();
+
+  my (@segments,$class,$start,$stop);
+  if ($name =~ /(\w+):([\d,-]+)(?:-|\.\.)?([\d,-]+)$/) {
+    $name = $1;
+    $start = $2;
+    $stop = $3;
+    $start =~ s/,//g; # get rid of commas
+    $stop  =~ s/,//g;
+  }
+
+  elsif ($name =~ /^(\w+):(.+)$/) {
+    $class = $1;
+    $name  = $2;
+  }
+
+  my @argv = (-name  => $name);
+  push @argv,(-class => $class) if defined $class;
+  push @argv,(-start => $start) if defined $start;
+  push @argv,(-stop  => $stop)  if defined $stop;
+  @segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv);
+
+  # Here starts the heuristic part.  Try various abbreviations that
+  # people tend to use for chromosomal addressing.
+  if (!@segments && $name =~ /^([\dIVXA-F]+)$/) {
+    my $id = $1;
+    foreach (qw(CHROMOSOME_ Chr chr)) {
+      my $n = "${_}${id}";
+      my @argv = (-name  => $n);
+      push @argv,(-class => $class) if defined $class;
+      push @argv,(-start => $start) if defined $start;
+      push @argv,(-stop  => $stop)  if defined $stop;
+      @segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv) unless @segments;
+    }
+  }
+
+  # try to remove the chr CHROMOSOME_I
+  if (!@segments && $name =~ /^(chromosome_?|chr)/i) {
+    (my $chr = $name) =~ s/^(chromosome_?|chr)//i;
+    @segments = $db->segment($chr);
+  }
+
+  # try any "automatic" classes that have been defined in the config file
+  if (!@segments && !$class && 
+      (my @automatic = split /\s+/,$CONFIG->setting('automatic classes') || '')) {
+    foreach $class (@automatic) {
+      @segments = $db->segments($class => $name);
+      last if @segments;
+    }
+  }
+  @segments;
 }
 
 sub open_database {
@@ -540,17 +610,20 @@ sub open_database {
 }
 
 sub image_and_map {
-  my ($segment,$settings) = @_;
+  my ($segment,$additional_features,$settings) = @_;
   return unless $segment;
 
   $CONFIG->width($settings->{width});
 
-  my($image,$map) = $CONFIG->image_and_map($segment,$settings->{labels});
-  if (0) { debugging_rectangles($image,$map) }
+  my($image,$map) = $CONFIG->image_and_map($segment,$additional_features,$settings->{labels});
+  if (DEBUGGING_RECTANGLES) { debugging_rectangles($image,$map) }
 
   my ($width,$height) = $image->getBounds;
 
-  my $signature = md5_hex($segment,@{$settings->{labels}},$settings->{width},$CONFIG->source);
+  my $signature = md5_hex($segment,@{$settings->{labels}},
+			  $settings->{width},$CONFIG->source,
+			  $settings->{id},
+			  ref($additional_features) && $additional_features->mtime);
   my $url       = generate_image($image,$signature);
   my $img     = img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0});
   my $img_map = make_map($map);
@@ -566,25 +639,19 @@ sub overview {
   my ($width,$height) = $image->getBounds;
   my $signature = md5_hex($segment,$width);
   my $url = generate_image($image,$signature);
-  return center(
-		table(TR(
-			 td({-class=>'searchbody',-align=>'CENTER'},
-			    image_button(-name=>'overview',
-					 -src=>$url,
-					 -width=>$width,
-					 -height=>$height,
-					 -border=>0,
-					 -align=>'MIDDLE')
-			   )
-			)
-		     ).hidden(-name=>'seg_length',-value=>$length,-override=>1)
-		);
+  return image_button(-name=>'overview',
+		      -src=>$url,
+		      -width=>$width,
+		      -height=>$height,
+		      -border=>0,
+		      -align=>'MIDDLE')
+    .hidden(-name=>'seg_length',-value=>$length,-override=>1);
 }
 
 sub generate_image {
   my ($image,$signature) = @_;
   my $extension = $image->can('png') ? 'png' : 'gif';
-  my ($uri,$path) = picture_tmpdir();
+  my ($uri,$path) = tmpdir($CONFIG->source);
   my $url         = sprintf("%s/%s.%s",$uri,$signature,$extension);
   my $imagefile   = sprintf("%s/%s.%s",$path,$signature,$extension);
   open (F,">$imagefile") || die("Can't open image file $imagefile for writing: $!\n");
@@ -593,8 +660,10 @@ sub generate_image {
   return $url;
 }
 
-sub picture_tmpdir {
+sub tmpdir {
+  my $path = shift || '';
   my $tmpuri = $CONFIG->setting('tmpimages') or die "no tmpimages option defined, can't generate a picture";
+  $tmpuri .= "/$path" if $path;
   my $tmpdir;
   if ($ENV{MOD_PERL}) {
     my $r = Apache->request;
@@ -623,6 +692,7 @@ sub make_map {
   $map .= make_centering_map($ruler);
 
   foreach (@$boxes){
+    next unless $_->[0]->isa('Bio::DB::GFF::RelSegment');
     my $alt   = make_alt($_->[0]);
     my $href  = make_href($_->[0]);
     $map .= qq(<AREA SHAPE="RECT" COORDS="$_->[1],$_->[2],$_->[3],$_->[4]" 
@@ -735,7 +805,7 @@ sub multiple_choices {
   print TR(th(font({-color=>'red'},$message)));
   if (@$segments <= TOO_MANY_SEGMENTS) {
     print start_TR({-class=>'searchbody'}),start_td();
-  
+
     # aggregate segments by reference and then split on gaps of > 1 M
     my %segs;
     push @{$segs{$_->ref}},$_ foreach @$segments;
@@ -812,7 +882,7 @@ sub low_merge {
       push @spans,$db->segment($ref,$previous_start,$previous_stop);
       $previous_start = $start;
       $previous_stop  = $stop;
-    } 
+    }
 
     else {
       $previous_start = $start unless defined $previous_start;
@@ -842,6 +912,160 @@ sub debugging_rectangles {
     $image->rectangle(@{$_}[1,2,3,4],$black);
   }
 }
+
+########## upload stuff ########
+sub handle_upload {
+  my ($settings,$fh) = @_;
+  my $id = $settings->{id} ||= md5_hex(rand);  # new identity
+  my $fh_out = open_3d_party_file($settings,'>');
+  while (<$fh>) {
+    print $fh_out $_;
+  }
+  close $fh_out;
+  $settings->{'3d_party'}++;
+}
+
+sub handle_edit {
+  my ($settings,$data) = @_;
+  my @lines = unexpand(split /\r?\n|\r\n?/,$data);
+  $data = join "\n",@lines;
+  $data .= "\n";
+
+  my $id = $settings->{id} ||= md5_hex(rand);  # new identity
+  my $fh = open_3d_party_file($settings,'>');
+  print $fh $data;
+  close $fh;
+  $settings->{'3d_party'}++;
+}
+
+sub open_3d_party_file {
+  my $settings = shift;
+  my $mode     = shift || '<';
+  my $id = $settings->{id} or return;
+  my (undef,$tmpdir) = tmpdir('3d_party');
+  my $file = "$tmpdir/$id";
+  open (F,$mode,$file) or return;
+  return \*F;
+}
+
+sub load_3d_party_features {
+  my ($segment,$settings) = @_;
+  return unless $settings->{'3d_party'};
+
+  my $db = open_database();
+  my $width = $settings->{width} or return;
+  my $fh = open_3d_party_file($settings,"<") or return;
+
+  my $rel2abs = coordinate_mapper($segment,$db) if $segment;
+
+  # nasty little bit in which we handle differing line-endings for the various
+  # types of operating systems...
+  my $agent  = CGI->user_agent();
+  local $/ = $/;
+  $/ = "\r"    if $agent =~ /Mac/;
+  $/ = "\r\n"  if $agent =~ /Win/;
+
+  my $feature_file = Bio::Graphics::FeatureFile->new(-file       => $fh,
+						     -map_coords => $rel2abs);
+  close $fh;
+  return $feature_file
+}
+
+sub print_3d_party_features {
+  my $settings = shift;
+  if (my $fh = open_3d_party_file($settings)) {
+    while (<$fh>) {
+      print;
+    }
+  }
+}
+
+sub get_3d_party_info {
+  my $feature_file = shift or return;
+  my $modified = localtime($feature_file->mtime);
+  my @refs     = $feature_file->refs;
+  my $url      = url(-relative=>1,-path_info=>1);
+  return i("Annotation data last modified $modified.  Reference sequences:",
+	   b(map {a({-href=>"$url?name=$_"},$_)}@refs));
+}
+
+sub clear_3d_party {
+  my $settings = shift;
+  my $id = $settings->{id} or return;
+  my (undef,$tmpdir) = tmpdir('3d_party');
+  unlink "$tmpdir/$id";
+  delete $settings->{'3d_party'};
+}
+
+sub edit_3d_party {
+  my $settings = shift;
+  print start_form();
+  my $data;
+  if (my $fh = open_3d_party_file($settings)) {
+    $data = join '',expand(<$fh>);
+  }
+  print table({-width=>'100%'},
+	      TR({-class=>'searchbody'},
+		 td('Edit your uploaded annotation data here.  Note that you must use tabs (not spaces) to separate fields.',
+		    'Some browsers will replace tabs with spaces, in which case your annotations will not appear.',
+		    'If this is happening to you, go back to the previous page, download the file using the',
+		    i('Download Data'),'button, edit the file with your favorite text editor, and upload it.'
+		   ),
+		),
+	      TR({-class=>'searchtitle'},
+		 th('Enter/Edit Annotation data')),
+	      TR({-class=>'searchbody'},
+		 td({-align=>'CENTER'},
+		    pre(
+			textarea(-name    => 'a_data',
+				 -value   => $data,
+				 -rows    => ANNOTATION_EDIT_ROWS,
+				 -cols    => ANNOTATION_EDIT_COLS,
+				 -wrap    => 'off',
+				 -style   => "white-space : pre"
+				))
+		   )
+		),
+	      TR({-class=>'searchtitle'},
+		 th(reset('Undo Changes').'&nbsp;'.
+		    submit('Submit Changes')))
+	     );
+  print end_form();
+}
+
+sub coordinate_mapper {
+  my $current_segment = shift;
+  my $db              = shift;
+
+  my ($ref,$start,$stop) = ($current_segment->ref,$current_segment->start,$current_segment->stop);
+  my %segments;
+
+  my $closure = sub {
+    my ($refname,@ranges) = @_;
+
+    unless ($segments{$refname}) {
+      my @segments = grep {
+	$_->abs_ref eq $ref && $_->abs_start <= $stop && $_->abs_stop >= $start
+      } name2segments($refname,$db);
+      return unless @segments;
+      $segments{$refname} = $segments[0];
+    }
+    my $mapper   = $segments{$refname};
+    my $absref   = $mapper->abs_ref;
+    my @abs_segs = map {[$mapper->rel2abs($_->[0],$_->[1])]} @ranges;
+    return ($absref,@abs_segs);
+  };
+  return $closure;
+}
+
+sub error {
+  warn "@_";
+  print header() unless $HEADER++;
+  print start_html(-title => 'Genome browser',
+		   -style  => {src=>$CONFIG->setting('stylesheet')}) unless $HTML++;
+  print h2({-class=>'error'},@_);
+}
+
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";
