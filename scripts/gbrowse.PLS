@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.7 2001-11-24 14:36:22 lstein Exp $
+# $Id: gbrowse.PLS,v 1.8 2001-11-25 19:34:06 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -29,7 +29,7 @@ use Bio::Graphics::Browser;
 use Digest::MD5 'md5_hex';
 use File::Path 'mkpath';
 use Carp;
-use CGI qw(:standard center *table *dl *TR *td);
+use CGI qw(:standard escape center *table *dl *TR *td);
 use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT);
 
 # if you change the zoom/nav icons, you must change this as well.
@@ -134,10 +134,10 @@ elsif (@segments > 1) {
   multiple_choices(\@segments,$page_settings);
 }
 
-elsif ($page_settings->{name}) {
+elsif (my $n = $page_settings->{name}) {
 
-  print h2({-class=>'error'},"The landmark named",i(param('name')),"is not recognized.",
-	   "You may need to qualify it with the type, as in",i("PCR_Product:".param('name')))
+  print h2({-class=>'error'},"The landmark named",i($n),"is not recognized.",
+	   "You may need to qualify it with the type, as in",i("PCR_Product:$n"))
 }
 
 print start_form(-action=>url(-relative=>1,-path_info=>1));
@@ -172,10 +172,12 @@ print end_form(),
 ###############################################################################################
 
 sub get_source {
-  my $source = param('source');
-  $source ||= cookie('gbrowse_source');
+  my $new_source = param('source');
+  my $old_source = cookie('gbrowse_source') unless request_method() eq 'GET';
+
+  my $source   = $new_source || $old_source;
   $source ||= $CONFIG->source;  # the default, whatever it is
-  return ($source,cookie('gbrowse_source'));
+  return ($source,$old_source);
 }
 
 # read from cookie, if there is one
@@ -234,14 +236,13 @@ sub adjust_settings {
   }
   $settings->{width}  = param('width')   if param('width');
 
-  # a GET request forces the reference to be used, as does clicking on the zoom panel
   if (param('ref') && (request_method() eq 'GET' || grep {/zoom|nav|overview/} param()) ) {
     $settings->{ref}   = param('ref');
     $settings->{start} = param('start') if param('start') =~ /^[\d-]+/;
     $settings->{stop}  = param('stop')  if param('stop')  =~ /^[\d-]+/;
     zoomnav($settings);
     $settings->{name} = "$settings->{ref}:$settings->{start}..$settings->{stop}";
-    param(name=>$settings->{name});
+    param(name => $settings->{name});
   }
   $settings->{name}   = param('name')   if param('name');
   $settings->{source} = param('source') if param('source');
@@ -259,9 +260,8 @@ sub navigation_table {
 		  TR({-class=>'searchbody'},
 		     td({-align=>'left', -colspan=>2},
 			'Search using a sequence name, gene name, locus, or other landmark.',
-			'Examples:',i('IV,'),i('CHROMOSOME_IV,'),i('I:120000..130000,'),i('unc-9,'),i('clone:B0019,'),
-			i('PCR_Product:sjj_B0019.1'))
-		    ),
+			show_examples()
+		    )),
 		  TR({-class=>'searchbody'},
 		     td({-align=>'left', -colspan=>2},
 		     'To center on a location, click the ruler.  User the Scroll/Zoom buttons to',
@@ -442,10 +442,12 @@ sub get_segment {
 
   if (my $name = $settings->{name}) {
     my ($class,$start,$stop);
-    if ($name =~ /(\w+):([\d]+)(?:-|\.\.|,)?([\d]+)/) {
+    if ($name =~ /(\w+):([\d,-]+)(?:-|\.\.)?([\d,-]+)$/) {
       $name = $1;
       $start = $2;
       $stop = $3;
+      $start =~ s/,//g; # get rid of commas
+      $stop  =~ s/,//g;
     }
 
     elsif ($name =~ /^(\w+):(.+)$/) {
@@ -459,7 +461,7 @@ sub get_segment {
     push @argv,(-stop  => $stop)  if defined $stop;
     @segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv);
 
-    # Here's the heuristic part.  Try various abbreviations that
+    # Here starts the heuristic part.  Try various abbreviations that
     # people tend to use for chromosomal addressing.
     if (!@segments && $name =~ /^([\dIVXA-F]+)$/) {
       my $id = $1;
@@ -472,10 +474,6 @@ sub get_segment {
 	@segments = defined($start) ? $db->segment(@argv) : $db->segments(@argv) unless @segments;
       }
     }
-    # try things that look like genes
-    if (!@segments && $name =~ /[a-zA-Z]-?\d+/) {
-      @segments = $db->segments(Locus => $name);
-    }
 
     # try to remove the chr CHROMOSOME_I
     if (!@segments && $name =~ /^(chromosome_?|chr)/i) {
@@ -483,6 +481,14 @@ sub get_segment {
       @segments = $db->segment($chr);
     }
 
+    # try any "automatic" classes that have been defined in the config file
+    if (!@segments && !$class && 
+	(my @automatic = split /\s+/,$CONFIG->setting('automatic classes'))) {
+      foreach $class (@automatic) {
+	@segments = $db->segments($class => $name);
+	last if @segments;
+      }
+    }
   }
 
   elsif (my $ref = $settings->{ref}) {
@@ -815,6 +821,14 @@ sub low_merge {
   return @spans;
 }
 
+sub show_examples {
+  my @examples = split /\s+/,$CONFIG->setting('examples');
+  return unless @examples;
+  my $url    = url(-relative=>1,-path_info=>1);
+  my $source = $CONFIG->source;
+  my @urls = map { a({-href=>"$url?source=$source;name=".escape($_)},$_) } @examples;
+  return b('Examples: ').join ', ',@urls;
+}
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";
