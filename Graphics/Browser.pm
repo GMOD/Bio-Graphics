@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.11 2001-12-21 15:52:25 lstein Exp $
+# $Id: Browser.pm,v 1.12 2001-12-26 22:22:03 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -43,6 +43,12 @@ sub source {
 sub setting {
   my $self = shift;
   $self->config->setting('general',@_);
+}
+
+sub citation {
+  my $self = shift;
+  my $label = shift;
+  $self->config->setting($label=>'citation');
 }
 
 sub description {
@@ -96,6 +102,20 @@ sub width {
   my $d = $self->{width};
   $self->{width} = shift if @_;
   $d;
+}
+
+sub header {
+  my $self = shift;
+  my $header = $self->config->code_setting(general => 'header');
+  return $header->(@_) if ref $header eq 'CODE';
+  return $header;
+}
+
+sub footer {
+  my $self = shift;
+  my $footer = $self->config->code_setting(general => 'footer');
+  return $footer->(@_) if ref $footer eq 'CODE';
+  return $footer;
 }
 
 # Generate the image and the box list, and return as a two-element list.
@@ -206,7 +226,8 @@ sub image_and_map {
 
     # Implicitly, the third party features begin at the end of our internal
     # feature label list.
-    my $file    = $feature_files->[$feature - @labels] or next;
+    my $file    = $feature_files->[$feature - @labels];
+    next unless $file && ref($file);
     $track += $offset + 1;
     my $inserted = $file->render($panel,$track,$options->[$feature]);
     $offset += $inserted;
@@ -295,6 +316,72 @@ sub read_configuration {
   return \%config;
 }
 
+sub merge {
+  my $self = shift;
+  my ($features,$max_range) = @_;
+  $max_range ||= 100_000;
+
+  my (%segs,@merged_segs);
+  push @{$segs{$_->ref}},$_ foreach @$features;
+  foreach (keys %segs) {
+    push @merged_segs,_low_merge($segs{$_},$max_range);
+  }
+  return @merged_segs;
+}
+
+sub _low_merge {
+  my ($features,$max_range) = @_;
+  my $db = $features->[0]->factory;
+
+  my ($previous_start,$previous_stop,$statistical_cutoff,@spans);
+
+  my @features = sort {$a->low<=>$b->low} @$features;
+
+  # run through the segments, and find the mean and stdev gap length
+  # need at least 10 features before this becomes reliable
+  if (@features >= 10) {
+    my ($total,$gap_length,@gaps);
+    for (my $i=0; $i<@$features-1; $i++) {
+      my $gap = $features[$i+1]->low - $features[$i]->high;
+      $total++;
+      $gap_length += $gap;
+      push @gaps,$gap;
+    }
+    my $mean = $gap_length/$total;
+    my $variance;
+    $variance += ($_-$mean)**2 foreach @gaps;
+    my $stdev = sqrt($variance/$total);
+    $statistical_cutoff = $stdev * 2;
+  } else {
+    $statistical_cutoff = $max_range;
+  }
+
+  my $ref = $features[0]->ref;
+
+  for my $f (@features) {
+    my $start = $f->low;
+    my $stop  = $f->high;
+
+    if (defined($previous_stop) &&
+	( $start-$previous_stop >= $max_range ||
+	  $previous_stop-$previous_start >= $max_range ||
+	  $start-$previous_stop >= $statistical_cutoff)) {
+      push @spans,$db->segment($ref,$previous_start,$previous_stop);
+      $previous_start = $start;
+      $previous_stop  = $stop;
+    }
+
+    else {
+      $previous_start = $start unless defined $previous_start;
+      $previous_stop  = $stop;
+    }
+
+  }
+  push @spans,$db->segment($ref,$previous_start,$previous_stop);
+  return @spans;
+}
+
+
 package Bio::Graphics::BrowserConfig;
 use strict;
 use Bio::Graphics::FeatureFile;
@@ -363,42 +450,17 @@ sub summary_mode {
   \%pairs;
 }
 
-# override get_linkrule to allow for code references
-sub get_linkrule {
-  my $self = shift;
-  my $label = shift;
-
-  unless (exists $self->{_link}{$label}) {
-    my $link = $self->{_link}{$label} = $self->label2link($label);
-    if ($link =~ /^sub\s+\{/) { # a subroutine
-      my $coderef = eval $link;
-      warn $@ if $@;
-      $self->{_link}{$label} = $coderef;
-    }
-  }
-
-  return $self->{_link}{$label};
-}
-
-# override _link() method to allow code references
-sub _link {
+# override make_link to allow for code references
+sub make_link {
   my $self     = shift;
-  my ($feature,$link) = @_;
-  if (ref $link eq 'CODE') {
-    return $link->($feature);
-  }
-
-  else {
-    $link =~ s/\$(\w+)/
-      $1 eq 'name'   ? $feature->name
-      : $1 eq 'class'  ? $feature->class
-      : $1 eq 'method' ? $feature->method
-      : $1 eq 'source' ? $feature->source
-      : $1
-       /exg;
-    return $link;
-  }
+  my $feature  = shift;
+  my $label    = $self->feature2label($feature) or return;
+  my $link     = $self->code_setting($label,'link',$feature)
+                 || $self->code_setting(general=>'link',$feature);
+  return $link->($feature) if ref($link) eq 'CODE';
+  return $self->link_pattern($link,$feature);
 }
+
 
 1;
 

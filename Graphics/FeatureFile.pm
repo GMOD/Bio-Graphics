@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.8 2001-12-21 15:52:26 lstein Exp $
+# $Id: FeatureFile.pm,v 1.9 2001-12-26 22:22:03 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -77,7 +77,6 @@ sub smart_features {
   $self->{smart_features} = shift if @_;
   $d;
 }
-
 
 sub parse_argv {
   my $self = shift;
@@ -247,6 +246,20 @@ sub setting {
   return keys %{$config} unless @_;
   return keys %{$config->{$_[0]}} if @_ == 1;
   return $config->{$_[0]}{$_[1]}  if @_ > 1;
+}
+
+sub code_setting {
+  my $self = shift;
+  my $section = shift;
+  my $option  = shift;
+
+  my $setting = $self->setting($section=>$option) or return;
+  return $setting if ref($setting) eq 'CODE';
+  return $setting unless $setting =~ /^sub\s+\{/;
+  my $coderef = eval $setting;
+  warn $@ if $@;
+
+  return $self->{$section}{$option} = $coderef;
 }
 
 # turn configuration into a set of -name=>value pairs suitable for add_track()
@@ -459,30 +472,19 @@ sub feature2label {
   my $label = $self->type2label($type) || $self->type2label($feature->primary_tag) || $type;
   $label;
 }
-sub label2link {
-  my $self = shift;
-  my $label = shift;
-  $self->setting($label,'link') || $self->setting('general','link');
-}
 
 sub make_link {
   my $self     = shift;
   my $feature  = shift;
   my $label    = $self->feature2label($feature) or return;
-  my $linkrule = $self->get_linkrule($label)    or return;
-  $self->_link($feature,$linkrule);
+  my $link     = $self->setting($label,'link') || $self->setting(general=>'link');
+  return $self->link_pattern($link,$feature);
 }
 
-sub get_linkrule {
+sub link_pattern {
   my $self = shift;
-  my $label = shift;
-  return $self->{_link}{$label} ||= $self->label2link($label);
-}
-
-sub _link {
-  my $self = shift;
-  my ($feature,$link) = @_;
-  $link =~ s/\$(\w+)/
+  my ($pattern,$feature) = @_;
+  $pattern =~ s/\$(\w+)/
     $1 eq 'name'   ? $feature->name
       : $1 eq 'class'  ? $feature->class
       : $1 eq 'type'   ? $feature->method
@@ -490,7 +492,7 @@ sub _link {
       : $1 eq 'source' ? $feature->source
       : $1
        /exg;
-  return $link;
+  return $pattern;
 }
 
 # given a feature type, return its label
@@ -512,6 +514,22 @@ sub invert_types {
     }
   }
   \%inverted;
+}
+
+# This routine returns the "citation" field.  It is here in order to simplify the logic
+# a bit in the generic browser
+sub citation {
+  my $self = shift;
+  my $feature = shift || 'general';
+  return $self->setting($feature=>'citation');
+}
+
+# give this feature file a nickname
+sub name {
+  my $self = shift;
+  my $d = $self->{name};
+  $self->{name} = shift if @_;
+  $d;
 }
 
 1;

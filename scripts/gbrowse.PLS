@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.18 2001-12-21 18:05:42 lstein Exp $
+# $Id: gbrowse.PLS,v 1.19 2001-12-26 22:22:04 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -45,6 +45,7 @@ use constant ANNOTATION_EDIT_ROWS => 25;
 use constant ANNOTATION_EDIT_COLS => 100;
 use constant URL_FETCH_TIMEOUT    => 5;  # five seconds max!
 use constant URL_FETCH_MAX_SIZE   => 1_000_000;  # don't accept any files larger than 1 Meg
+use constant MAX_KEYWORD_RESULTS  => 50;  # max number of results from keyword search
 
 # if true, turn on surrounding rectangles for debugging the image map
 use constant DEBUG => 0;
@@ -104,7 +105,8 @@ if (defined($old_source) && $source ne $old_source) {
 
 ## GETTING THE SEGMENT ########################################################################
 my @segments  = get_segment($page_settings);
-@segments     = merge(\@segments) if @segments > 1 && @segments < TOO_MANY_SEGMENTS;
+@segments     = $CONFIG->merge(\@segments,(get_ranges())[-1])
+  if @segments > 1 && @segments < TOO_MANY_SEGMENTS;
 ###############################################################################################
 
 ## DUMPS ######################################################################################
@@ -125,10 +127,10 @@ if ( (my $dump = param('dump')) && @segments == 1) {
 ###############################################################################################
 
 # This gets called if the user wants to download his annotation data
-if(param('Download Data') && $page_settings->{'3d_party'}) {
-  print header(-attachment   =>  'your_annotations.txt',
+if(param('Download Data') && $page_settings->{'uploaded_file'}) {
+  print header(-attachment   =>  $page_settings->{uploaded_file},
 	       -type         => 'application/octet-stream');
-  print_3d_party_features($page_settings);
+  print_uploaded_file_features($page_settings);
   exit 0;
 }
 
@@ -146,7 +148,7 @@ elsif ($data = param('quickie')) {
   handle_quickie($page_settings,$data);
 }
 
-clear_3d_party($page_settings) if param('Delete Data');
+clear_uploaded_file($page_settings) if param('Delete Data');
 adjust_tracks($page_settings);
 
 ## UPDATING THE PERSISTENT SETTINGS##############################################################
@@ -162,9 +164,12 @@ print
 	     -style  => {src=>$CONFIG->setting('stylesheet')},
 	    ) unless $HTML++;
 
-## HANDLE 3d PARTY EDITS ########################################################################
+my $header = $CONFIG->header();
+print $header if $header;
+
+## HANDLE UPLOADED PARTY EDITS ##################################################################
 if (param('Edit Data...')) {
-  edit_3d_party($page_settings);
+  edit_uploaded_file($page_settings);
 }
 
 ## AND THE ABILITY TO CHANGE DISPLAY ORDER#######################################################
@@ -177,20 +182,20 @@ elsif (param('Revert to Defaults')) {
   set_default_tracks($page_settings);
   set_track_options($page_settings);
 } elsif (param('help')) {
-  help(param('help'),$CONF_DIR);
+  help(param('help'),$CONF_DIR,$page_settings);
 }
 
 
 
 ## MAIN DISPLAY
 else {
-  print h1($description);
+  print h1($description) unless $header;
   main_display(\@segments,$page_settings);
 }
 
 ## FOOTER
 print
-  $CONFIG->setting('footer') || '',
+  $CONFIG->footer || '',
   p(i(font({-size=>'small'},
 	   'Note: This page uses cookie to save and restore preference information.',
 	   'No information is shared.'))),
@@ -200,28 +205,46 @@ print
 
 sub main_display {
   my ($segments,$page_settings) = @_;
-  my $segment;
-  if (@$segments == 1) {
+  my ($segment,@keyword_search_results);
+
+  # a bit confusing here, because of the way I want the formatting to work
+
+  # first of all, if there are no segments, then try a keyword search and
+  # store the results
+  if (@$segments == 0 && (my $n = $page_settings->{name})) {
+
+    # if that doesn't work, then we print a big error at the top
+    unless (@keyword_search_results = do_keyword_search($n)) {
+      error("The landmark named",i($n),"is not recognized.",
+	    "You may need to qualify it with the type, as in",i("PCR_Product:$n"));
+    }
+
+  }
+
+  # if there's a single segment, then print a message and store the segment
+  # into a scalar
+  elsif (@$segments == 1) {
     $segment = $segments->[0];
     print h2("Showing",commas($segment->length),"bp from",
 	     $segment->ref.", positions ".commas($segment->start)." to ".commas($segment->stop));
   }
 
-  elsif (@$segments > 1) {
+  # print the top of the form, with navigation bar, etc
+  print start_multipart_form(-action=>url(-relative=>1,-path_info=>1)),
+    navigation_table($segment,$page_settings);
+
+  # if more than one segment, then list them all
+  if (@$segments > 1) {
     multiple_choices($segments,$page_settings);
   }
 
-  elsif (my $n = $page_settings->{name}) {
-    error("The landmark named",i($n),"is not recognized.",
-	  "You may need to qualify it with the type, as in",i("PCR_Product:$n"));
+  # if there are keyword search results, then print those as well
+  elsif (@keyword_search_results) {
+    format_keyword_search($page_settings->{name},\@keyword_search_results);
   }
 
   # get the third party features
-  my @feature_file = load_3d_party_features($segment,$page_settings);
-  push @feature_file,load_external_sources($segment,$page_settings);
-
-  print start_multipart_form(-action=>url(-relative=>1,-path_info=>1)),
-    navigation_table($segment,$page_settings);
+  my @feature_file = load_external_sources($segment,$page_settings);
 
   if ($segment) {
     my $cell = overview($segment,$page_settings);
@@ -241,17 +264,16 @@ sub main_display {
 	       );
   }
   print hidden('ref'),hidden('start'),hidden('stop');
-  print settings_table($page_settings);
-  print p(),custom_table($page_settings,\@feature_file);
+  print settings_table($page_settings,\@feature_file);
+  print p(),upload_table($page_settings,\@feature_file);
   print p(),external_table($page_settings,\@feature_file);
   print end_form();
 
   # clean us up
   foreach (@feature_file) {
-    $_ && $_->destroy;
+    $_ && ref($_) && $_->destroy;
   }
 }
-
 
 ###############################################################################################
 
@@ -468,13 +490,18 @@ sub zoomBar {
 sub labels {
   my $settings = shift;
   my @labels = $CONFIG->labels;
-  push @labels,'Uploaded Annotations (if available)';# if $settings->{'3d_party'};
+  push @labels,$settings->{'uploaded_file'} ? "$settings->{uploaded_file} (Uploaded)"
+                                            : '(Uploaded Annotations)';
   push @labels,@{$settings->{eurl}}   if $settings->{eurl};
   @labels;
 }
 
+
+# This subroutine is invoked to draw the checkbox group underneath the main display.
+# It creates a hyperlinked set of feature names.
 sub settings_table {
   my $settings = shift;
+  my $additional_features = shift;
 
   my @widths = split /\s+/,$CONFIG->setting('image widths');
   @widths = (640,800,1024) unless @widths;
@@ -489,14 +516,21 @@ sub settings_table {
 
   my $ds        = join(', ', (map{a({-href=>"@$_->[1]"},"@$_->[0]")} @dumps));
 
+  my $self_url = url(-relative=>1,-path_info=>1)."?help=citations";
   my @labels = labels($settings);
-  my %labels = map {$_=>$labels[$_]} (0..@labels-1);
+  my $native_labels = $CONFIG->labels;
+  my %labels = map {$_ => make_citation_link($_,
+					     $self_url,
+					     \@labels,
+					     $additional_features,
+					     $native_labels) } (0..@labels-1);
 
   my @defaults;
   for (my $i = 0; $i < @labels; $i++) {
     push @defaults,$i if $settings->{labels}[$i];
   }
 
+  autoEscape(0);
   my $sTable 	= '';
   $sTable.= table({-border=>0,-width=>$settings->{width}},
 		  # row
@@ -550,19 +584,20 @@ sub settings_table {
 		 );
   return $sTable;
 }
+autoEscape(1);
 
 sub annotation_help {
   return url(-relative=>1,-path_info=>1) . "?help=annotation";
 }
 
-sub custom_table {
+sub upload_table {
   my $settings      = shift;
   my $feature_files = shift;
 
   my @info =   (a({-href=>url(-relative=>1,-path_info=>1)."?Download+Data=1"},
-		  "[".$settings->{'3d_party'}."]"),
-		get_3d_party_info($settings->{labels}[scalar $CONFIG->labels] && $feature_files->[0]))
-    if $settings->{'3d_party'};
+		  "[".$settings->{'uploaded_file'}."]"),
+		get_uploaded_file_info($settings->{labels}[scalar $CONFIG->labels] && $feature_files->[0]))
+    if $settings->{'uploaded_file'};
 
   my $cTable= table({-border=>0,-width=>$settings->{width}},
 		  # row
@@ -602,7 +637,7 @@ sub external_table {
       push @rows,th({-align=>'RIGHT'},"URL",$i+1).
 	td(textfield(-name=>'eurl',-size=>50,-value=>$urls->[$i],-override=>1),br,
 	   a({-href=>$urls->[$i],-target=>'_new'},'[download]'),
-	   get_3d_party_info($settings->{labels}[$CONFIG->labels+$i+1] && $feature_files->[$i+1])
+	   get_uploaded_file_info($settings->{labels}[$CONFIG->labels+$i+1] && $feature_files->[$i+1])
 	  );
     }
   }
@@ -764,6 +799,61 @@ sub name2segments {
   @segments;
 }
 
+################ perform keyword search ###############
+sub do_keyword_search {
+  my $searchterm = shift;
+  my $db = open_database();
+  my @results = $db->search_notes($searchterm,MAX_KEYWORD_RESULTS);
+  return @results;
+}
+
+################ format keyword search ###################
+sub format_keyword_search {
+  my ($name,$results) = @_;
+  my $db = open_database();
+  print start_table();
+  print TR({-class=>'datatitle'},th({-colspan=>4},
+	      "No landmark named $name is found, but the following landmarks may be related."));
+  print TR({-class=>'datatitle'},th(['Name','Description','Location','Relevance']));
+  my $url = url(-relative=>1,-path_info=>1);
+  my %position = map { overload::StrVal($_->[0]) => $db->segment($_->[0]) } @$results;
+
+  for my $r (sort {by_score_and_position(\%position)} @$results) {
+    my $name  = escape($r->[0]->name);
+    my $class    = escape($r->[0]->class);
+    my $href     = "$url?name=$class:$name";
+    my $segment  = $position{overload::StrVal($r->[0])};
+    my $position = format_segment($segment);
+    print TR({-class=>'databody',-valign=>'TOP'},
+	     th({-align=>'RIGHT'},a({-href=>$href},$r->[0])),
+	     td($r->[1]),
+	     td(a({-href=>$href},$position)),
+	     td($r->[2]));
+  }
+  print end_table;
+}
+
+sub by_score_and_position {
+  my $position = shift;
+  my $result = $b->[2] <=> $a->[2];
+  return $result unless $result == 0;
+  my $apos = $position->{overload::StrVal($a->[0])};
+  my $bpos =$position->{overload::StrVal($b->[0])};
+  return $apos->abs_ref cmp $bpos->abs_ref
+    ||
+      $apos->abs_start<=>$bpos->abs_start
+	||
+	  $apos->abs_stop<=>$bpos->abs_stop;
+}
+
+sub format_segment {
+  my $s = shift or return 'n/a';
+  my $ref = $s->abs_ref;
+  my $start = commas($s->abs_start);
+  my $stop  = commas($s->abs_stop);
+  return "<b>$ref</b>:$start..$stop";
+}
+
 sub open_database {
   my $source  = $CONFIG->source;
   return $DB{$source} if $DB{$source};
@@ -807,10 +897,11 @@ sub image_and_map {
   if (DEBUGGING_RECTANGLES) { debugging_rectangles($image,$map) }
 
   my ($width,$height) = $image->getBounds;
-  my @mtimes = map {$_ && $_->mtime} @$additional_features;
+  my @mtimes = map {ref($_) && $_->mtime} @$additional_features;
 
   local $^W = 0;
-  my $signature = md5_hex($segment,@{$settings->{labels}},
+  my $signature = md5_hex($segment,
+			  (map {$_||0} @{$settings->{labels}}),
 			  $settings->{width},
 			  $CONFIG->source || '',
 			  $settings->{id} || '',
@@ -992,15 +1083,15 @@ sub multiple_choices {
   my $segments = shift;
   my $settings = shift;
 
-  my $message = "The landmark named ".param('name')." exists in multiple locations";
+  my $message = "The landmark named ".$settings->{name}." exists in multiple locations";
   $message   .= @$segments > TOO_MANY_SEGMENTS ?  ", but there are too many to choose from (".@$segments.")."
                                                  ." Please try a different landmark." 
                                                : ". Please choose one.";
 
-  print start_table({-class=>'searchtitle'});
-  print TR(th(font({-color=>'red'},$message)));
+  print start_table({-class=>'datatitle'});
+  print TR(th($message));
   if (@$segments <= TOO_MANY_SEGMENTS) {
-    print start_TR({-class=>'searchbody'}),start_td();
+    print start_TR({-class=>'databody'}),start_td();
 
     # aggregate segments by reference and then split on gaps of > 1 M
     my %segs;
@@ -1012,7 +1103,7 @@ sub multiple_choices {
     print start_dl;
     for my $ref (sort keys %segs) {
       my @spans  = sort {$a->start <=> $b->start} @{$segs{$ref}};
-      print dt($ref),"\n";
+      print dt(b($ref)),"\n";
       foreach (@spans) {
 	my ($start,$stop) = ($_->start,$_->stop);
 	my $bp = $stop - $start;
@@ -1027,68 +1118,6 @@ sub multiple_choices {
   print end_table;
 }
 
-sub merge {
-  my $features = shift;
-
-  my (%segs,@merged_segs);
-  push @{$segs{$_->ref}},$_ foreach @$features;
-  foreach (keys %segs) {
-    push @merged_segs,low_merge($segs{$_});
-  }
-  return @merged_segs;
-}
-
-sub low_merge {
-  my $features = shift;
-
-  my $max_range = (get_ranges())[-1];
-  my $db = open_database();
-  my ($previous_start,$previous_stop,$statistical_cutoff,@spans);
-
-  my @features = sort {$a->low<=>$b->low} @$features;
-
-  # run through the segments, and find the mean and stdev gap length
-  if (@features >= 3) {
-    my ($total,$gap_length,@gaps);
-    for (my $i=0; $i<@$features-1; $i++) {
-      my $gap = $features[$i+1]->low - $features[$i]->high;
-      $total++;
-      $gap_length += $gap;
-      push @gaps,$gap;
-    }
-    my $mean = $gap_length/$total;
-    my $variance;
-    $variance += ($_-$mean)**2 foreach @gaps;
-    my $stdev = sqrt($variance/$total);
-    $statistical_cutoff = $stdev * 2;
-  } else {
-    $statistical_cutoff = $max_range;
-  }
-
-  my $ref = $features[0]->ref;
-
-  for my $f (@features) {
-    my $start = $f->low;
-    my $stop  = $f->high;
-
-    if (defined($previous_stop) && 
-	( $start-$previous_stop >= $max_range || 
-	  $previous_stop-$previous_start >= $max_range ||
-	  $start-$previous_stop >= $statistical_cutoff)) {
-      push @spans,$db->segment($ref,$previous_start,$previous_stop);
-      $previous_start = $start;
-      $previous_stop  = $stop;
-    }
-
-    else {
-      $previous_start = $start unless defined $previous_start;
-      $previous_stop  =   $stop;
-    }
-
-  }
-  push @spans,$db->segment($ref,$previous_start,$previous_stop);
-  return @spans;
-}
 
 sub show_examples {
   my $examples = $CONFIG->setting('examples') or return;;
@@ -1112,8 +1141,8 @@ sub debugging_rectangles {
 ########## upload stuff ########
 sub handle_upload {
   my ($settings,$fh) = @_;
-  $settings->{'3d_party'} = "$fh";
-  my $fh_out = open_3d_party_file($settings,'>') or return;
+  $settings->{'uploaded_file'} = "$fh";
+  my $fh_out = open_uploaded_file($settings,'>') or return;
   while (<$fh>) {
     print $fh_out $_;
   }
@@ -1125,10 +1154,10 @@ sub handle_edit {
   my @lines = unexpand(split /\r?\n|\r\n?/,$data);
   $data = join "\n",@lines;
   $data .= "\n";
-  my $fh = open_3d_party_file($settings,'>');
+  my $fh = open_uploaded_file($settings,'>');
   print $fh $data;
   close $fh;
-  $settings->{'3d_party'} ||= 'auto';
+  $settings->{'uploaded_file'} ||= 'auto';
 }
 
 sub handle_quickie {
@@ -1136,47 +1165,55 @@ sub handle_quickie {
   return unless $data;
   # format of quickie data is reference+type+name+start-stop,start-stop,start-stop
   my ($reference,$type,$name,$position) = shellwords($data);
-  my $out = open_3d_party_file($settings,">>") or return;
+  my $out = open_uploaded_file($settings,">>") or return;
   print $out "\nreference=$reference\n";
   $type .= " " . localtime;
   print $out join ("\t",qq("$type"),$name,$position),"\n";
   close $out;
-  $settings->{'3d_party'} = 'auto';
+  $settings->{'uploaded_file'} = 'auto';
 }
 
-sub name_3d_party_file {
+sub name_uploaded_file {
   my $settings = shift;
   my $id = $settings->{id} or return;
-  my (undef,$tmpdir) = tmpdir($CONFIG->source."/3d_party/$id");
-  $settings->{'3d_party'} ||= 'auto';
-  return "$tmpdir/$settings->{'3d_party'}";
+  my (undef,$tmpdir) = tmpdir($CONFIG->source."/uploaded_file/$id");
+  $settings->{'uploaded_file'} ||= 'auto';
+  return "$tmpdir/$settings->{'uploaded_file'}";
 }
 
-sub open_3d_party_file {
+sub open_uploaded_file {
   my $settings = shift;
   my $mode     = shift || '<';
-  my $file = name_3d_party_file($settings);
+  my $file = name_uploaded_file($settings);
   unless ($file) {
-    error("Can't find the file named $settings->{'3d_party'}.  Perhaps it has been purged?");
+    error("Can't find the file named $settings->{'uploaded_file'}.  Perhaps it has been purged?");
     return;
   }
 
   my $result = open (F,$mode,$file);
 
   unless ($result) {
-    warn "Can't open the file named $settings->{'3d_party'}.  Perhaps it has been purged? (error: $!)";
+    warn "Can't open the file named $settings->{'uploaded_file'}.  Perhaps it has been purged? (error: $!)";
     return;
   }
 
   return \*F;
 }
 
-sub load_3d_party_features {
+sub load_external_sources {
+  my ($segment,$page_settings) = @_;
+  my @feature_file = load_uploaded_file($segment,$page_settings) || (undef);
+  push @feature_file,load_remote_sources($segment,$page_settings);
+  @feature_file;
+}
+
+sub load_uploaded_file{
   my ($segment,$settings) = @_;
-  return undef unless $settings->{'3d_party'};
+  $settings->{'uploaded_file'} or return;
+  $settings->{labels}[$CONFIG->labels] or return $settings->{'uploaded_file'};
 
   my $width = $settings->{width} or return;
-  my $fh = open_3d_party_file($settings,"<") or return undef;
+  my $fh = open_uploaded_file($settings,"<") or return;
 
   my $rel2abs = coordinate_mapper($segment) if $segment;
 
@@ -1191,10 +1228,11 @@ sub load_3d_party_features {
 						     -map_coords     => $rel2abs,
 						     -smart_features =>1);
   close $fh;
+  $feature_file->name($settings->{uploaded_file});
   return $feature_file;
 }
 
-sub load_external_sources {
+sub load_remote_sources {
   my ($segment,$settings) = @_;
   return unless $settings->{eurl};
   my $rel2abs = coordinate_mapper($segment) if $segment;
@@ -1204,8 +1242,9 @@ sub load_external_sources {
     my $label_index = $CONFIG->labels+$i+1;
     if ($settings->{labels}[$label_index]) { # show it
       $data = get_remote_feature_data($settings->{eurl}[$i],$rel2abs);
+      $data->name($settings->{eurl}[$i]);
     } else {
-      $data = undef;
+      $data = $settings->{eurl}[$i];
     }
     push @files,$data;
   }
@@ -1240,16 +1279,16 @@ sub get_remote_feature_data {
   return $feature_file;
 }
 
-sub print_3d_party_features {
+sub print_uploaded_file_features {
   my $settings = shift;
-  if (my $fh = open_3d_party_file($settings)) {
+  if (my $fh = open_uploaded_file($settings)) {
     while (<$fh>) {
       print;
     }
   }
 }
 
-sub get_3d_party_info {
+sub get_uploaded_file_info {
   my $feature_file = shift or return i("Display off");
   my $modified = localtime($feature_file->mtime);
   my @refs      = $feature_file->refs;
@@ -1259,27 +1298,31 @@ sub get_3d_party_info {
   return i("Last modified $modified.  Annotated landmarks:"),$landmarks;
 }
 
-sub clear_3d_party {
+sub clear_uploaded_file {
   my $settings = shift;
-  my $file = name_3d_party_file($settings) or return;
+  my $file = name_uploaded_file($settings) or return;
   unlink $file;
-  delete $settings->{'3d_party'};
+  delete $settings->{'uploaded_file'};
 }
 
-sub edit_3d_party {
+sub edit_uploaded_file {
   my $settings = shift;
   print start_form();
   my $data;
-  if ($settings->{'3d_party'} && 
-      (my $fh = open_3d_party_file($settings))) {
+  if ($settings->{'uploaded_file'} && 
+      (my $fh = open_uploaded_file($settings))) {
     $data = join '',expand(<$fh>);
   }
   print table({-width=>'100%'},
 	      TR({-class=>'searchbody'},
-		 td('Edit your uploaded annotation data here.  Note that you must use tabs (not spaces) to separate fields.',
-		    'Some browsers will replace tabs with spaces, in which case your annotations will not appear.',
-		    'If this is happening to you, go back to the previous page, download the file using the',
-		    i('Download Data'),'button, edit the file with your favorite text editor, and upload it.'
+		 td('Edit your uploaded annotation data here.',
+		    'Note that you must use tabs (not spaces) to separate fields.',
+		    'Some browsers will replace tabs with spaces,',
+		    'in which case your annotations will not appear.',
+		    'If this is happening to you, go back to the previous page,',
+		    'download the file using the',
+		    i('Download Data'),'button, edit the file with your favorite',
+		    'text editor, and upload it.'
 		   ),
 		),
 	      TR({-class=>'searchtitle'},
@@ -1361,8 +1404,6 @@ sub adjust_tracks {
   my $settings = shift;
   my $old_count     = @{$settings->{track}};
   my $new_count     = labels($settings);
-#  warn "labels = @{$settings->{labels}}";
-#  warn "options = @{$settings->{options}}";
 
   if ($old_count < $new_count) {  # grew
     for ($old_count .. $new_count-1) {
@@ -1378,8 +1419,6 @@ sub adjust_tracks {
     splice(@{$settings->{options}},$old_count-$new_count,$new_count);
   }
 
-#  warn "labels now = @{$settings->{labels}}";
-#  warn "options now = @{$settings->{options}}";
 }
 
 sub adjust_track_order {
@@ -1519,19 +1558,111 @@ sub set_track_options {
 }
 
 sub help {
-  my $help_type = shift;
-  my $conf_dir  = shift;
+  my ($help_type,$conf_dir,$settings) = @_;
 
-  open(F,"$conf_dir/${help_type}_help.html") or return;
   my $ref = referer();
   my $do_close = join('',
 		      start_form(-action=>$ref),
 		      button(-onClick=>'window.close()',-label=>'Close this Window'),
 		      end_form());
   print div({-align=>'RIGHT'},$do_close);
-  print while <F>;
+  if ($help_type eq 'citations') {
+    build_citation_page($settings);
+  } else {
+    build_help_page("$conf_dir/${help_type}_help.html");
+  }
   print div({-align=>'RIGHT'},$do_close);
+}
+
+# build a citation page
+sub build_citation_page {
+  my $settings = shift;
+  my @labels   = labels($settings);
+
+  my @features = $CONFIG->labels;
+  my @external_features = load_external_sources(undef,$settings);
+  my (@citations);
+
+  print h2('Track Descriptions & Citations');
+
+  # build native features
+  print h3('Tracks Built into this Server');
+  for my $feature (@features) {
+    push @citations,make_citation($CONFIG,$feature);
+  }
+  print blockquote(dl(@citations));
+
+  # build external features
+  if (@external_features) {
+    print hr,h3('External Annotation Tracks');
+    @citations = ();
+    for my $file (@external_features) {
+      my $name   = ref($file) ? $file->name : $file;
+      my $is_url = $name =~ m!^(http|ftp)://!;
+      my $link   = $is_url  ? $name  : url(-relative=>1,-path_info=>1)."?Download+Data=1";
+      my $anchor = $is_url  ? $name  : "$name (Uploaded)";
+      $anchor =~ tr/ /-/;
+
+      unless (ref $file) {
+	print h3(a{-name=>$anchor,-href=>$link},$name);
+	print blockquote('Please activate this track in order to view its information');
+	next;
+      }
+      print h4(a{-name=>$anchor,-href=>$link},$name);
+      for my $feature ($file->types) {
+	push @citations,make_citation($file,$feature);
+      }
+      print blockquote(dl(@citations));
+    }
+  }
+
+}
+
+sub make_citation {
+  my $config  = shift;
+  my $feature = shift;
+  my $citation = $config->citation($feature);
+  (my $link     = $feature) =~ tr/ /-/;
+  my $text      = $config->setting($feature=>'key') || $feature;
+  return join ('',
+	       dt(a({-name=>$link},b($text))),
+	       dd($citation||'No additional information available'),
+	       p());
+}
+
+sub build_help_page {
+  my $helpfile = shift or return;
+  open(F,$helpfile) or return;
+  print while <F>;
   close F;
+}
+
+# Create a link to a citation.  It will point to an external URL if the
+# citation looks like a URL (starts with http: or ftp:).  It will be
+# self-referential otherwise.
+
+# The persistent problem here is that the regular features are cited on a
+# feature-by-feature basis, while the uploaded/external ones are cited as
+# a group.  This makes for ugly logic branches.
+sub make_citation_link {
+  my ($label_index,$self_url,$labels,$extra_labels,$label_count)   = @_;
+  my $label = $labels->[$label_index];
+  my $is_external = $label_index < $label_count;
+
+  my $config = $is_external ? $CONFIG
+                            : $extra_labels->[$label_index-$label_count];
+
+  if ($config && ref($config)) {
+    my $citation = $config->citation($is_external ? $label : ());
+    (my $anchor  = $label) =~ tr/ /-/;
+    my $link = $citation && $citation =~ m!^(http|ftp)://! ? $citation
+                                                           : $self_url.'#'.escapeHTML($anchor);
+    return a({-href=>$link,-target=>'_new'},$labels->[$label_index]);
+  }
+
+  else {
+    return $labels->[$label_index];
+  }
 }
 
 !NO!SUBS!
