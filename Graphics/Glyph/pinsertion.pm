@@ -1,7 +1,6 @@
 package Bio::Graphics::Glyph::pinsertion;
 # package to use for drawing P insertion as a triangle
-# p insertion is a point (one base). right now width of box stays 
-# 6 pixels
+# p insertion is a point (one base).
 
 use strict;
 use GD;
@@ -31,7 +30,7 @@ sub draw {
 
   my $half = $self->insertion_width/2;
 
-  my $fill = $self->fillcolor;
+  my $fill = $self->bgcolor;
 
   my $poly = GD::Polygon->new;
 
@@ -47,12 +46,10 @@ sub draw {
   $gd->filledPolygon($poly, $fill);
   $gd->polygon($poly, $fill);
 
-  # draw label
-  if ($self->option('label')) {
-      $self->draw_label($gd,@_);
-  }
+  # add a label if requested
+  $self->draw_label($gd,$left,$top)       if $self->option('label');
+  $self->draw_description($gd,$left,$top) if $self->option('description');
 }
-
 
 
 1;
@@ -97,9 +94,9 @@ L<Bio::Graphics::Glyph::transcript>,
 
 =head1 AUTHOR
 
-Allen Day <day@cshl.org>.
+Allen Day <day@cshl.org>, Shengqiang Shu (sshu@bdgp.lbl.gov)
 
-Copyright (c) 2001 Cold Spring Harbor Laboratory
+Copyright (c) 2001 Cold Spring Harbor Laboratory, BDGP
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  See DISCLAIMER.txt for
