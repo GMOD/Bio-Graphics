@@ -33,6 +33,8 @@ END
       else {
 	s!/./blib/lib/Bio/!!g;
 	s!<A HREF="/Bio/.+">the ([^<]+) manpage</A>!<em>$1</em>!ig;
+	s!(Graphics/.+)\.html!$1.shtml!ig;
+	s!Graphics/!/bio-graphics/docs/Graphics/!ig;
 	print OUT;
       }
     }
