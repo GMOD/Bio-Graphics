@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.16 2002-04-25 17:46:58 sshu Exp $
+# $Id: transcript.pm,v 1.17 2003-01-21 23:14:55 sshu Exp $
 
 use strict;
 use Bio::Graphics::Glyph::segments;
@@ -99,7 +99,7 @@ sub draw {
   $cwidth = ($x2-$x1) || 0.5;
   $min = $cwidth + (($fudge+$cwidth)/$width) * $width * $fudge;
   $x2 = $x1 + $min if ($x2 - $x1 < $min); #exagerating
-  if ($x1 >= $self->panel->left && $x1 <= $self->panel->right - $self->panel->pad_right) {
+  if ($x1 >= $self->panel->left && $x1 <= $self->panel->right) {
       $gd->filledRectangle($x1, $y1, $x2, $y2, $startcolor);
   }
   #stop codon
@@ -112,7 +112,7 @@ sub draw {
   $cwidth = ($x2-$x1) || 0.5;
   $min = $cwidth + (($fudge+$cwidth)/$width) * $width * $fudge;
   $x2 = $x1 + $min if ($x2 - $x1 < $min); #exagerating
-  if ($x1 >= $self->panel->left && $x1 <= $self->panel->right - $self->panel->pad_right) {
+  if ($x2 >= $self->panel->left && $x2 <= $self->panel->right) {
       $gd->filledRectangle($x1, $y1, $x2, $y2, $stopcolor);
   }
 }
