@@ -258,12 +258,42 @@ Bio::Graphics::Glyph::extending_arrow
 =head1 DESCRIPTION
 
 This glyph was designed to show a segment that goes beyond the panel.
-Dashed line indicates the end goes beyond the panel
-and arrow indicates the direction.
+Dashed line indicates the end goes beyond the panel and arrow
+indicates the direction.
 
 Also see the anchored_arrw and arrow glyphs.
 
 =head2 OPTIONS
+
+
+The following options are standard among all Glyphs.  See
+L<Bio::Graphics::Glyph> for a full explanation.
+
+  Option      Description                      Default
+  ------      -----------                      -------
+
+  -fgcolor      Foreground color	       black
+
+  -outlinecolor	Synonym for -fgcolor
+
+  -bgcolor      Background color               turquoise
+
+  -fillcolor    Synonym for -bgcolor
+
+  -linewidth    Line width                     1
+
+  -height       Height of glyph		       10
+
+  -font         Glyph font		       gdSmallFont
+
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
 
 In addition to the generic options, this glyph recognizes:
 

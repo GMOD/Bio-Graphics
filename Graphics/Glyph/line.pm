@@ -46,7 +46,37 @@ This glyph draws a line parallel to the sequence segment.
 
 =head2 OPTIONS
 
-This glyph takes only the standard options.
+This glyph takes only the standard options. See
+L<Bio::Graphics::Glyph> for a full explanation.
+
+  Option      Description                      Default
+  ------      -----------                      -------
+
+  -fgcolor      Foreground color	       black
+
+  -outlinecolor	Synonym for -fgcolor
+
+  -bgcolor      Background color               turquoise
+
+  -fillcolor    Synonym for -bgcolor
+
+  -linewidth    Line width                     1
+
+  -height       Height of glyph		       10
+
+  -font         Glyph font		       gdSmallFont
+
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
+
+  -strand_arrow Whether to indicate            0 (false)
+                 strandedness
 
 =head1 BUGS
 

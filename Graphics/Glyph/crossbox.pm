@@ -17,6 +17,8 @@ sub draw_component {
 
   if ($self->option('bgcolor')){
     my $c = $self->color('bgcolor');
+    my $xmid = ($x2+$x1)/2;
+    my $ymid = ($y2+$y1)/2;
     $gd->fill($xmid,$ymid,$c);
   }
 
@@ -41,34 +43,38 @@ Bio::Graphics::Glyph::crossbox - The "crossbox" glyph
 
 =head1 DESCRIPTION
 
-This is a box with an 'X' inside glyph.
+This is a box with an 'X' inside the glyph.
 
 =head2 OPTIONS
 
-The following options are standard among all Glyphs.  See individual
-glyph pages for more options.
+The following options are standard among all Glyphs.  See
+L<Bio::Graphics::Glyph> for a full explanation.
 
-  Option      Description               Default
-  ------      -----------               -------
+  Option      Description                      Default
+  ------      -----------                      -------
 
-  -fgcolor    Foreground color		black
+  -fgcolor      Foreground color	       black
 
-  -outlinecolor				black
-	      Synonym for -fgcolor
+  -outlinecolor	Synonym for -fgcolor
 
-  -bgcolor    Background color          white
+  -bgcolor      Background color               turquoise
 
-  -fillcolor  Interior color of filled  turquoise
-	      images
+  -fillcolor    Synonym for -bgcolor
 
-  -linewidth  Width of lines drawn by	1
-		    glyph
+  -linewidth    Line width                     1
 
-  -height     Height of glyph		10
+  -height       Height of glyph		       10
 
-  -font       Glyph font		gdSmallFont
+  -font         Glyph font		       gdSmallFont
 
-  -label      Whether to draw a label	false
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
 
 =head1 BUGS
 

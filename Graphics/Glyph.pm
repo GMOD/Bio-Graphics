@@ -1033,29 +1033,41 @@ As above, but draws an oval inscribed on the rectangle.
 The following options are standard among all Glyphs.  See individual
 glyph pages for more options.
 
-  Option      Description               Default
-  ------      -----------               -------
+  Option      Description                      Default
+  ------      -----------                      -------
 
-  -fgcolor    Foreground color		black
+  -fgcolor      Foreground color	       black
 
-  -outlinecolor				black
-	      Synonym for -fgcolor
+  -outlinecolor	Synonym for -fgcolor
 
-  -bgcolor    Background color          white
+  -bgcolor      Background color               turquoise
 
-  -fillcolor  Interior color of filled  turquoise
-	      images
+  -fillcolor    Synonym for -bgcolor
 
-  -linewidth  Width of lines drawn by	1
-		    glyph
+  -linewidth    Line width                     1
 
-  -height     Height of glyph		10
+  -height       Height of glyph		       10
 
-  -font       Glyph font		gdSmallFont
+  -font         Glyph font		       gdSmallFont
 
-  -label      Whether to draw a label	false
+  -connector    Connector type                 0 (false)
 
-  -description Whether to draw a description false
+  -connector_color
+                Connector color                black
+
+  -strand_arrow Whether to indicate            0 (false)
+                 strandedness
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
+
+For glyphs that consist of multiple segments, the -connector option
+controls what's drawn between the segments.  The default is 0 (no
+connector).  Options include "hat", an upward-angling conector,
+"solid", a straight horizontal connector, and "dashed", for a
+horizontal dashed line.  The -connector_color option controls the
+color of the connector, if any.
 
 The label is printed above the glyph.  You may pass an anonymous
 subroutine to -label, in which case the subroutine will be invoked
@@ -1073,6 +1085,10 @@ string to render as the label.  Otherwise, you may return the number
 In the case of ACEDB Ace::Sequence feature objects, the feature's
 info(), Brief_identification() and Locus() methods will be called to
 create a suitable description.
+
+The -strand_arrow option, if true, requests that the glyph indicate
+which strand it is on, usually by drawing an arrowhead.  Not all
+glyphs can respond appropriately to this request.
 
 =head1 SUBCLASSING Bio::Graphics::Glyph
 

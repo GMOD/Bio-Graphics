@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::segmented_keyglyph;
 
-# $Id: segmented_keyglyph.pm,v 1.2 2001-12-09 04:32:03 lstein Exp $
+# $Id: segmented_keyglyph.pm,v 1.3 2002-02-13 04:21:22 lstein Exp $
 # Don't use this package.  It's just for inheriting the segmented glyph in the panel key.
 
 use strict;
@@ -24,3 +24,46 @@ sub make_key_feature {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Bio::Graphics::Glyph::segmented_keyglyph - The "segmented_keyglyph" glyph
+
+=head1 SYNOPSIS
+
+  See L<Bio::Graphics::Panel> and L<Bio::Graphics::Glyph>.
+
+=head1 DESCRIPTION
+
+This glyph is used internally by Bio::Graphics::Panel as a base calss
+for drawing the keys at the bottom of the panel.  It should not be
+used explicitly.
+
+=head1 BUGS
+
+Please report them.
+
+=head1 SEE ALSO
+
+L<Ace::Sequence>, L<Ace::Sequence::Feature>, L<Bio::Graphics::Panel>,
+L<Bio::Graphics::Track>, L<Bio::Graphics::Glyph::anchored_arrow>,
+L<Bio::Graphics::Glyph::arrow>,
+L<Bio::Graphics::Glyph::box>,
+L<Bio::Graphics::Glyph::primers>,
+L<Bio::Graphics::Glyph::segments>,
+L<Bio::Graphics::Glyph::toomany>,
+L<Bio::Graphics::Glyph::transcript>,
+
+=head1 AUTHOR
+
+Lincoln Stein <lstein@cshl.org>
+
+Copyright (c) 2001 Cold Spring Harbor Laboratory
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut

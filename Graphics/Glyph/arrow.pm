@@ -176,6 +176,35 @@ and minor ticks suitable for use as a scale.
 
 =head2 OPTIONS
 
+The following options are standard among all Glyphs.  See
+L<Bio::Graphics::Glyph> for a full explanation.
+
+  Option      Description                      Default
+  ------      -----------                      -------
+
+  -fgcolor      Foreground color	       black
+
+  -outlinecolor	Synonym for -fgcolor
+
+  -bgcolor      Background color               turquoise
+
+  -fillcolor    Synonym for -bgcolor
+
+  -linewidth    Line width                     1
+
+  -height       Height of glyph		       10
+
+  -font         Glyph font		       gdSmallFont
+
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
+
 In addition to the common options, the following glyph-specific
 options are recognized:
 
@@ -212,6 +241,9 @@ options are recognized:
   -scale      Reset the labels on the arrow false
               to reflect an externally 
               established scale.
+
+  -arrowstyle "regular" to create a simple arrowhead ->
+              "filled" to create a thick filled arrowhead
 
 Set -parallel to false to display a point-like feature such as a
 polymorphism, or to indicate an important location.  If the feature

@@ -52,7 +52,34 @@ the feature.  The height and width of the diamond are set by the
 
 =head2 OPTIONS
 
-Just the generic ones.
+The following options are standard among all Glyphs.  See
+L<Bio::Graphics::Glyph> for a full explanation.
+
+  Option      Description                      Default
+  ------      -----------                      -------
+
+  -fgcolor      Foreground color	       black
+
+  -outlinecolor	Synonym for -fgcolor
+
+  -bgcolor      Background color               turquoise
+
+  -fillcolor    Synonym for -bgcolor
+
+  -linewidth    Line width                     1
+
+  -height       Height of glyph		       10
+
+  -font         Glyph font		       gdSmallFont
+
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
 
 =head1 BUGS
 

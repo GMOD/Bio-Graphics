@@ -48,30 +48,35 @@ This is a box with an 'X' inside glyph.
 
 =head2 OPTIONS
 
-The following options are standard among all Glyphs.  See individual
-glyph pages for more options.
 
-  Option      Description               Default
-  ------      -----------               -------
+The following options are standard among all Glyphs.  See
+L<Bio::Graphics::Glyph> for a full explanation.
 
-  -fgcolor    Foreground color		black
+  Option      Description                      Default
+  ------      -----------                      -------
 
-  -outlinecolor				black
-	      Synonym for -fgcolor
+  -fgcolor      Foreground color	       black
 
-  -bgcolor    Background color          white
+  -outlinecolor	Synonym for -fgcolor
 
-  -fillcolor  Interior color of filled  turquoise
-	      images
+  -bgcolor      Background color               turquoise
 
-  -linewidth  Width of lines drawn by	1
-		    glyph
+  -fillcolor    Synonym for -bgcolor
 
-  -height     Height of glyph		10
+  -linewidth    Line width                     1
 
-  -font       Glyph font		gdSmallFont
+  -height       Height of glyph		       10
 
-  -label      Whether to draw a label	false
+  -font         Glyph font		       gdSmallFont
+
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
 
 =head1 BUGS
 

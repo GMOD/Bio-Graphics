@@ -75,7 +75,7 @@ In addition to the generic options, this glyph recognizes:
  Option Name       Description              Default
  -----------       -----------              -------
 
- insertion_width  Width of glyph in pixels    3
+ -insertion_width  Width of glyph in pixels    3
 
 =head1 BUGS
 

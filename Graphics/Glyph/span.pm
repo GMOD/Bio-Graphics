@@ -19,7 +19,8 @@ Bio::Graphics::Glyph::span - The "span" glyph
 
 =head1 DESCRIPTION
 
-This draws the same thing as box.
+This draws the same thing as box.  It is used to support DAS
+stylesheets.
 
 =head1 BUGS
 

@@ -17,16 +17,18 @@ sub draw {
 
   # figure out the colors
   my $max_score = $self->option('max_score');
-  unless ($max_score) {
-    $max_score = 0;
+  my $min_score = $self->option('min_score');
+  unless (defined $max_score && defined $min_score) {
     for my $part (@parts) {
       my $s = eval { $part->feature->score };
       next unless defined $s;
-      $max_score = $s if $s > $max_score;
+      $max_score = $s if !defined $max_score or $s > $max_score;
+      $min_score = $s if !defined $min_score or $s < $min_score;
     }
   }
 
-  return $self->SUPER::draw(@_) if $max_score <= 0;
+  return $self->SUPER::draw(@_)
+    unless defined($max_score) && defined($min_score);
 
   # allocate colors
   my $fill   = $self->bgcolor;
@@ -38,7 +40,8 @@ sub draw {
       $part->{partcolor} = $fill;
       next;
     }
-    my($r,$g,$b) = map {(255 - (255-$_) * ($s/$max_score))} ($red,$green,$blue);
+    my($r,$g,$b) = map {(255 - (255-$_) * (($s-$min_score)/($max_score-$min_score)))}
+			($red,$green,$blue);
     my $idx      = $self->panel->translate_color($r,$g,$b);
     $part->{partcolor} = $idx;
   }
@@ -118,3 +121,91 @@ sub description {
 }
 
 1;
+
+=head1 NAME
+
+Bio::Graphics::Glyph::graded_segments - The "graded_segments" glyph
+
+=head1 SYNOPSIS
+
+  See L<Bio::Graphics::Panel> and L<Bio::Graphics::Glyph>.
+
+=head1 DESCRIPTION
+
+This is identical to the "alignment" glyph, and is used for
+drawing features that consist of discontinuous segments.  The
+color intensity of each segment is proportionate to the score.
+
+=head2 OPTIONS
+
+The following options are standard among all Glyphs.  See
+L<Bio::Graphics::Glyph> for a full explanation.
+
+  Option      Description                      Default
+  ------      -----------                      -------
+
+  -fgcolor      Foreground color	       black
+
+  -outlinecolor	Synonym for -fgcolor
+
+  -bgcolor      Background color               turquoise
+
+  -fillcolor    Synonym for -bgcolor
+
+  -linewidth    Line width                     1
+
+  -height       Height of glyph		       10
+
+  -font         Glyph font		       gdSmallFont
+
+  -connector    Connector type                 0 (false)
+
+  -connector_color
+                Connector color                black
+
+  -label        Whether to draw a label	       0 (false)
+
+  -description  Whether to draw a description  0 (false)
+
+In addition, the alignment glyph recognizes the following
+glyph-specific options:
+
+  Option      Description                  Default
+  ------      -----------                  -------
+
+  -max_score  Maximum value of the	   Calculated
+              feature's "score" attribute
+
+  -min_score  Minimum value of the         Calculated
+              feature's "score" attribute
+
+If max_score and min_score are not specified, then the glyph will
+calculate the local maximum and minimum scores at run time.
+
+
+=head1 BUGS
+
+Please report them.
+
+=head1 SEE ALSO
+
+L<Ace::Sequence>, L<Ace::Sequence::Feature>, L<Bio::Graphics::Panel>,
+L<Bio::Graphics::Track>, L<Bio::Graphics::Glyph::anchored_arrow>,
+L<Bio::Graphics::Glyph::arrow>,
+L<Bio::Graphics::Glyph::box>,
+L<Bio::Graphics::Glyph::primers>,
+L<Bio::Graphics::Glyph::segments>,
+L<Bio::Graphics::Glyph::toomany>,
+L<Bio::Graphics::Glyph::transcript>,
+
+=head1 AUTHOR
+
+Lincoln Stein <lstein@cshl.org>
+
+Copyright (c) 2001 Cold Spring Harbor Laboratory
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut
