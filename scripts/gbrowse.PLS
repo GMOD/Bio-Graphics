@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.19 2001-12-26 22:22:04 lstein Exp $
+# $Id: gbrowse.PLS,v 1.20 2001-12-26 22:42:21 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -185,11 +185,9 @@ elsif (param('Revert to Defaults')) {
   help(param('help'),$CONF_DIR,$page_settings);
 }
 
-
-
 ## MAIN DISPLAY
 else {
-  print h1($description) unless $header;
+  print h1($description) unless defined($header);
   main_display(\@segments,$page_settings);
 }
 
