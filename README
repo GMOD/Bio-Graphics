@@ -1,0 +1,2 @@
+First pass on rewrite of Bio::Graphics module for displaying
+horizontal sequence and clone maps.

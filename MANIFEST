@@ -1,0 +1,17 @@
+Changes
+Graphics/Feature.pm
+Graphics/Glyph.pm
+Graphics/Glyph/Factory.pm
+Graphics/Glyph/arrow.pm
+Graphics/Glyph/generic.pm
+Graphics/Glyph/group.pm
+Graphics/Glyph/oval.pm
+Graphics/Glyph/track.pm
+Graphics/Glyph/transcript.pm
+Graphics/Glyph/transcript2.pm
+Graphics/Panel.pm
+MANIFEST
+README
+Makefile.PL
+eg/testit.pl
+test.pl
