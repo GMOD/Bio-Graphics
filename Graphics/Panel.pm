@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.85';
+$VERSION = '0.86';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns
@@ -194,15 +194,15 @@ sub _do_add_track {
   my $panel_map = ref($map) eq 'CODE'
     ?  sub {
           my $feature = shift;
-	  return 'track' if $feature->primary_tag eq 'track';
-	  return 'group' if $feature->primary_tag eq 'group';
+	  return 'track' if eval { $feature->primary_tag } eq 'track';
+	  return 'group' if eval { $feature->primary_tag } eq 'group';
 	  return $map->($feature);
 	}
       :
 	sub {
 	  my $feature = shift;
-	  return 'track' if $feature->primary_tag eq 'track';
-	  return 'group' if $feature->primary_tag eq 'group';
+	  return 'track' if eval { $feature->primary_tag } eq 'track';
+	  return 'group' if eval { $feature->primary_tag } eq 'group';
 	  return $glyph_name;
 	};
 
