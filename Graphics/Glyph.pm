@@ -41,6 +41,21 @@ sub new {
     $self->{left}    = $left;
     $self->{width}   = $right - $left + 1;
   }
+
+  #Glyphs that don't actually fill their space, but merely mark a point.
+  #They need to have their collision bounds altered.  We will (for now)
+  #hard code them to be in the center or their feature.
+  $self->{point} = $arg{-point} ? $self->height : undef;
+  if($self->option('point')){
+    my ($left,$right) = $factory->map_pt($self->start,$self->stop);
+#    my $center = int(($self->{right} + $self->{left}) / 2);
+    my $center = int(($left+$right)/2);
+
+    $self->{width} = $self->height;
+    $self->{left}  = $center - ($self->{width});
+    $self->{right} = $center + ($self->{width});
+  }
+
   return $self;
 }
 
@@ -53,6 +68,7 @@ sub parts      {
 sub feature { shift->{feature} }
 sub factory { shift->{factory} }
 sub panel   { shift->factory->panel }
+sub point   { shift->{point}   }
 sub scale   { shift->factory->scale }
 sub start   {
   my $self = shift;
@@ -135,6 +151,8 @@ sub layout_width {
 
 # returns the rectangle that surrounds the physical part of the
 # glyph, excluding labels and other "extra" stuff
+sub calculate_boundaries {return shift->bounds(@_);}#is this right?
+                                                    #should be gd->getBounds()?
 sub bounds {
   my $self = shift;
   my ($dx,$dy) = @_;
@@ -146,7 +164,37 @@ sub bounds {
 }
 sub box {
   my $self = shift;
-  ($self->left,$self->top,$self->right,$self->bottom);
+  my $gd = shift;
+
+  #doing double duty now.
+  unless ($gd) {
+    return ($self->left,$self->top,$self->right,$self->bottom);
+  }
+
+  my ($x1,$y1,$x2,$y2) = @_;
+
+  my $fg = $self->fgcolor;
+  my $bg = $self->bgcolor;
+  my $linewidth = $self->option('linewidth') || 1;
+
+#  $gd->rectangle($x1,$y1,$x2,$y2,$bg);
+
+  $fg = $self->set_pen($linewidth,$fg) if $linewidth > 1;
+
+  # draw a box
+  $gd->rectangle($x1,$y1,$x2,$y2,$fg);
+
+  # if the left end is off the end, then cover over
+  # the leftmost line
+  my ($width) = $gd->getBounds;
+
+  $bg = $self->set_pen($linewidth,$bg) if $linewidth > 1;
+
+  $gd->line($x1,$y1+$linewidth,$x1,$y2-$linewidth,$bg)
+    if $x1 < $self->panel->pad_left;
+
+  $gd->line($x2,$y1+$linewidth,$x2,$y2-$linewidth,$bg)
+    if $x2 > $width - $self->panel->pad_right;
 }
 
 # return boxes surrounding each part
@@ -479,6 +527,20 @@ sub filled_oval {
 
   # and fill it
   $gd->fill($cx,$cy,$self->bgcolor);
+}
+
+sub oval {
+  my $self = shift;
+  my $gd = shift;
+  my ($x1,$y1,$x2,$y2) = @_;
+  my $cx = ($x1+$x2)/2;
+  my $cy = ($y1+$y2)/2;
+
+  my $fg = $self->fgcolor;
+  my $linewidth = $self->linewidth;
+
+  $fg = $self->set_pen($linewidth) if $linewidth > 1;
+  $gd->arc($cx,$cy,$x2-$x1,$y2-$y1,0,360,$fg);
 }
 
 sub linewidth {

@@ -106,6 +106,7 @@ sub map_pt {
 }
 sub scale {
   my $self = shift;
+
   $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right)/$self->length;
 }
 sub offset { shift->{offset} }

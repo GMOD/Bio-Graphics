@@ -27,6 +27,7 @@ sub new {
   $self->{name}   = $arg{-name};
   $self->{type}   = $arg{-type}   || 'feature';
   $self->{source} = $arg{-source} || $arg{-source_tag} || '';
+  $self->{score}  = $arg{-score}  || 0;
 
   my @segments;
   if (my $s = $arg{-segments}) {
@@ -61,6 +62,7 @@ sub segments {
   my $s = $self->{segments} or return wantarray ? () : 0;
   @$s;
 }
+sub score    { shift->{score}       }
 sub type     { shift->{type}        }
 sub strand   { shift->{strand}      }
 sub name     { shift->{name}        }
