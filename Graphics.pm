@@ -54,8 +54,12 @@ Please see Bio::Graphics::Panel for the full API.
 
 L<Bio::Graphics::Panel>,
 L<Bio::Graphics::Glyph>,
-L<Bio::SeqI>,L<Bio::SeqFeatureI>,
-L<Bio::Das>,L<GD>
+L<Bio::SeqI>,
+L<Bio::SeqFeatureI>,
+L<Bio::Das>,
+L<Bio::DB::GFF::Feature>,
+L<Ace::Sequence>,
+L<GD>
 
 =head1 AUTHOR
 

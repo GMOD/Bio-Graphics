@@ -1139,15 +1139,17 @@ Please report them.
 
 =head1 SEE ALSO
 
-L<Ace::Sequence>, L<Ace::Sequence::Feature>, L<Bio::Graphics::Panel>,
-L<Bio::Graphics::Track>, L<Bio::Graphics::Glyph::anchored_arrow>,
+L<Bio::DB::GFF::Feature>,
+L<Ace::Sequence>,
+L<Bio::Graphics::Panel>,
+L<Bio::Graphics::Track>,
+L<Bio::Graphics::Glyph::anchored_arrow>,
 L<Bio::Graphics::Glyph::arrow>,
 L<Bio::Graphics::Glyph::box>,
 L<Bio::Graphics::Glyph::primers>,
 L<Bio::Graphics::Glyph::segments>,
+L<Bio::Graphics::Glyph::graded_segments>,
 L<Bio::Graphics::Glyph::toomany>,
-L<Bio::Graphics::Glyph::triangle>,
-L<Bio::Graphics::Glyph::diamond>,
 L<Bio::Graphics::Glyph::transcript>,
 L<Bio::Graphics::Glyph::transcript2>,
 L<Bio::Graphics::Glyph::wormbase_transcript>

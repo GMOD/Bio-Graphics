@@ -28,7 +28,10 @@ sub draw {
   }
 
   return $self->SUPER::draw(@_)
-    unless defined($max_score) && defined($min_score);
+    unless defined($max_score) && defined($min_score)
+      && $min_score < $max_score;
+
+  my $span = $max_score - $min_score;
 
   # allocate colors
   my $fill   = $self->bgcolor;
@@ -40,7 +43,7 @@ sub draw {
       $part->{partcolor} = $fill;
       next;
     }
-    my($r,$g,$b) = map {(255 - (255-$_) * (($s-$min_score)/($max_score-$min_score)))}
+    my($r,$g,$b) = map {(255 - (255-$_) * (($s-$min_score)/$span))}
 			($red,$green,$blue);
     my $idx      = $self->panel->translate_color($r,$g,$b);
     $part->{partcolor} = $idx;
