@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.6 2001-12-14 16:51:55 lstein Exp $
+# $Id: FeatureFile.pm,v 1.7 2001-12-17 04:11:21 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -348,6 +348,7 @@ sub split_group {
 sub render {
   my $self = shift;
   my $panel = shift;
+  my $position_to_insert = shift;
 
   $panel ||= $self->new_panel;
 
@@ -368,7 +369,11 @@ sub render {
 		   $self->style($type),  # feature-specificp
 		 );
     my $features = $self->features($type);
-    $panel->add_track($features,@config);
+    if (defined($position_to_insert)) {
+      $panel->insert_track($position_to_insert++,$features,@config);
+    } else {
+      $panel->add_track($features,@config);
+    }
   }
   $panel;
 }

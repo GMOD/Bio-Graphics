@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.14 2001-12-14 16:51:55 lstein Exp $
+# $Id: gbrowse.PLS,v 1.15 2001-12-17 04:11:21 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -138,11 +138,13 @@ if (my $file = param('upload_annotations')) {
 }
 
 
-## PRINTING THE PAGE ##########################################################################
+## UPDATING THE PERSISTENT SETTINGS##############################################################
 print header(-cookie => settings2cookie($page_settings)) unless $HEADER++;
 
 my $description = $CONFIG->setting('description');
 my $segment;
+
+## STARTING THE PAGE ############################################################################
 
 print
   start_html(-title => 'Genome browser',
@@ -150,16 +152,33 @@ print
 	    ),
   h1($description) unless $HTML++;
 
-if (param('Edit Data')) {
+## HANDLE 3d PARTY EDITS ########################################################################
+if (param('Edit Data...')) {
   edit_3d_party($page_settings);
 }
+
+## AND THE ABILITY TO CHANGE DISPLAY ORDER#######################################################
+elsif (param('Set Track Options...') ||
+       param('Update')) {
+  set_track_options($page_settings);
+}
+
+elsif (param('Revert to Defaults')) {
+  set_default_tracks($page_settings);
+  set_track_options($page_settings);
+}
+
+
+
+## MAIN DISPLAY
 else {
   clear_3d_party($page_settings) if param('Delete Data');
   main_display(\@segments,$page_settings);
 }
 
+## FOOTER
 print
-  $CONFIG->setting('footer'),
+  $CONFIG->setting('footer') || '',
   p(i(font({-size=>'small'},
 	   'Note: This page uses cookie to save and restore preference information. No information is shared.'))),
   end_html;
@@ -205,7 +224,7 @@ sub main_display {
 		  )
 	       );
   }
-
+  print hidden('ref'),hidden('start'),hidden('stop');
   print settings_table($page_settings,$feature_file), end_form();
 }
 
@@ -228,26 +247,57 @@ sub get_settings {
   my %settings = cookie("gbrowse_$source");
 
   my $ok = 1;
+  my @labels = labels();
   if (%settings) {  # if cookie is there, then validate it
     $ok &&= defined $settings{width} && $settings{width} > 100 && $settings{width} < 5000;
     my %ok_sources = map {$_=>1} $CONFIG->sources;
     $ok &&= $ok_sources{$settings{source}};
-    my %ok_labels       = map {$_=>1} $CONFIG->labels;
+
+    # the labels array is delimited by $;
+    # labels that are turned on
     my @selected_labels = split $;,$settings{labels} if defined $settings{labels};
     foreach (@selected_labels) {
-      $ok &&= $ok_labels{$_};
+      $ok &&= (/^\d+$/ && $_ >= 0 && $_ < @labels);
     }
     $settings{labels} = \@selected_labels if $ok;
+
+    # track order definitions
+    my %seen;
+    my @track_order     = split $;,$settings{track} if defined $settings{track};
+    foreach (@track_order) {
+      $ok &&= (/^\d+$/ && $_ >= 0 && $_ < @labels);
+      $seen{$_}++;
+    }
+    $ok &&= keys %seen == @track_order;
+    $settings{track} =  \@track_order     if $ok && @track_order;
+
+    # label options
+    my @track_options       = split $;,$settings{options} if defined $settings{options};
+    $ok &&= (@track_options == @labels);
+
+    for (my $i=0; $i < @track_options; $i++) {
+      $ok &&= ($track_options[$i]=~ /^\d+$/ && $track_options[$i] >= 0 && $track_options[$i] <= 2);
+    }
+    $settings{options} = \@track_options   if $ok && @track_options;
   }
+
 
   if (!$ok || !%settings) {
     %settings = ();
     @settings{'name','ref','start','stop'} = ('','','','');
-    $settings{width}  = $CONFIG->setting('default width');
-    $settings{source} = $CONFIG->source;
-    $settings{labels} = [$CONFIG->default_labels];
+    $settings{width}   = $CONFIG->setting('default width');
+    $settings{source}  = $CONFIG->source;
+    set_default_tracks(\%settings);
   }
   \%settings;
+}
+
+sub set_default_tracks {
+  my $settings = shift;
+  my @labels = labels();
+  $settings->{labels}  = [$CONFIG->default_label_indexes,@labels-1];  # turn on last one by default
+  $settings->{track}   = [0 .. @labels-1];
+  $settings->{options} = [(0) x (scalar @labels)];
 }
 
 sub settings2cookie {
@@ -284,9 +334,15 @@ sub adjust_settings {
     $settings->{name} = "$settings->{ref}:$settings->{start}..$settings->{stop}";
     param(name => $settings->{name});
   }
-  $settings->{name}   = param('name')   if param('name');
-  $settings->{source} = param('source') if param('source');
+  $settings->{name}   = param('name')    if param('name');
+  $settings->{source} = param('source')  if param('source');
 
+  if (param('Submit Changes...')||param('Update')) {
+    my $tracks           = adjust_track_order($settings);
+    $settings->{track}   = $tracks;
+    my $options          = adjust_track_options($settings);
+    $settings->{options} = $options;
+  }
 }
 
 # prints the zooming and navigation bar
@@ -304,8 +360,10 @@ sub navigation_table {
 		    )),
 		  TR({-class=>'searchbody'},
 		     td({-align=>'left', -colspan=>2},
-		     'To center on a location, click the ruler.  User the Scroll/Zoom buttons to',
-		     'change magnification and position.')
+			'To center on a location, click the ruler.  User the Scroll/Zoom buttons to',
+			'change magnification and position.',
+			'To save this view, bookmark',a({-href=>bookmark_link($settings)},'this link.')
+		       )
 		    ),
 		  TR({-class=>'searchtitle', -align=>'left'},
 		     td({-class=>'searchtitle',-colspan=>$segment ? 1 : 2}, b('Landmark or Region'),
@@ -366,6 +424,9 @@ sub zoomBar {
   return join('', @letters);
 }
 
+sub labels {
+  return ($CONFIG->labels,'Uploaded Annotations');
+}
 
 sub settings_table {
   my ($settings,$feature_file) = @_;
@@ -383,7 +444,8 @@ sub settings_table {
 
   my $ds        = join(', ', (map{a({-href=>"@$_->[1]"},"@$_->[0]")} @dumps));
 
-  my @labels = $CONFIG->labels;
+  my @labels = labels();
+  my %labels = map {$_=>$labels[$_]} (0..@labels-1);
   my $selected_labels = $settings->{labels};
 
   my $sTable 	= '';
@@ -393,9 +455,10 @@ sub settings_table {
 		  TR( td({-class=>'searchbody'},'Dump view as: '),
 		      td({-class=>'searchbody',-colspan=>2}, $ds)),
 		  TR(	td({-class=>'searchbody', -valign=>'top'}, 'Show features: '),
-			td({-class=>'searchbody',-colspan=>2},
+			td({-class=>'searchbody',-colspan=>2,-width=>'80%'},
 			   checkbox_group(-name=>'label',
-					  -values   => \@labels,
+					  -values   => [0..@labels-1],
+					  -labels   => \%labels,
 					  -defaults => $selected_labels,
 					  -cols     => 3,
 					  -override => 1,
@@ -410,19 +473,24 @@ sub settings_table {
 				    -default => $CONFIG->source
 				   )))
 		   ) : '',
-		  TR( td({-class=>'searchbody'},'Image Width: '),
-		      td(
-			 radio_group( -name=>'width',
-				      -values=>\@widths,
-				      -default=>$settings->{width},
-				      -override=>1
-				    )
-			),
-		      td({-class=>'searchbody',-align=>'left'},
-			 hidden('ref'),hidden('start'),hidden('stop'),
-			 submit(-name=>'Change Settings'))),
+		  TR({-class=>'searchbody'},
+		     td('Image Width: '),
+		     td(
+			radio_group( -name=>'width',
+				     -values=>\@widths,
+				     -default=>$settings->{width},
+				     -override=>1
+				   )
+		       ),
+		     td({-align=>'RIGHT'},
+			submit(-name => 'Set Track Options...')
+			.'&nbsp;'.
+			b(submit(-name => 'Update Image'))
+		       )
+		    ),
 		  TR(
-		     th({-class=>'searchtitle', -colspan=>3, -align=>'left'},'Add your own annotations:')
+		     th({-class=>'searchtitle', -colspan=>3, -align=>'left'},
+			'Upload your own annotations:')
 		    ),
 		  $settings->{'3d_party'} ?
 		  TR(
@@ -438,9 +506,9 @@ sub settings_table {
 			submit(-name=>'Upload'))
 		    ),
 		  TR({-class=>'searchbody'},
-		     td('Create/Modify Annotation DAta:'),
+		     td('Create/Modify Annotation Data:'),
 		     td({-colspan=>2},
-			submit(-name=>'Edit Data').'&nbsp;'.
+			submit(-name=>'Edit Data...').'&nbsp;'.
 			submit(-name=>'Download Data').'&nbsp;'.
 			submit(-name=>'Delete Data'))),
 		 );
@@ -615,15 +683,28 @@ sub image_and_map {
 
   $CONFIG->width($settings->{width});
 
-  my($image,$map) = $CONFIG->image_and_map($segment,$additional_features,$settings->{labels});
+  # get the current track order
+  my $labels = $settings->{labels},
+  my $tracks = $settings->{track};
+  my $options = $settings->{options};
+
+  my($image,$map) = $CONFIG->image_and_map($segment,
+					   $additional_features,
+					   $labels,
+					   $tracks,
+					   $options);
   if (DEBUGGING_RECTANGLES) { debugging_rectangles($image,$map) }
 
   my ($width,$height) = $image->getBounds;
 
   my $signature = md5_hex($segment,@{$settings->{labels}},
-			  $settings->{width},$CONFIG->source,
-			  $settings->{id},
-			  ref($additional_features) && $additional_features->mtime);
+			  $settings->{width},
+			  $CONFIG->source || '',
+			  $settings->{id} || '',
+			  ref($additional_features) && $additional_features->mtime,
+			  ref($settings->{track}) && @{$settings->{track}},
+			  ref($settings->{options}) && @{$settings->{options}}
+			 );
   my $url       = generate_image($image,$signature);
   my $img     = img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0});
   my $img_map = make_map($map);
@@ -1028,7 +1109,7 @@ sub edit_3d_party {
 		),
 	      TR({-class=>'searchtitle'},
 		 th(reset('Undo Changes').'&nbsp;'.
-		    submit('Submit Changes')))
+		    submit('Submit Changes...')))
 	     );
   print end_form();
 }
@@ -1066,6 +1147,150 @@ sub error {
   print h2({-class=>'error'},@_);
 }
 
+sub bookmark_link {
+  my $settings = shift;
+  my $q = new CGI('');
+  foreach (qw(start stop ref source width labels)) {
+    $q->param(-name=>$_,-value=>$settings->{$_});
+  }
+  return $q->url(-relative=>1,-path_info=>1,-query=>1);
+}
+
+sub adjust_track_order {
+  my $settings = shift;
+
+  my @labels = labels;
+
+  # tracks[track] => feature
+  my @tracks;
+  if (param('track')) {
+    @tracks = param('track');
+  } elsif (my $t = $settings->{track}) {
+    @tracks = @$t;
+  } else {
+    @tracks   = (0..@labels-1);
+  }
+
+
+  # features[feature] => track
+  my @features;
+  for (my $track=0; $track < @tracks; $track++ ) {
+    $features[$tracks[$track]] = $track;
+  }
+
+  my %seen_it_already;
+  foreach (grep {/^track\./} param()) {
+    my ($track) = /(\d+)/;
+    my $feature   = param($_);
+    next if $feature < 0;
+    next if $seen_it_already{$feature}++;
+
+    # remove feature from wherever it is now
+    my $current_position = $features[$feature];
+    splice(@tracks,$current_position,1);
+
+    # insert feature into desired position
+    splice(@tracks,$track,0,$feature);
+
+    # and fix up the @features array
+    for (my $track=0; $track < @tracks; $track++ ) {
+      $features[$tracks[$track]] = $track;
+    }
+  }
+
+  return \@tracks;
+}
+
+sub adjust_track_options {
+  my $settings = shift;
+  my @option;
+  foreach (grep {/^option\./} param()) {
+    my ($feature) = /(\d+)/;
+    my $option    = param($_);
+    $option[$feature] = $option;
+  }
+  \@option;
+}
+
+sub set_track_options {
+  my $settings = shift;
+
+  my $tracks = adjust_track_order($settings);
+  my @labels = labels();
+
+  my @t      = sort { $labels[$a] cmp $labels[$b] } (0..@labels-1);
+  my %labels = map { $_ => $labels[$_] } @t;
+  unshift @t,-1;
+  $labels{-1} = '';
+  my %on     = map {$_ => 1} @{$settings->{labels}};
+
+  my @rows;
+  for (my $track = 0; $track < @labels; $track++) {
+    my $feature = $tracks->[$track];
+    my $label   = $labels[$feature];
+    push @rows,
+      th({-align=>'LEFT',-class=>'searchtitle'},"Track",$track+1).
+	th({-align=>'LEFT',-class=>'searchbody'},$label).
+	  td({-align=>'CENTER',-class=>'searchbody'},
+	     checkbox(-name  => 'label',
+		      -value => $feature,
+		      -override => 1,
+		      -checked  => $on{$feature},
+		      -label => '')
+	    ).
+          td({-align=>'CENTER',-class=>'searchbody'},
+	     radio_group(-name     => "option.$feature",
+			 -values   => [0,1,2],
+			 -override => 1,
+			 -default  => $settings->{options}[$feature],
+			 -labels   => {0=>'Auto',1=>'Bump',2=>'Bump & Label'}
+			)
+	    ).
+	  td({-align=>'CENTER',-class=>'searchbody'},
+	     popup_menu(-name    => "track.$track",
+			-values  => \@t,
+			-labels  => \%labels,
+			-override => 1,
+			-default => -1));
+  }
+
+  print start_form();
+  print table({-width=>'100%',-border=>0},
+	      TR({-class=>'searchtitle'},
+		 th({-colspan=>5},'Track Options')),
+	      TR({-class=>'searchbody'},
+		 td({-colspan=>5},
+		    'The',i('Show'),'checkbox turns the track on and off.',
+		    'The',i('Bump'),'option forces the track to be expanded so that',
+		    'annotations bump each other rather than overlap, and',i('Bump and Label'),
+		    'forces annotations to be labeled.  If',i('Auto'),'is selected, the bump and label',
+		    'options will be set automatically if space permits.',
+		    'To change the track order use the',i('Change Track Order'),'popup menu',
+		    'to assign an annotation to a track.'
+		   ),
+		),
+	      TR({-class=>'searchtitle'},
+		 th('Track'),
+		 th('Annotation Type'),
+		 th('Show'),
+		 th('Format'),
+		 th('Change Track Order')
+		),
+	      TR(\@rows),
+	      TR({-class=>'searchtitle'},
+		 td({-colspan=>3,-align=>'CENTER'},
+		    reset('Undo Changes').'&nbsp;'.
+		    submit('Revert to Defaults').'&nbsp;'.
+		    submit('Cancel').'&nbsp;'
+		   ),
+		 td({-align=>'CENTER',-colspan=>2},
+		    submit('Update').'&nbsp;'.
+		    b(submit('Submit Changes...'))
+		   )),
+	      hidden(-name=>'track',-value=>$tracks,-override=>1),
+	     );
+    print end_form();
+}
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";

@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.9 2001-12-14 16:51:55 lstein Exp $
+# $Id: Browser.pm,v 1.10 2001-12-17 04:11:21 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -63,6 +63,11 @@ sub default_labels {
   $self->config->default_labels;
 }
 
+sub default_label_indexes {
+  my $self = shift;
+  $self->config->default_label_indexes;
+}
+
 sub feature2label {
   my $self = shift;
   my $feature = shift;
@@ -111,7 +116,13 @@ sub get_link {
 
 sub labels {
   my $self = shift;
-  $self->config->labels;
+  my $order = shift;
+  my @labels = $self->config->labels;
+  if ($order) { # custom order
+    return @labels[@$order];
+  } else {
+    return @labels;
+  }
 }
 
 sub width {
@@ -122,16 +133,25 @@ sub width {
 }
 
 # Generate the image and the box list, and return as a two-element list.
+# arguments:
+# $segment       A feature iterator that responds to next_feature() methods
+# $feature_file  A Bio::Graphics::FeatureFile object containing 3d party features
+# $labels        An array of indexes into the labels list
+# $order         An array of label indexes indicating order of tracks
+# $options       An array of options, where 0=auto, 1=force bump, 2=force label
 sub image_and_map {
   my $self = shift;
-  my ($segment,$feature_file,$labels) = @_;
-  my %labels = map {$_=>1} @$labels;
+  my ($segment,$feature_file,
+      $labels,$order,$options) = @_;
+
+  my %ok = map {$_=>1} @$labels;
+  my @labels = $self->labels;
 
   my $width = $self->width;
   my $conf  = $self->config;
   my $max_labels = $conf->setting(general=>'label density') || 10;
   my $max_bump   = $conf->setting(general=>'bump density')  || 50;
-  my @feature_types = map {$conf->label2type($_)} @$labels;
+  my @feature_types = map {$conf->label2type($labels[$_])} @$labels;
 
   # Create the tracks that we will need
   my $panel = Bio::Graphics::Panel->new(-segment => $segment,
@@ -144,14 +164,25 @@ sub image_and_map {
 		    -tick=>2,
 		   );
 
-  my %tracks;
-  for my $label ($self->labels) {  # use labels() method in order to preserve order in .conf file
-    next unless $labels{$label};
+  my (%tracks,%options,$extra_track);
+  $order ||= [0..$self->labels-1];
+  for (my $i = 0; $i < @$order; $i++) {
+    my $l        = $order->[$i];
+    my $label    = $labels[$l];
+    next unless $ok{$l};
+
+    # mark where the third party annotations are inserted
+    unless ($label) {
+      $extra_track = $i;
+      next;
+    }
+
     my $track = $panel->add_track(-glyph => 'generic',
 				  -key   => $label,
 				  $conf->style($label),
 				 );
-    $tracks{$label} = $track;
+    $tracks{$label}  = $track;
+    $options{$label} = $options->[$l];
   }
 
   my $iterator = $segment->features(-type=>\@feature_types,-iterator=>1);
@@ -189,8 +220,8 @@ sub image_and_map {
   # configure the tracks based on their counts
   for my $label (keys %tracks) {
     next unless $feature_count{$label};
-    my $do_label = $feature_count{$label} <= $max_labels;
-    my $do_bump  = $feature_count{$label} <= $max_bump;
+    my $do_bump  = $options{$label} >= 1 || $feature_count{$label} <= $max_bump;
+    my $do_label = $options{$label} >= 2 || $feature_count{$label} <= $max_labels;
     $tracks{$label}->configure(-bump  => $do_bump,
 			       -label => $do_label,
 			       -description => $do_label && $tracks{$label}->option('description'),
@@ -198,7 +229,7 @@ sub image_and_map {
   }
 
   # add additional features, if any
-  $feature_file->render($panel) if $feature_file;
+  $feature_file->render($panel,1+$extra_track) if $feature_file && defined($extra_track);
 
   my $boxes    = $panel->boxes;
   my $gd       = $panel->gd;
@@ -300,7 +331,7 @@ sub labels {
 
 sub label2type {
   my $self = shift;
-  my $label = shift;
+  my $label = shift or return;
   return shellwords($self->setting($label,'feature'));
 }
 
@@ -308,6 +339,16 @@ sub label2link {
   my $self = shift;
   my $label = shift;
   $self->setting($label,'link') || $self->setting('general','link');
+}
+
+sub label2index {
+  my $self = shift;
+  my $label = shift;
+  unless ($self->{label2index}) {
+    my $index = 0;
+    $self->{label2index} = { map {$_=>$index++} $self->labels };
+  }
+  return $self->{label2index}{$label};
 }
 
 sub type2label {
@@ -337,6 +378,12 @@ sub default_labels {
   return shellwords($defaults);
 }
 
+sub default_label_indexes {
+  my $self = shift;
+  my @labels = $self->default_labels;
+  return map {$self->label2index($_)} @labels;
+}
+
 # return a hashref in which keys are the thresholds, and values are the list of
 # labels that should be displayed
 sub summary_mode {
@@ -360,7 +407,7 @@ NOT SURE WHETHER IT IS ACTUALLY SLOWER THOUGH
 # Generate the image and the box list, and return as a two-element list.
 sub image_and_map {
   my $self = shift;
-  my ($segment,$labels) = @_;
+  my ($segment,$labels,$order) = @_;
   my %labels = map {$_=>1} @$labels;
 
   my $width = $self->width;
@@ -369,8 +416,6 @@ sub image_and_map {
   my $max_bump   = $conf->setting(general=>'bump density')  || 50;
   my @feature_types = map {$conf->label2type($_)} @$labels;
 
-  # IMPORTANT DESIGN POINT TO CONSIDER: Performance may be improved
-  # by using the iterator to build up the tracks bit by bit.
   my $iterator = $segment->features(-type=>\@feature_types,
 				    -iterator=>1);
   my ($similarity,$other) = $self->sort_features($iterator);
@@ -387,7 +432,7 @@ sub image_and_map {
 		   );
 
   # all the rest comes from configuration
-  for my $label ($self->labels) {  # use labels() method in order to preserve order in .conf file
+  for my $label ($self->labels($order)) {  # use labels() method in order to preserve order in .conf file
 
     next unless $labels{$label};
 
@@ -434,7 +479,6 @@ sub sort_features {
 
   my (%similarity,%other);
   while (my $feature = $iterator->next_feature) {
-    warn "got feature $feature, start = ",$feature->start," stop = ",$feature->end,"\n";
 
     my $label = $self->feature2label($feature);
 
