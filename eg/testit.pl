@@ -91,7 +91,7 @@ my $t = $panel->add_track(
 			  -key => 'Prophecies',
 			  #		  -tkcolor => $colors[rand @colors],
 			 );
-$t->set_option(-bump=>1);
+$t->configure(-bump=>1);
 $panel->add_track($segment,
 		  -glyph => 'arrow',
 		  -label => 'base pairs',
