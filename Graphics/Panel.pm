@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.97';
+$VERSION = '0.98';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 5; # extra space between key columns
@@ -491,7 +491,7 @@ sub ticks {
   my $width = $font->width;
 
   my $interval = 1;
-  my $mindist =  30;
+  my $mindist =  40;
   my $widest = 5 + (CORE::length(int($end/$divisor)) * $width);
   $mindist = $widest if $widest > $mindist;
 
