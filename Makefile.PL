@@ -5,9 +5,9 @@ require 5.005003;
 # the contents of the Makefile that is written.
 WriteMakefile(
 	      'NAME'	     => 'Bio::Graphics',
-	      'VERSION_FROM' => 'Graphics/Panel.pm', # finds $VERSION
+	      'VERSION_FROM' => 'Graphics.pm', # finds $VERSION
 	      'PREREQ_PM'    => {
-				 GD => 1.20,
+				 GD => 0,
 				}, # e.g., Module::Name => 1.1
 	      PL_FILES       => {
 				 'scripts/feature_draw.PLS'  => 'scripts/feature_draw.pl',

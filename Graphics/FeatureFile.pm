@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.4 2001-11-16 17:51:43 lstein Exp $
+# $Id: FeatureFile.pm,v 1.5 2001-11-19 04:00:53 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -137,7 +137,25 @@ sub parse_line {
     return;
   }
 
-  my($type,$name,$strand,$bounds,$description) = @tokens;
+  my($type,$name,$strand,$bounds,$description);
+
+  if (@tokens >= 8) { # conventional GFF file; notice that the ref is ignored
+    my ($ref,$source,$method,$start,$stop,$score,$s,$phase,$group) = @tokens;
+    $type   = join(':',$method,$source);
+    $bounds = join '..',$start,$stop;
+    $strand = $s;
+    if ($group) {
+      my $notes;
+      (undef,$self->{groupname},undef,undef,$notes) = split_group($group);
+      $description = join '; ',@$notes if @$notes;
+    }
+    $name ||= $self->{groupname};
+  }
+
+  else { # simplified version
+    ($type,$name,$strand,$bounds,$description) = @tokens;
+  }
+
   $type ||= $self->{grouptype};
 
   my @parts = map { [/(-?\d+)(?:-|\.\.)(-?\d+)/]} split /(?:,| )\s*/,$bounds;
@@ -243,6 +261,52 @@ sub consolidate_groups {
     push @{$self->{features}{$type}},@groups;
   }
 }
+
+sub split_group {
+  my $group = shift;
+
+  $group =~ s/\\;/$;/g;  # protect embedded semicolons in the group
+  $group =~ s/( \"[^\"]*);([^\"]*\")/$1$;$2/g;
+  my @groups = split(/\s*;\s*/,$group);
+  foreach (@groups) { s/$;/;/g }
+
+  my ($gclass,$gname,$tstart,$tstop,@notes);
+
+  foreach (@groups) {
+
+    my ($tag,$value) = /^(\S+)\s*(.*)/;
+    $value =~ s/\\t/\t/g;
+    $value =~ s/\\r/\r/g;
+    $value =~ s/^"//;
+    $value =~ s/"$//;
+
+    # if the tag is "Note", then we add this to the
+    # notes array
+   if ($tag eq 'Note') {  # just a note, not a group!
+     push @notes,$value;
+   }
+
+    # if the tag eq 'Target' then the class name is embedded in the ID
+    # (the GFF format is obviously screwed up here)
+    elsif ($tag eq 'Target' && $value =~ /([^:\"]+):([^\"]+)/) {
+      ($gclass,$gname) = ($1,$2);
+      ($tstart,$tstop) = /(\d+) (\d+)/;
+    }
+
+    elsif (!$value) {
+      push @notes,$tag;  # e.g. "Confirmed_by_EST"
+    }
+
+    # otherwise, the tag and value correspond to the
+    # group class and name
+    else {
+      ($gclass,$gname) = ($tag,$value);
+    }
+  }
+
+  return ($gclass,$gname,$tstart,$tstop,\@notes);
+}
+
 
 1;
 

@@ -59,12 +59,13 @@ my $range_expr = '(-?\d+)(?:-|\.\.)(-?\d+)';
 
 if (defined $RANGE) {
    ($start,$stop) = $RANGE =~ /$range_expr/o or die "$RANGE: invalid range specification";
-} else {
-   ($start,$stop) = $data->setting(general => 'bases') =~ /([\d-]+)(?:-|\.\.)([\d-]+)/;
-   if (!defined $start || !defined $stop) {
+} elsif (my $bases = $data->setting(general => 'bases')) {
+   ($start,$stop) =  $bases =~ /([\d-]+)(?:-|\.\.)([\d-]+)/;
+}
+
+if (!defined $start || !defined $stop) {
        $start = $data->min unless defined $start;
        $stop  = $data->max unless defined $stop;
-   }
 }
 
 # Use the order of the stylesheet to determine features.  Whatever is left
