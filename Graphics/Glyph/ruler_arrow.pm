@@ -164,7 +164,7 @@ sub arrowheads {
 
 sub draw_label {
   my $self = shift;
-  my ($gd,$left,$top) = @_;
+  my ($gd,$dx,$dy) = @_;
 
   my $label5 = "5'";
   my $label3 = "3'";
@@ -175,42 +175,52 @@ sub draw_label {
   my $offset   = $relative ? $self->feature->start-1 : 0;
   my $reversed = $self->feature->strand < 0;
 
-  my $units = $self->option('units') || '';
-  my $divisor = $UNITS{$units} || 1 if $units;
+  my $units    = $self->option('units') || $self->calculate_units($start,$self->feature->length);
+  my $divisor  = $UNITS{$units} || 1;
 
-  my ($major_ticks,$minor_ticks) = $self->panel->ticks; #($start,$stop,$self->font,$divisor);
-  #my $tick_scale = " (".($major_ticks->[1]-$major_ticks->[0])." bp/";
-  my $tick_scale = "($major_ticks bp/";
+  my $width      = $self->font->width;
+  my $min = $self->feature->length > $self->panel->length ?
+    $self->panel->length : $self->feature->length;
+
+  my $format   = $min/$divisor > 10 ? "%d$units" : "%.6g$units";
+
+  my $scale  = $self->option('scale') || 1;  ## Does the user want to override the internal scale?
+
+  my $model  = sprintf("$format ",$stop/($divisor*$scale));
+  my $minlen = $width * length($model);
+  # new ticks method signature; ticks(start_pos, minwidth) return 2 scalar vals (intervals)
+  my ($major_ticks,$minor_ticks) = $self->panel->ticks($stop-$start+1,$minlen);
+  my $tick_scale = "($major_ticks bp/"; #tick scale label
   $tick_scale .= ($self->option('tick') >= 2)?"major tick)":"tick)";
 
   my $top_left_label = $label5;
   $top_left_label .= $tick_scale if ($self->option('no_tick_label') && $self->option('tick'));
   #-1 direction mean lower end is 3' (minus strand on top)
   ($label5, $label3) = ($label3, $label5) if ($self->option('direction') == -1);
-  my $x = $self->left + $left;
+  my $x = $self->left + $dx;
   $x = $self->panel->left + 1 if $x <= $self->panel->left;
   my $font = $self->option('labelfont') || $self->font;
   $gd->string($font,
               $x,
-              $self->top + $top,
+              $self->top + $dy,
               $top_left_label,
               $self->fontcolor);
-  my $x1 = $left + $self->panel->right - $font->width*length($label3);
+  my $x1 = $dx + $self->panel->right - $font->width*length($label3);
   $gd->string($font,
               $x1,
-              $self->top + $top,
+              $self->top + $dy,
               $label3,
               $self->fontcolor);
   if ($self->option('both')) {#minus strand as well
       $gd->string($font,
                   $x,
-                  $self->bottom - $self->pad_bottom + $top,
+                  $self->bottom - $self->pad_bottom + $dy,
                   $label3,
                   $self->fontcolor);
-      my $x1 = $left + $self->panel->right - $font->width*length($label5);
+      my $x1 = $dx + $self->panel->right - $font->width*length($label5);
       $gd->string($font,
                   $x1,
-                  $self->bottom - $self->pad_bottom + $top,
+                  $self->bottom - $self->pad_bottom + $dy,
                   $label5,
                   $self->fontcolor);
   }
