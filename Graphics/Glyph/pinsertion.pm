@@ -1,10 +1,11 @@
 package Bio::Graphics::Glyph::pinsertion;
 # package to use for drawing P insertion as a triangle
-# p insertion is a point (one base).
+# p insertion is a point
 
 use strict;
 use GD;
 use vars '@ISA';
+use Bio::Graphics::Glyph::generic;
 @ISA = 'Bio::Graphics::Glyph::generic';
 
 sub box {
