@@ -1,0 +1,62 @@
+use Bio::Graphics::Panel;
+
+1;
+
+=head1 NAME
+
+Bio::Graphics - Generate GD images of Bio::Seq objects
+
+=head1 SYNOPSIS
+
+  use Ace::Sequence;  # or any Bio::Seq factory
+  use Bio::Graphics;
+
+  my $db     = Ace->connect(-host=>'brie2.cshl.org',-port=>2005) or die;
+  my $cosmid = Ace::Sequence->new(-seq=>'Y16B4A',
+				  -db=>$db,-start=>-15000,-end=>15000) or die;
+
+  my @transcripts = $cosmid->transcripts;
+
+  my $panel = Ace::Graphics::Panel->new(
+				      -segment => $cosmid,
+				      -width  => 800
+				     );
+
+
+  $panel->add_track(arrow => $cosmid,
+ 		  -bump => 0,
+ 		  -tick=>2);
+
+  $panel->add_track(transcript => \@transcripts,
+ 		    -bgcolor   =>  'wheat',
+ 		    -fgcolor   =>  'black',
+                    -key       => 'Curated Genes',
+ 		    -bump      =>  +1,
+ 		    -height    =>  10,
+ 		    -label     =>  1);
+
+  my $boxes = $panel->boxes;
+  print $panel->png;
+
+=head1 DESCRIPTION
+
+Please see Bio::Graphics::Panel for the full API.
+
+=head1 SEE ALSO
+
+L<Bio::Graphics::Glyph>,
+L<Bio::SeqI>,L<Bio::SeqFeatureI>,
+L<Bio::Das>,L<GD>
+
+=head1 AUTHOR
+
+Lincoln Stein <lstein@cshl.org>.
+
+Copyright (c) 2001 Cold Spring Harbor Laboratory
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut
+
