@@ -27,13 +27,13 @@ sub filled_arrow {
 
   my ($x1,$y1,$x2,$y2) = @_;
   my ($width) = $gd->getBounds;
-  my $indent = ($y2-$y1);
+  my $indent = $y2-$y1 < $x2-$x1 ? $y2-$y1 : ($x2-$x1)/2;
 
   return $self->filled_box($gd,@_)
     if ($orientation == 0)
       or ($x1 < 0 && $orientation < 0)
         or ($x2 > $width && $orientation > 0)
-          or ($x2 - $x1 < $indent);
+	  or ($indent <= 0);
 
   my $fg = $self->fgcolor;
   if ($orientation >= 0) {
@@ -56,6 +56,12 @@ sub filled_arrow {
 # override option() for force the "hat" type of connector
 sub connector {
   return 'hat';
+}
+
+sub bump {
+  my $self = shift;
+  return $self->SUPER::bump(@_) if $self->all_callbacks;
+  return 0;  # never allow our components to bump
 }
 
 1;
