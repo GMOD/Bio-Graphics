@@ -1,6 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
-1.02 Sun Mar 31 16:19:35 EST 2002
+1.03 Fri Apr 12 00:26:12 EDT 2002
 	- This is the same version that is in BioPerl version 1.01.
+	- Fixes to handle case of a transcript glyph that is zoomed in so
+	far that only an intron shows (no exons).
+1.02 Sun Mar 31 16:19:35 EST 2002
 	- Make the Bio::Graphics::Feature objects more-or-less compatible with
 		Bio::SeqFeatureI and Bio::LocationI.  Slightly difficult because
 		this is a moving target.
