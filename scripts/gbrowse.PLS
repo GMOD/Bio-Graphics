@@ -20,9 +20,8 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.3 2001-11-18 15:10:39 lstein Exp $
+# $Id: gbrowse.PLS,v 1.4 2001-11-22 04:28:55 lstein Exp $
 
-use lib '/home/lstein/projects/Bio-Graphics/blib/lib';
 use strict;
 use Bio::DB::GFF;
 use Bio::Graphics;
@@ -30,7 +29,7 @@ use Bio::Graphics::Browser;
 use Digest::MD5 'md5_hex';
 use File::Path 'mkpath';
 use Carp;
-use CGI qw(:standard 'center');
+use CGI qw(:standard center *table);
 use vars qw($CONFIG %DB $MAX_SEGMENT $DEFAULT_SEGMENT);
 
 # if you change the zoom/nav icons, you must change this as well.
@@ -38,12 +37,12 @@ use constant MAG_ICON_HEIGHT => 20;
 use constant MAG_ICON_WIDTH  => 8;
 use constant MAX_SEGMENT     => 1_000_000;
 use constant DEFAULT_SEGMENT => 100_000;
-use constant OVERVIEW_RATIO  => 0.8;
+use constant OVERVIEW_RATIO  => 0.9;
 
 ###################################################################
 # Non-modperl users should change this constant if needed
 #
-my $CONF_DIR = '/usr/local/apache/conf/gbrowse.conf';
+my $CONF_DIR = '/usr/local/wormbase/conf/gbrowse.conf';
 #
 ###################################################################
 
@@ -127,16 +126,20 @@ print start_form(-action=>url(-relative=>1));
 print navigation_table($segment,$page_settings);
 
 if ($segment) {
-  print overview($segment,$page_settings);
-
+  my $cell = overview($segment,$page_settings);
   if ($segment->length <= $MAX_SEGMENT) {
-    print image_and_map($segment,$page_settings);
+    $cell .= image_and_map($segment,$page_settings);
   } else {
-    print p(i(
-	      "Detailed view is limited to",
-	      commas($MAX_SEGMENT),"bases.",
-	      "Click in the overview to select a region",commas($DEFAULT_SEGMENT),'bp wide.'));
+    $cell .= i(
+	       "Detailed view is limited to",
+	       commas($MAX_SEGMENT),"bases.",
+	       "Click in the overview to select a region",commas($DEFAULT_SEGMENT),'bp wide.');
   }
+  print table({-border=>0,-width=>$page_settings->{width}},
+	      TR({-class=>'searchbody'},
+		 td($cell)
+		)
+	     );
 }
 
 print settings_table($page_settings);
@@ -253,11 +256,11 @@ sub slidertable {
   push @lines,hidden(-name=>'start',-value=>$segment->start,-override=>1);
   push @lines,hidden(-name=>'stop',-value=>$segment->end,-override=>1);
   push @lines,hidden(-name=>'ref',-value=>$segment->ref,-override=>1);
-  push @lines, (image_button(-src=>"$buttonsDir/green_l2.gif",-name=>'nav0',-border=>'0',-title=>"b1"),
-		image_button(-src=>"$buttonsDir/green_l1.gif",-name=>'nav1',-border=>'0',-title=>"b2"),
+  push @lines, (image_button(-src=>"$buttonsDir/green_l2.gif",-name=>'nav0',-border=>0,-title=>"b1"),
+		image_button(-src=>"$buttonsDir/green_l1.gif",-name=>'nav1',-border=>0,-title=>"b2"),
 		zoomBar($segment,$buttonsDir),
-		image_button(-src=>"$buttonsDir/green_r1.gif",-name=>'nav2',-border=>'0',-title=>"b3"),
-		image_button(-src=>"$buttonsDir/green_r2.gif",-name=>'nav3',-border=>'0',-title=>"b4"),
+		image_button(-src=>"$buttonsDir/green_r1.gif",-name=>'nav2',-border=>0,-title=>"b3"),
+		image_button(-src=>"$buttonsDir/green_r2.gif",-name=>'nav3',-border=>0,-title=>"b4"),
 	       );
 
   #  print end_form;
@@ -286,13 +289,13 @@ sub zoomBar {
     $letters[$i] = image_button(-src    => "$buttonsDir/$color$c.gif",
 				-name   => "zoom${i}",
 				-alt    => $altText,
-				-border => 0,
+				-border => ,
 #				-height => ($i+1)*$pixels_per_range,
 #				-width  => MAG_ICON_WIDTH,
 				-title  => $titleText);
   }
 
-  return join(' ', @letters);
+  return join('', @letters);
 }
 
 
@@ -305,8 +308,9 @@ sub settings_table {
   # set up the dumps line.
   my($ref,$start,$stop,$source) = @{$settings}{qw(ref start stop source)};
   my $self     = url(-relative=>1);
-  my @dumps    = ( ['FastA',"$self?dump=FastA;start=$start;stop=$stop;ref=$ref;source=$source"],
-		   ['GFF'  ,"$self?dump=GFF;start=$start;stop=$stop;ref=$ref;source=$source"]);
+  my @dumps    = (['GFF'  ,"$self?dump=GFF;start=$start;stop=$stop;ref=$ref;source=$source"]);
+  unshift @dumps,['FastA',"$self?dump=FastA;start=$start;stop=$stop;ref=$ref;source=$source"]
+    if $CONFIG->setting('fasta_files');
 
   my $ds        = join(', ', (map{a({-href=>"@$_->[1]"},"@$_->[0]")} @dumps));
 
@@ -508,7 +512,7 @@ sub image_and_map {
 
   my $signature = md5_hex($segment,@{$settings->{labels}},$settings->{width},$settings->{source});
   my $url       = generate_image($image,$signature);
-  my $img     = center(img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0}));
+  my $img     = img({-src=>$url,-usemap=>'#hmap',-width => $width,-height => $height,-border=>0});
   my $img_map = make_map($map);
   return join "\n",$img,$img_map;
 }
@@ -522,17 +526,19 @@ sub overview {
   my ($width,$height) = $image->getBounds;
   my $signature = md5_hex($segment,$width);
   my $url = generate_image($image,$signature);
-  return table(TR(
-		  td({-class=>'searchbody',-align=>'CENTER'},
-		     image_button(-name=>'overview',
-				  -src=>$url,
-				  -width=>$width,
-				  -height=>$height,
-				  -border=>0,
-				  -align=>'MIDDLE')
-		    )
-		 )
-	      ).hidden(-name=>'seg_length',-value=>$length,-override=>1);
+  return center(
+		table(TR(
+			 td({-class=>'searchbody',-align=>'CENTER'},
+			    image_button(-name=>'overview',
+					 -src=>$url,
+					 -width=>$width,
+					 -height=>$height,
+					 -border=>0,
+					 -align=>'MIDDLE')
+			   )
+			)
+		     ).hidden(-name=>'seg_length',-value=>$length,-override=>1)
+		);
 }
 
 sub generate_image {

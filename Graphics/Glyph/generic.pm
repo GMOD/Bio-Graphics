@@ -82,6 +82,9 @@ sub _description {
 sub get_description {
   my $self = shift;
   my $feature = shift;
+  if (my @notes = eval { $feature->notes }) {
+    return join '; ',@notes;
+  }
   my $tag = $feature->source_tag;
   return undef if $tag eq '';
   $tag;

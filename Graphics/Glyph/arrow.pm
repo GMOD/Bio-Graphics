@@ -8,7 +8,7 @@ use Bio::Graphics::Glyph::generic;
 
 my %UNITS = (K => 1000,
 	     M => 1_000_000,
-	     T => 1_000_000_000);
+	     G => 1_000_000_000);
 
 sub pad_bottom {
   my $self = shift;
@@ -103,13 +103,18 @@ sub draw_parallel {
     my $left  = $sw ? $x1+$height : $x1;
     my $right = $ne ? $x2-$height : $x2;
 
+    my $format = ($major_ticks->[1]-$major_ticks->[0])/($divisor||1) < 1 ? "%.1f$units" : "%d$units";
+
     for my $i (@$major_ticks) {
       my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
 	                             : $self->map_pt($i + $offset));
       next if $tickpos < $left or $tickpos > $right;
       $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
       my $label = $scale ? $i / $scale : $i;
-      $label = int($label/$divisor) . $units if $units;
+      if ($units) {
+	my $scaled = $label/$divisor;
+	$label = sprintf($format,$scaled);
+      }
       my $middle = $tickpos - (length($label) * $width)/2;
       $gd->string($font,$middle,$center+$a2-1,$label,$font_color);
     }

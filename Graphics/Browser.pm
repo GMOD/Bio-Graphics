@@ -1,5 +1,5 @@
 package Bio::Graphics::Browser;
-# $Id: Browser.pm,v 1.3 2001-11-19 02:48:29 lstein Exp $
+# $Id: Browser.pm,v 1.4 2001-11-22 04:28:55 lstein Exp $
 
 use strict;
 use File::Basename 'basename';
@@ -187,31 +187,39 @@ sub overview {
   my $segment = $partial_segment->factory->segment($partial_segment->ref);
 
   my $conf  = $self->config;
-  my $landmarks = $self->setting('overview landmarks') or return;
-
-  my @types = split /\s+/,$landmarks;
-
   my $width = $self->width;
   my $panel = Bio::Graphics::Panel->new(-segment => $segment,
 					-width   => $width,
-					-bgcolor => $self->setting('overview bgcolor') || 'moccasin',
+					-bgcolor => $self->setting('overview bgcolor') || 'wheat',
 				       );
   $panel->add_track($segment   => 'arrow',
 		    -double    => 1,
 		    -label     => sub {"Overview of ".$segment->ref},
 		    -labelfont => gdMediumBoldFont,
-		    -units     => 'M',
-		    -tick=>2,
+		    -units     => $self->setting('overview units') || 'M',
+		    -tick      => 2,
 		   );
-  my $track = $panel->add_track(-glyph  => 'generic',
-				-height  => 3,
-				-label   => 1,
-				-fgcolor => 'black',
-				-bgcolor => 'black');
-  my $iterator = $segment->features(-type=>\@types,-iterator=>1,-rare=>1);
-  while (my $feature = $iterator->next_feature) {
-    $track->add_feature($feature);
+  if (my $landmarks  = $self->setting('overview landmarks') || ($conf->label2type('overview'))[0]) {
+    my $max_bump   = $conf->setting(general=>'bump density') || 50;
+
+    my @types = split /\s+/,$landmarks;
+    my $track = $panel->add_track(-glyph  => 'generic',
+				  -height  => 3,
+				  -fgcolor => 'black',
+				  -bgcolor => 'black',
+				  $conf->style('overview'),
+				 );
+    my $iterator = $segment->features(-type=>\@types,-iterator=>1,-rare=>1);
+    my $count;
+    while (my $feature = $iterator->next_feature) {
+      $track->add_feature($feature);
+      $count++;
+    }
+    $track->configure(-bump  => $count <= $max_bump,
+		      -label => $count <= $max_bump
+		     );
   }
+
   my $gd = $panel->gd;
   my $red = $gd->colorClosest(255,0,0);
   my ($x1,$x2) = $panel->map_pt($partial_segment->start,$partial_segment->end);
@@ -261,7 +269,7 @@ use vars '@ISA';
 @ISA = 'Bio::Graphics::FeatureFile';
 
 sub labels {
-  shift->configured_types;
+  grep { $_ ne 'overview' } shift->configured_types;
 }
 
 sub label2type {
