@@ -116,7 +116,17 @@ sub draw_parallel {
       $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg)
 	unless $tickpos <= $pl;
       my $middle = $tickpos - (length($i) * $width)/2;
-      $gd->string($font,$middle,$center+$a2-1,$i,$font_color)
+
+      ## Does the user want to override the internal scale?
+      my $label;
+      if ($self->option('scale')) {
+	my $arb_scale = $self->option('scale');
+	$label = ($i / $arb_scale);
+      } else {
+	$label = $i;
+      }
+
+      $gd->string($font,$middle,$center+$a2-1,$label,$font_color)
 	unless $middle <= $pl;
     }
 
@@ -181,6 +191,10 @@ options are recognized:
   -base       Draw a vertical base at the   false
               non-arrowhead side
 
+  -scale      Reset the labels on the arrow false
+              to reflect an externally 
+              established scale.
+
 Set -parallel to false to display a point-like feature such as a
 polymorphism, or to indicate an important location.  If the feature
 start == end, then the glyph will draw a single arrow at the
@@ -193,6 +207,12 @@ Otherwise, there will be two arrows at the start and end:
 
        ^              ^
        |              |
+
+Scale: Pass in a externally established scale to reset the labels on the arrow.  This is particularly useful for manually constructed images where the founding parameters of the panel are not 1-based.  For example, a genetic map interval ranging from 0.1 - 0.3 can be constructed by first multiplying every value by 100. Passing
+
+arrow(-scale=>100);
+
+will draw tick marks labelled appropriately to your external scale.
 
 =head1 BUGS
 
