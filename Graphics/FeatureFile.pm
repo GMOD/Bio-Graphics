@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.2 2001-10-25 15:13:31 lstein Exp $
+# $Id: FeatureFile.pm,v 1.3 2001-10-27 13:56:43 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -129,7 +129,7 @@ sub parse_line {
   my($type,$name,$strand,$bounds,$description) = @tokens;
   $type ||= $self->{grouptype};
 
-  my @parts = map { [/([\d-]+)(?:-|\.\.)([\d-]+)/]} split /(?:,| )\s*/,$bounds;
+  my @parts = map { [/(-?\d+)(?:-|\.\.)(-?\d+)/]} split /(?:,| )\s*/,$bounds;
 
   foreach (@parts) { # max and min calculation, sigh...
     $self->{min} = $_->[0] if !defined $self->{min} || $_->[0] < $self->{min};

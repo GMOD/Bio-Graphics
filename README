@@ -2,16 +2,21 @@ Bio::Graphics::Panel - Generate GD images of Bio::Seq objects
 
 SYNOPSIS
 
-  use Ace::Sequence;  # or any Bio::Seq factory
+This is a simple GD-based renderer (diagram drawer) for DNA and
+protein sequences.  It is used from Perl like this:
+
   use Bio::Graphics::Panel;
 
+  # Create a series of Bio::SeqFeature objects. In this example,
+  # we use AcePerl
+  use Ace::Sequence;  # or any Bio::Seq factory
   my $db     = Ace->connect(-host=>'brie2.cshl.org',-port=>2005) or die;
   my $cosmid = Ace::Sequence->new(-seq=>'Y16B4A',
 				  -db=>$db,-start=>-15000,-end=>15000) or die;
-
   my @transcripts = $cosmid->transcripts;
 
-  my $panel = Ace::Graphics::Panel->new(
+  # Let the drawing begin...
+  my $panel = Bio:Graphics::Panel->new(
 				      -segment => $cosmid,
 				      -width  => 800
 				     );
@@ -29,17 +34,17 @@ SYNOPSIS
  		    -height    =>  10,
  		    -label     =>  1);
 
-  my $boxes = $panel->boxes;
   print $panel->png;
 
 DESCRIPTION
 
 The Bio::Graphics::Panel class provides drawing and formatting
 services for any object that implements the Bio::SeqFeatureI
-interface, including Ace::Sequence::Feature and Das::Segment::Feature
-objects.  It can be used to draw sequence annotations, physical
-(contig) maps, or any other type of map in which a set of discrete
-ranges need to be laid out on the number line.
+interface, including Ace::Sequence::Feature, Das::Segment::Feature and
+Bio::DB::Graphics objects.  It can be used to draw sequence
+annotations, physical (contig) maps, protein domains, or any other
+type of map in which a set of discrete ranges need to be laid out on
+the number line.
 
 The module supports a drawing style in which each type of feature
 occupies a discrete "track" that spans the width of the display.  Each
@@ -61,3 +66,36 @@ styles.  One style places the key captions at the top of each track.
 The other style generates a graphical key at the bottom of the image.
 
 Note that this modules depends on GD.
+
+BUILDING AND INSTALLING
+
+From the directory in which this README file is located:
+
+  % perl Makefile.PL
+  % make test
+  % make install
+
+The last step may need to be run as root.
+
+THE FEATURE_DRAW.PL SCRIPT
+
+This module contains a simple script named "feature_draw.pl" that
+takes a file of annotations and generates an image.  When first built,
+the script lives in the "scripts" subdirectory.  After installation,
+the script will be moved into your system-wide scripts directory
+(usually /usr/bin or something similar).
+
+There is a sample features file in the "eg" subdirectory.  After
+building, but before installation, you can run the following command
+from the directory in which this README file is located:
+
+  %  scripts/feature_draw.pl eg/feature_data.txt | display -
+
+This is piping the output directly to the "display" program, part of
+the ImageMagick package.  Replace with your favorite PNG-capable
+display program.
+
+After installation, feature_draw.pl will be available on your command
+path.  Run "man feature_draw.pl" to see the manual page, or use the -h
+option to get a quick summary of usage.
+

@@ -118,6 +118,15 @@ sub width {
 #  $d + $self->pad_left + $self->pad_right;
 }
 
+sub left {
+  my $self = shift;
+  $self->pad_left;
+}
+sub right {
+  my $self = shift;
+  $self->width - $self->pad_left;
+}
+
 sub spacing {
   my $self = shift;
   my $d = $self->{spacing};

@@ -64,17 +64,24 @@ sub draw_parallel {
   my $a2 = ($y2-$y1)/2;
   my $center = $y1+$a2;
 
-  my $ne = $self->option('northeast');
-  my $sw = $self->option('southwest');
-  # turn on both if neither specified
-  $ne = $sw = 1 unless defined($ne) || defined($sw);
+  my $ne   = $self->option('northeast');
+  my $sw   = $self->option('southwest');
+  my $base = $self->option('base');
+
+  unless (defined($ne) || defined($sw)) {
+    # turn on both if neither specified
+    $ne = 1 if $self->feature->strand > 0;
+    $sw = 1 if $self->feature->strand < 0;
+  }
 
   $gd->line($x1,$center,$x2,$center,$fg);
   if ($sw) {  # west arrow
     $self->arrowhead($gd,$x1,$center,$a2,-1);
+    $gd->line($x2,$center-$a2,$x2,$center+$a2,$fg) if $base;
   }
   if ($ne) {  # east arrow
     $self->arrowhead($gd,$x2,$center,$a2,+1);
+    $gd->line($x1,$center-$a2,$x1,$center+$a2,$fg) if $base;
   }
 
   # turn on ticks
@@ -123,8 +130,8 @@ sub draw_parallel {
   }
 
   # add a label if requested
-  $self->draw_label($gd,$dx,$dy) if $self->option('label');
-
+  $self->draw_label($gd,$dx,$dy)       if $self->option('label');
+  $self->draw_description($gd,$dx,$dy) if $self->option('description');
 }
 
 1;
@@ -153,23 +160,26 @@ options are recognized:
   Option      Description               Default
   ------      -----------               -------
 
-  -tick       Whether to draw major       0
+  -tick       Whether to draw major         0
               and minor ticks.
 	      0 = no ticks
 	      1 = major ticks
 	      2 = minor ticks
 
-  -parallel   Whether to draw the arrow   true
+  -parallel   Whether to draw the arrow     true
 	      parallel to the sequence
 	      or perpendicular to it.
 
-  -northeast  Whether to draw the         true
-	      north or east arrowhead
-	      (depending on orientation)
+  -northeast  Force a north or east         true
+	      arrowhead(depending 
+	      on orientation)
 
-  -southwest  Whether to draw the         true
-	      south or west arrowhead
-	      (depending on orientation)
+  -southwest  Force a south or west         true
+	      arrowhead(depending 
+	      on orientation)
+
+  -base       Draw a vertical base at the   false
+              non-arrowhead side
 
 Set -parallel to false to display a point-like feature such as a
 polymorphism, or to indicate an important location.  If the feature

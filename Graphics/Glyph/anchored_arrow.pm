@@ -24,16 +24,12 @@ sub draw {
 
   $gd->line($x1,$center,$x2,$center,$fg);
 
-  my $gstart  = $self->start;
-  my $gend    = $self->end;
-  my $glength = #abs($gstart - $gend);
-  my $goffset = $gstart;
-                         #this is clearly wrong.  it needs to be passed in
-                         #from the feature object, but the method isn't
-                         #there yet in Bio::Graphics.
+  my $gstart  = $x1;
+  my $gend    = $x2;
+  my $pstart  = $self->panel->left;
+  my $pend    = $self->panel->right;
 
-#  if ($self->feature->start < $self->offset) {  # off left end
-  if ($gstart < $goffset) {  # off left end
+  if ($gstart < $pstart) {  # off left end
     if ($x2 > $a2) {
       $gd->line($x1,$center,$x1+$a2,$center-$a2,$fg);  # arrowhead
       $gd->line($x1,$center,$x1+$a2,$center+$a2,$fg);
@@ -42,16 +38,15 @@ sub draw {
     $gd->line($x1,$center-$a2,$x1,$center+$a2,$fg);  # tick/base
   }
 
-#  if ($self->feature->end > $self->offset + $self->length) {# off right end
-  if ($gend > $goffset + $glength) {# off right end
+  if ($gend > $pend) {# off right end
     if ($x1 < $x2-$a2-1) {
+      $x2--;
       $gd->line($x2,$center,$x2-$a2,$center+$a2,$fg);  # arrowhead
       $gd->line($x2,$center,$x2-$a2,$center-$a2,$fg);
     }
   } else {
     # problems occur right at the very end because of GD confusion
-#    $x2-- if $self->feature->end == $self->offset + $self->length;
-    $x2-- if $gend == $goffset + $glength;
+    $x2-- if $gend == $pend;
     $gd->line($x2,$center-$a2,$x2,$center+$a2,$fg);  # tick/base
   }
 

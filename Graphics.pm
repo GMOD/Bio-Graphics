@@ -8,15 +8,16 @@ Bio::Graphics - Generate GD images of Bio::Seq objects
 
 =head1 SYNOPSIS
 
-  use Ace::Sequence;  # or any Bio::Seq factory
   use Bio::Graphics;
 
+  # get a set of Bio::SeqFeature objects, in this case from AcePerl
+  use Ace::Sequence;
   my $db     = Ace->connect(-host=>'brie2.cshl.org',-port=>2005) or die;
   my $cosmid = Ace::Sequence->new(-seq=>'Y16B4A',
 				  -db=>$db,-start=>-15000,-end=>15000) or die;
-
   my @transcripts = $cosmid->transcripts;
 
+  # let the drawing begin...
   my $panel = Bio::Graphics::Panel->new(
 				      -segment => $cosmid,
 				      -width  => 800

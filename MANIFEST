@@ -19,3 +19,5 @@ Makefile.PL
 README
 eg/testit.pl
 eg/testit2.pl
+eg/feature_data.txt
+scripts/feature_draw.PLS
