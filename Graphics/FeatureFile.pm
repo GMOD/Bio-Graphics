@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.12 2002-01-03 13:53:02 lstein Exp $
+# $Id: FeatureFile.pm,v 1.13 2002-01-20 20:07:02 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -185,7 +185,7 @@ sub parse_line {
     $ref = $r;
   }
 
-  elsif ($tokens[2] =~ /^[+-]$/) { # old simplified version
+  elsif ($tokens[2] =~ /^([+-.]|[+-]?[01])$/) { # old simplified version
     ($type,$name,$strand,$bounds,$description,$url) = @tokens;
   } else {                              # new simplified version
     ($type,$name,$bounds,$description,$url) = @tokens;
