@@ -1,6 +1,9 @@
 package Bio::Graphics::Feature;
-
 use strict;
+
+use vars '$VERSION';
+$VERSION = 1.1;
+
 *end         = \&stop;
 *info        = \&name;
 *seqname     = \&name;
@@ -18,43 +21,57 @@ use strict;
 # to create a multisegmented feature.
 sub new {
   my $class= shift;
+  $class = ref($class) if ref $class;
   my %arg = @_;
 
   my $self = bless {},$class;
 
   $arg{-strand} ||= 0;
-  $self->{strand} = $arg{-strand} >= 0 ? +1 : -1;
-  $self->{name}   = $arg{-name};
-  $self->{type}   = $arg{-type}   || 'feature';
-  $self->{source} = $arg{-source} || $arg{-source_tag} || '';
-  $self->{score}  = $arg{-score}  || 0;
+  $self->{strand}  = $arg{-strand} >= 0 ? +1 : -1;
+  $self->{name}    = $arg{-name};
+  $self->{type}    = $arg{-type}   || 'feature';
+  $self->{subtype} = $arg{-subtype} if exists $arg{-subtype};
+  $self->{source}  = $arg{-source} || $arg{-source_tag} || '';
+  $self->{score}   = $arg{-score}  || 0;
+  $self->{start}   = $arg{-start};
+  $self->{stop}    = $arg{-end} || $arg{-stop};
+
+  # fix start, stop
+  if (defined $self->{stop} && defined $self->{start}
+      && $self->{stop} < $self->{start}) {
+    @{$self}{'start','stop'} = @{$self}{'stop','start'};
+    $self->{strand} *= -1;
+  }
 
   my @segments;
   if (my $s = $arg{-segments}) {
+    $self->add_segment(@$s);
+  }
+  $self;
+}
 
-    my $subtype =   $arg{-subtype} || $arg{-type};
+sub add_segment {
+  my $self        = shift;
+  my $type = $self->{subtype} || $self->{type};
+  $self->{segments} ||= [];
 
-    for my $seg (@$s) {
-      if (ref($seg) eq 'ARRAY') {
-	push @segments,$class->new(-start=>$seg->[0],
-				   -stop=>$seg->[1],
-				   -strand=>$self->{strand},
-				   -type  => $subtype);
-      } else {
-	push @segments,$seg;
-      }
+  my @segments = @{$self->{segments}};
+
+  for my $seg (@_) {
+    if (ref($seg) eq 'ARRAY') {
+      push @segments,$self->new(-start=>$seg->[0],
+				-stop=>$seg->[1],
+				-strand=>$self->{strand},
+				-type  => $type);
+    } else {
+      push @segments,$seg;
     }
   }
-
   if (@segments) {
     $self->{segments} = [ sort {$a->start <=> $b->start } @segments ];
     $self->{start} = $self->{segments}[0]->start;
     ($self->{stop}) = sort { $b <=> $a } map { $_->stop} @segments;
-  } else {
-    $self->{start} = $arg{-start};
-    $self->{stop}   = $arg{-end} || $arg{-stop};
   }
-  $self;
 }
 
 sub segments {
@@ -159,6 +176,12 @@ A number of new methods are provided for compatibility with
 Ace::Sequence, which has a slightly different API from SeqFeatureI:
 
 =over 4
+
+=item add_segment(@segments)
+
+Add one or more segments (a subfeature).  Segments can either be
+Feature objects, or [start,stop] arrays, as in the -segments argument
+to new().  The feature endpoints are automatically adjusted.
 
 =item segments()
 

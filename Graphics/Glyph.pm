@@ -900,9 +900,24 @@ glyph pages for more options.
 
   -label      Whether to draw a label	false
 
-You may pass an anonymous subroutine to -label, in which case the
-subroutine will be invoked with the feature as its single argument.
-The subroutine must return a string to render as the label.
+  -description Whether to draw a description false
+
+The label is printed above the glyph.  You may pass an anonymous
+subroutine to -label, in which case the subroutine will be invoked
+with the feature as its single argument.  The subroutine must return a
+string to render as the label.  Otherwise, you may return the number
+"1", in which case the feature's info(), seqname() and primary_tag()
+methods will be called (in that order) until a suitable name is found.
+
+The description is printed below the glyph.  You may pass an anonymous
+subroutine to -label, in which case the subroutine will be invoked
+with the feature as its single argument.  The subroutine must return a
+string to render as the label.  Otherwise, you may return the number
+"1", in which case the feature's source_tag() method will be invoked.
+
+In the case of ACEDB Ace::Sequence feature objects, the feature's
+info(), Brief_identification() and Locus() methods will be called to
+create a suitable description.
 
 =head1 SUBCLASSING Bio::Graphics::Glyph
 
