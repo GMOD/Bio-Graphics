@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.1 2001-10-05 19:49:14 lstein Exp $
+# $Id: FeatureFile.pm,v 1.2 2001-10-25 15:13:31 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -68,7 +68,7 @@ sub parse_argv {
 
 sub parse_file {
   my $self = shift;
-  my $fh = shift;
+  my $fh = shift or return;
 
   $self->{seenit} = {};
   while (<$fh>) {
@@ -100,18 +100,18 @@ sub parse_line {
      my $cc = $label =~ /^(general|default)$/i ? 'general' : $label;  # normalize
      push @{$self->{types}},$cc unless $cc eq 'general';
      $self->{current_config} = $cc;
-    next;
+     return;
   }
 
-  if (/^(\w+)\s*[=:]\s*(.+)/) {   # key value pair within a configuration section
+  if (/^(\w+)\s*=\s*(.+)/) {   # key value pair within a configuration section
     my $cc = $self->{current_config} ||= 'general';       # in case no configuration named
     $self->{config}{$cc}{lc $1} = $2;
-    next;
+    return;
   }
 
   if (/^$/) { # empty line
     undef $self->{current_config};
-    next;
+    return;
   }
 
   # parse data lines
@@ -123,7 +123,7 @@ sub parse_line {
   if (@tokens < 4) {      # short line; assume a group identifier
     $self->{grouptype}     = shift @tokens;
     $self->{groupname}     = shift @tokens;
-    next;
+    return;
   }
 
   my($type,$name,$strand,$bounds,$description) = @tokens;
@@ -152,8 +152,6 @@ sub parse_line {
       push @{$self->{features}{$type}},$feature;
     }
   }
-
-  
 }
 
 # return configuration information
@@ -198,6 +196,7 @@ sub types {
 
 
 sub make_strand {
+  local $^W = 0;
   return +1 if $_[0] =~ /^\+/ || $_[0] > 0;
   return -1 if $_[0] =~ /^\-/ || $_[0] < 0;
   return 0;
