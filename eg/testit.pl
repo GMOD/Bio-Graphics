@@ -53,6 +53,12 @@ my $partial_gene = $ftr->new(-segments=>[$confirmed_exon1,$predicted_exon1,$pred
 			     -type => 'transcript',
 			     -source => '(from a big annotation pipeline)'
 			    );
+my @segments = $partial_gene->segments;
+my $score = 10;
+foreach (@segments) {
+  $_->score($score);
+  $score += 10;
+}
 
 my $panel = Bio::Graphics::Panel->new(
 				      -segment => $segment,
@@ -147,6 +153,10 @@ $panel->add_track(generic => [$segment,$zk154_1,[$zk154_2,$xyz4]],
 #		  -tkcolor => $colors[rand @colors],
 		  -key => 'Signals',
 		 );
+$panel->add_track(graded_segments => $partial_gene,
+		  -bgcolor =>'blue',
+		  -label   => 1,
+		  -key     => 'Scored thing');
 
 #print $panel->png;
 

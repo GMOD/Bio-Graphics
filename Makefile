@@ -1,7 +1,7 @@
 # This Makefile is for the Bio::Graphics extension to perl.
 #
 # It was generated automatically by MakeMaker version
-# 5.45 (Revision: 1.222) from the contents of
+# 5.4302 (Revision: 1.222) from the contents of
 # Makefile.PL. Don't edit this file, edit Makefile.PL instead.
 #
 #	ANY CHANGES MADE HERE WILL BE LOST!
@@ -11,9 +11,11 @@
 #   MakeMaker Parameters:
 
 #	DEFINE => q[]
+#	EXE_FILES => [q[scripts/feature_draw.pl]]
 #	INC => q[]
 #	LIBS => [q[]]
 #	NAME => q[Bio::Graphics]
+#	PL_FILES => { scripts/feature_draw.PLS=>q[scripts/feature_draw.pl] }
 #	PREREQ_PM => { GD=>q[1.2] }
 #	VERSION_FROM => q[Graphics/Panel.pm]
 
@@ -22,7 +24,7 @@
 
 # --- MakeMaker const_config section:
 
-# These definitions are from config.sh (via /usr/local/lib/perl5/5.6.1/i686-linux/Config.pm)
+# These definitions are from config.sh (via /usr/lib/perl5/i386-linux/Config.pm)
 
 # They may have been overridden via Makefile.PL or on the command line
 AR = ar
@@ -34,15 +36,14 @@ DLSRC = dl_dlopen.xs
 LD = cc
 LDDLFLAGS = -shared -L/usr/local/lib
 LDFLAGS =  -L/usr/local/lib
-LIBC = /lib/libc-2.1.92.so
+LIBC = 
 LIB_EXT = .a
 OBJ_EXT = .o
 OSNAME = linux
-OSVERS = 2.2.16-22enterprise
+OSVERS = 2.2.6
 RANLIB = :
 SO = so
 EXE_EXT = 
-FULL_AR = /usr/bin/ar
 
 
 # --- MakeMaker constants section:
@@ -50,43 +51,41 @@ AR_STATIC_ARGS = cr
 NAME = Bio::Graphics
 DISTNAME = Bio-Graphics
 NAME_SYM = Bio_Graphics
-VERSION = 0.83
-VERSION_SYM = 0_83
-XS_VERSION = 0.83
+VERSION = 0.87
+VERSION_SYM = 0_87
+XS_VERSION = 0.87
 INST_BIN = blib/bin
 INST_EXE = blib/script
 INST_LIB = blib/lib
 INST_ARCHLIB = blib/arch
 INST_SCRIPT = blib/script
-PREFIX = /usr/local
+PREFIX = /usr
 INSTALLDIRS = site
-INSTALLPRIVLIB = $(PREFIX)/lib/perl5/5.6.1
-INSTALLARCHLIB = $(PREFIX)/lib/perl5/5.6.1/i686-linux
-INSTALLSITELIB = $(PREFIX)/lib/perl5/site_perl/5.6.1
-INSTALLSITEARCH = $(PREFIX)/lib/perl5/site_perl/5.6.1/i686-linux
+INSTALLPRIVLIB = $(PREFIX)/lib/perl5
+INSTALLARCHLIB = $(PREFIX)/lib/perl5/i386-linux
+INSTALLSITELIB = $(PREFIX)/lib/perl5/site_perl
+INSTALLSITEARCH = $(PREFIX)/lib/perl5/site_perl/i386-linux
 INSTALLBIN = $(PREFIX)/bin
 INSTALLSCRIPT = $(PREFIX)/bin
-PERL_LIB = /usr/local/lib/perl5/5.6.1
-PERL_ARCHLIB = /usr/local/lib/perl5/5.6.1/i686-linux
-SITELIBEXP = /usr/local/lib/perl5/site_perl/5.6.1
-SITEARCHEXP = /usr/local/lib/perl5/site_perl/5.6.1/i686-linux
+PERL_LIB = /usr/lib/perl5
+PERL_ARCHLIB = /usr/lib/perl5/i386-linux
+SITELIBEXP = /usr/lib/perl5/site_perl
+SITEARCHEXP = /usr/lib/perl5/site_perl/i386-linux
 LIBPERL_A = libperl.a
 FIRST_MAKEFILE = Makefile
 MAKE_APERL_FILE = Makefile.aperl
 PERLMAINCC = $(CC)
-PERL_INC = /usr/local/lib/perl5/5.6.1/i686-linux/CORE
-PERL = /usr/local/bin/perl
-FULLPERL = /usr/local/bin/perl
-FULL_AR = /usr/bin/ar
+PERL_INC = /usr/lib/perl5/i386-linux/CORE
+PERL = /usr/bin/perl
+FULLPERL = /usr/bin/perl
 
 VERSION_MACRO = VERSION
 DEFINE_VERSION = -D$(VERSION_MACRO)=\"$(VERSION)\"
 XS_VERSION_MACRO = XS_VERSION
 XS_DEFINE_VERSION = -D$(XS_VERSION_MACRO)=\"$(XS_VERSION)\"
-PERL_MALLOC_DEF = -DPERL_EXTMALLOC_DEF -Dmalloc=Perl_malloc -Dfree=Perl_mfree -Drealloc=Perl_realloc -Dcalloc=Perl_calloc
 
-MAKEMAKER = /usr/local/lib/perl5/5.6.1/ExtUtils/MakeMaker.pm
-MM_VERSION = 5.45
+MAKEMAKER = /usr/lib/perl5/ExtUtils/MakeMaker.pm
+MM_VERSION = 5.4302
 
 # FULLEXT = Pathname for extension directory (eg Foo/Bar/Oracle).
 # BASEEXT = Basename part of FULLEXT. May be just equal FULLEXT. (eg Oracle)
@@ -109,10 +108,10 @@ XS_FILES=
 C_FILES = 
 O_FILES = 
 H_FILES = 
-HTMLLIBPODS    = 
-HTMLSCRIPTPODS = 
-MAN1PODS = 
-MAN3PODS = Graphics/Feature.pm \
+MAN1PODS = scripts/feature_draw.pl
+MAN3PODS = Graphics.pm \
+	Graphics/Feature.pm \
+	Graphics/FeatureFile.pm \
 	Graphics/Glyph.pm \
 	Graphics/Glyph/anchored_arrow.pm \
 	Graphics/Glyph/arrow.pm \
@@ -126,12 +125,11 @@ MAN3PODS = Graphics/Feature.pm \
 	Graphics/Glyph/toomany.pm \
 	Graphics/Glyph/triangle.pm \
 	Graphics/Panel.pm
-HTMLEXT = html
 INST_MAN1DIR = blib/man1
-INSTALLMAN1DIR = $(PREFIX)/man/man1
+INSTALLMAN1DIR = /usr/man/man1
 MAN1EXT = 1
 INST_MAN3DIR = blib/man3
-INSTALLMAN3DIR = $(PREFIX)/man/man3
+INSTALLMAN3DIR = $(PREFIX)/lib/perl5/man/man3
 MAN3EXT = 3
 PERM_RW = 644
 PERM_RWX = 755
@@ -167,10 +165,12 @@ EXPORT_LIST =
 
 PERL_ARCHIVE = 
 
-PERL_ARCHIVE_AFTER = 
-
-TO_INST_PM = Graphics/Feature.pm \
+TO_INST_PM = Graphics.pm \
+	Graphics/Feature.pm \
+	Graphics/Feature.pm~ \
+	Graphics/FeatureFile.pm \
 	Graphics/Glyph.pm \
+	Graphics/Glyph.pm~ \
 	Graphics/Glyph/Factory.pm \
 	Graphics/Glyph/alignment.pm \
 	Graphics/Glyph/anchored_arrow.pm \
@@ -181,6 +181,8 @@ TO_INST_PM = Graphics/Feature.pm \
 	Graphics/Glyph/ellipse.pm \
 	Graphics/Glyph/ex.pm \
 	Graphics/Glyph/generic.pm \
+	Graphics/Glyph/graded_segments.pm \
+	Graphics/Glyph/graded_segments.pm~ \
 	Graphics/Glyph/group.pm \
 	Graphics/Glyph/line.pm \
 	Graphics/Glyph/oval.pm \
@@ -192,56 +194,71 @@ TO_INST_PM = Graphics/Feature.pm \
 	Graphics/Glyph/transcript.pm \
 	Graphics/Glyph/transcript2.pm \
 	Graphics/Glyph/triangle.pm \
-	Graphics/Panel.pm
+	Graphics/Panel.pm \
+	Graphics/Panel.pm~
 
-PM_TO_BLIB = Graphics/Glyph/crossbox.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/crossbox.pm \
+PM_TO_BLIB = Graphics/Glyph/primers.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/primers.pm \
 	Graphics/Glyph/segments.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/segments.pm \
-	Graphics/Glyph/ex.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/ex.pm \
-	Graphics/Glyph/primers.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/primers.pm \
-	Graphics/Glyph/generic.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/generic.pm \
-	Graphics/Glyph/group.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/group.pm \
-	Graphics/Glyph/arrow.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm \
-	Graphics/Glyph/transcript.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm \
-	Graphics/Glyph/ellipse.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/ellipse.pm \
-	Graphics/Glyph/track.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
 	Graphics/Glyph/toomany.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/toomany.pm \
-	Graphics/Panel.pm \
-	$(INST_LIBDIR)/Graphics/Panel.pm \
-	Graphics/Glyph/anchored_arrow.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/anchored_arrow.pm \
-	Graphics/Glyph/transcript2.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/transcript2.pm \
-	Graphics/Glyph/alignment.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/alignment.pm \
 	Graphics/Glyph/dot.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/dot.pm \
-	Graphics/Glyph/triangle.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/triangle.pm \
+	Graphics/Glyph/line.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/line.pm \
 	Graphics/Glyph/box.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/box.pm \
+	Graphics/Glyph/graded_segments.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm~ \
+	Graphics/Glyph/transcript.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm \
+	Graphics/Glyph/arrow.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm \
+	Graphics/Glyph/graded_segments.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm \
+	Graphics/Glyph/group.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/group.pm \
+	Graphics/Glyph/anchored_arrow.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/anchored_arrow.pm \
+	Graphics/Glyph/ellipse.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/ellipse.pm \
+	Graphics/Glyph.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph.pm~ \
+	Graphics/Glyph.pm \
+	$(INST_LIBDIR)/Graphics/Glyph.pm \
 	Graphics/Glyph/span.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/span.pm \
 	Graphics/Glyph/oval.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/oval.pm \
-	Graphics/Feature.pm \
-	$(INST_LIBDIR)/Graphics/Feature.pm \
+	Graphics/Glyph/crossbox.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/crossbox.pm \
+	Graphics/Glyph/track.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
+	Graphics/Glyph/triangle.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/triangle.pm \
+	Graphics/Feature.pm~ \
+	$(INST_LIBDIR)/Graphics/Feature.pm~ \
 	Graphics/Glyph/Factory.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm \
-	Graphics/Glyph/line.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/line.pm \
-	Graphics/Glyph.pm \
-	$(INST_LIBDIR)/Graphics/Glyph.pm
+	Graphics/FeatureFile.pm \
+	$(INST_LIBDIR)/Graphics/FeatureFile.pm \
+	Graphics/Feature.pm \
+	$(INST_LIBDIR)/Graphics/Feature.pm \
+	Graphics/Panel.pm~ \
+	$(INST_LIBDIR)/Graphics/Panel.pm~ \
+	Graphics/Glyph/transcript2.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript2.pm \
+	Graphics/Panel.pm \
+	$(INST_LIBDIR)/Graphics/Panel.pm \
+	Graphics/Glyph/ex.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/ex.pm \
+	Graphics/Glyph/generic.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/generic.pm \
+	Graphics.pm \
+	$(INST_LIBDIR)/Graphics.pm \
+	Graphics/Glyph/alignment.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/alignment.pm
 
 
 # --- MakeMaker tool_autosplit section:
@@ -286,13 +303,13 @@ WARN_IF_OLD_PACKLIST = $(PERL) -we 'exit unless -f $$ARGV[0];' \
 -e 'print "Please make sure the two installations are not conflicting\n";'
 
 UNINST=0
-VERBINST=0
+VERBINST=1
 
 MOD_INSTALL = $(PERL) -I$(INST_LIB) -I$(PERL_LIB) -MExtUtils::Install \
 -e "install({@ARGV},'$(VERBINST)',0,'$(UNINST)');"
 
 DOC_INSTALL = $(PERL) -e '$$\="\n\n";' \
--e 'print "=head2 ", scalar(localtime), ": C<", shift, ">", " L<", $$arg=shift, "|", $$arg, ">";' \
+-e 'print "=head2 ", scalar(localtime), ": C<", shift, ">", " L<", shift, ">";' \
 -e 'print "=over 4";' \
 -e 'while (defined($$key = shift) and defined($$val = shift)){print "=item *";print "C<$$key: $$val>";}' \
 -e 'print "=back";'
@@ -362,7 +379,7 @@ PASTHRU = LIB="$(LIB)"\
 
 #all ::	config $(INST_PM) subdirs linkext manifypods
 
-all :: pure_all htmlifypods manifypods
+all :: pure_all manifypods
 	@$(NOOP)
 
 pure_all :: config pm_to_blib subdirs linkext
@@ -380,31 +397,45 @@ config :: $(INST_ARCHAUTODIR)/.exists
 config :: $(INST_AUTODIR)/.exists
 	@$(NOOP)
 
-$(INST_AUTODIR)/.exists :: /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h
+config :: Version_check
+	@$(NOOP)
+
+
+$(INST_AUTODIR)/.exists :: /usr/lib/perl5/i386-linux/CORE/perl.h
 	@$(MKPATH) $(INST_AUTODIR)
-	@$(EQUALIZE_TIMESTAMP) /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h $(INST_AUTODIR)/.exists
+	@$(EQUALIZE_TIMESTAMP) /usr/lib/perl5/i386-linux/CORE/perl.h $(INST_AUTODIR)/.exists
 
 	-@$(CHMOD) $(PERM_RWX) $(INST_AUTODIR)
 
-$(INST_LIBDIR)/.exists :: /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h
+$(INST_LIBDIR)/.exists :: /usr/lib/perl5/i386-linux/CORE/perl.h
 	@$(MKPATH) $(INST_LIBDIR)
-	@$(EQUALIZE_TIMESTAMP) /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h $(INST_LIBDIR)/.exists
+	@$(EQUALIZE_TIMESTAMP) /usr/lib/perl5/i386-linux/CORE/perl.h $(INST_LIBDIR)/.exists
 
 	-@$(CHMOD) $(PERM_RWX) $(INST_LIBDIR)
 
-$(INST_ARCHAUTODIR)/.exists :: /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h
+$(INST_ARCHAUTODIR)/.exists :: /usr/lib/perl5/i386-linux/CORE/perl.h
 	@$(MKPATH) $(INST_ARCHAUTODIR)
-	@$(EQUALIZE_TIMESTAMP) /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h $(INST_ARCHAUTODIR)/.exists
+	@$(EQUALIZE_TIMESTAMP) /usr/lib/perl5/i386-linux/CORE/perl.h $(INST_ARCHAUTODIR)/.exists
 
 	-@$(CHMOD) $(PERM_RWX) $(INST_ARCHAUTODIR)
+
+config :: $(INST_MAN1DIR)/.exists
+	@$(NOOP)
+
+
+$(INST_MAN1DIR)/.exists :: /usr/lib/perl5/i386-linux/CORE/perl.h
+	@$(MKPATH) $(INST_MAN1DIR)
+	@$(EQUALIZE_TIMESTAMP) /usr/lib/perl5/i386-linux/CORE/perl.h $(INST_MAN1DIR)/.exists
+
+	-@$(CHMOD) $(PERM_RWX) $(INST_MAN1DIR)
 
 config :: $(INST_MAN3DIR)/.exists
 	@$(NOOP)
 
 
-$(INST_MAN3DIR)/.exists :: /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h
+$(INST_MAN3DIR)/.exists :: /usr/lib/perl5/i386-linux/CORE/perl.h
 	@$(MKPATH) $(INST_MAN3DIR)
-	@$(EQUALIZE_TIMESTAMP) /usr/local/lib/perl5/5.6.1/i686-linux/CORE/perl.h $(INST_MAN3DIR)/.exists
+	@$(EQUALIZE_TIMESTAMP) /usr/lib/perl5/i386-linux/CORE/perl.h $(INST_MAN3DIR)/.exists
 
 	-@$(CHMOD) $(PERM_RWX) $(INST_MAN3DIR)
 
@@ -455,68 +486,100 @@ static :: Makefile $(INST_STATIC)
 # --- MakeMaker static_lib section:
 
 
-# --- MakeMaker htmlifypods section:
-
-htmlifypods : pure_all
-	@$(NOOP)
-
-
 # --- MakeMaker manifypods section:
-POD2MAN_EXE = /usr/local/bin/pod2man
+POD2MAN_EXE = /usr/bin/pod2man
 POD2MAN = $(PERL) -we '%m=@ARGV;for (keys %m){' \
 -e 'next if -e $$m{$$_} && -M $$m{$$_} < -M $$_ && -M $$m{$$_} < -M "Makefile";' \
 -e 'print "Manifying $$m{$$_}\n";' \
 -e 'system(qq[$$^X ].q["-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" $(POD2MAN_EXE) ].qq[$$_>$$m{$$_}])==0 or warn "Couldn\047t install $$m{$$_}\n";' \
 -e 'chmod(oct($(PERM_RW))), $$m{$$_} or warn "chmod $(PERM_RW) $$m{$$_}: $$!\n";}'
 
-manifypods : pure_all Graphics/Glyph/crossbox.pm \
-	Graphics/Glyph/ex.pm \
-	Graphics/Glyph/primers.pm \
-	Graphics/Glyph/dot.pm \
-	Graphics/Glyph/triangle.pm \
-	Graphics/Glyph/arrow.pm \
-	Graphics/Glyph/box.pm \
-	Graphics/Feature.pm \
+manifypods : pure_all scripts/feature_draw.pl \
 	Graphics/Glyph/span.pm \
-	Graphics/Glyph/line.pm \
-	Graphics/Glyph.pm \
-	Graphics/Glyph/toomany.pm \
-	Graphics/Panel.pm \
-	Graphics/Glyph/anchored_arrow.pm
-	@$(POD2MAN) \
-	Graphics/Glyph/crossbox.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::crossbox.$(MAN3EXT) \
-	Graphics/Glyph/ex.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::ex.$(MAN3EXT) \
 	Graphics/Glyph/primers.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::primers.$(MAN3EXT) \
-	Graphics/Glyph/dot.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::dot.$(MAN3EXT) \
+	Graphics/Glyph/crossbox.pm \
 	Graphics/Glyph/triangle.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::triangle.$(MAN3EXT) \
-	Graphics/Glyph/arrow.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::arrow.$(MAN3EXT) \
-	Graphics/Glyph/box.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::box.$(MAN3EXT) \
+	Graphics/Glyph/dot.pm \
+	Graphics/Glyph/toomany.pm \
+	Graphics/Glyph/line.pm \
 	Graphics/Feature.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Feature.$(MAN3EXT) \
+	Graphics/FeatureFile.pm \
+	Graphics/Glyph/box.pm \
+	Graphics/Glyph/arrow.pm \
+	Graphics/Glyph/ex.pm \
+	Graphics/Panel.pm \
+	Graphics.pm \
+	Graphics/Glyph/anchored_arrow.pm \
+	Graphics/Glyph.pm
+	@$(POD2MAN) \
+	scripts/feature_draw.pl \
+	$(INST_MAN1DIR)/feature_draw.pl.$(MAN1EXT) \
 	Graphics/Glyph/span.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Glyph::span.$(MAN3EXT) \
-	Graphics/Glyph/line.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::line.$(MAN3EXT) \
-	Graphics/Glyph.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph.$(MAN3EXT) \
+	Graphics/Glyph/primers.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::primers.$(MAN3EXT) \
+	Graphics/Glyph/crossbox.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::crossbox.$(MAN3EXT) \
+	Graphics/Glyph/triangle.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::triangle.$(MAN3EXT) \
+	Graphics/Glyph/dot.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::dot.$(MAN3EXT) \
 	Graphics/Glyph/toomany.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Glyph::toomany.$(MAN3EXT) \
+	Graphics/Glyph/line.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::line.$(MAN3EXT) \
+	Graphics/Feature.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Feature.$(MAN3EXT) \
+	Graphics/FeatureFile.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::FeatureFile.$(MAN3EXT) \
+	Graphics/Glyph/box.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::box.$(MAN3EXT) \
+	Graphics/Glyph/arrow.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::arrow.$(MAN3EXT) \
+	Graphics/Glyph/ex.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::ex.$(MAN3EXT) \
 	Graphics/Panel.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Panel.$(MAN3EXT) \
+	Graphics.pm \
+	$(INST_MAN3DIR)/Bio::Graphics.$(MAN3EXT) \
 	Graphics/Glyph/anchored_arrow.pm \
-	$(INST_MAN3DIR)/Bio::Graphics::Glyph::anchored_arrow.$(MAN3EXT)
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph::anchored_arrow.$(MAN3EXT) \
+	Graphics/Glyph.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Glyph.$(MAN3EXT)
 
 # --- MakeMaker processPL section:
 
+all :: scripts/feature_draw.pl
+	@$(NOOP)
+
+scripts/feature_draw.pl :: scripts/feature_draw.PLS
+	$(PERL) -I$(INST_ARCHLIB) -I$(INST_LIB) -I$(PERL_ARCHLIB) -I$(PERL_LIB) scripts/feature_draw.PLS scripts/feature_draw.pl
+
 
 # --- MakeMaker installbin section:
+
+$(INST_SCRIPT)/.exists :: /usr/lib/perl5/i386-linux/CORE/perl.h
+	@$(MKPATH) $(INST_SCRIPT)
+	@$(EQUALIZE_TIMESTAMP) /usr/lib/perl5/i386-linux/CORE/perl.h $(INST_SCRIPT)/.exists
+
+	-@$(CHMOD) $(PERM_RWX) $(INST_SCRIPT)
+
+EXE_FILES = scripts/feature_draw.pl
+
+FIXIN = $(PERL) -I$(PERL_ARCHLIB) -I$(PERL_LIB) -MExtUtils::MakeMaker \
+    -e "MY->fixin(shift)"
+
+pure_all :: $(INST_SCRIPT)/feature_draw.pl
+	@$(NOOP)
+
+realclean ::
+	rm -f $(INST_SCRIPT)/feature_draw.pl
+
+$(INST_SCRIPT)/feature_draw.pl: scripts/feature_draw.pl Makefile $(INST_SCRIPT)/.exists
+	@rm -f $(INST_SCRIPT)/feature_draw.pl
+	cp scripts/feature_draw.pl $(INST_SCRIPT)/feature_draw.pl
+	$(FIXIN) $(INST_SCRIPT)/feature_draw.pl
+	-@$(CHMOD) $(PERM_RWX) $(INST_SCRIPT)/feature_draw.pl
 
 
 # --- MakeMaker subdirs section:
@@ -529,7 +592,7 @@ manifypods : pure_all Graphics/Glyph/crossbox.pm \
 # the Makefile here so a later make realclean still has a makefile to use.
 
 clean ::
-	-rm -rf ./blib $(MAKE_APERL_FILE) $(INST_ARCHAUTODIR)/extralibs.all perlmain.c mon.out core core.*perl.*.? *perl.core so_locations pm_to_blib *$(OBJ_EXT) *$(LIB_EXT) perl.exe $(BOOTSTRAP) $(BASEEXT).bso $(BASEEXT).def $(BASEEXT).exp
+	-rm -rf ./blib $(MAKE_APERL_FILE) $(INST_ARCHAUTODIR)/extralibs.all perlmain.c mon.out core so_locations pm_to_blib *~ */*~ */*/*~ *$(OBJ_EXT) *$(LIB_EXT) perl.exe $(BOOTSTRAP) $(BASEEXT).bso $(BASEEXT).def $(BASEEXT).exp
 	-mv Makefile Makefile.old $(DEV_NULL)
 
 
@@ -538,20 +601,7 @@ clean ::
 # Delete temporary files (via clean) and also delete installed files
 realclean purge ::  clean
 	rm -rf $(INST_AUTODIR) $(INST_ARCHAUTODIR)
-	rm -f  $(INST_LIBDIR)/Graphics/Glyph/crossbox.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/segments.pm $(INST_LIBDIR)/Graphics/Glyph/ex.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/primers.pm $(INST_LIBDIR)/Graphics/Glyph/generic.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/transcript.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics/Glyph/track.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/toomany.pm $(INST_LIBDIR)/Graphics/Panel.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/anchored_arrow.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/alignment.pm $(INST_LIBDIR)/Graphics/Glyph/dot.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/triangle.pm $(INST_LIBDIR)/Graphics/Glyph/box.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/span.pm $(INST_LIBDIR)/Graphics/Glyph/oval.pm
-	rm -f $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/line.pm $(INST_LIBDIR)/Graphics/Glyph.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/primers.pm $(INST_LIBDIR)/Graphics/Glyph/segments.pm $(INST_LIBDIR)/Graphics/Glyph/toomany.pm $(INST_LIBDIR)/Graphics/Glyph/dot.pm $(INST_LIBDIR)/Graphics/Glyph/line.pm $(INST_LIBDIR)/Graphics/Glyph/box.pm $(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/graded_segments.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/anchored_arrow.pm $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics/Glyph.pm~ $(INST_LIBDIR)/Graphics/Glyph.pm $(INST_LIBDIR)/Graphics/Glyph/span.pm $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Glyph/crossbox.pm $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph/triangle.pm $(INST_LIBDIR)/Graphics/Feature.pm~ $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/FeatureFile.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Panel.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/ex.pm $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm
 	rm -rf Makefile Makefile.old
 
 
@@ -570,9 +620,6 @@ skipcheck :
 manifest :
 	$(PERL) -I$(PERL_ARCHLIB) -I$(PERL_LIB) -MExtUtils::Manifest=mkmanifest \
 		-e mkmanifest
-
-veryclean : realclean
-	$(RM_F) *~ *.orig */*~ */*.orig
 
 
 # --- MakeMaker dist_core section:
@@ -666,8 +713,6 @@ pure_perl_install ::
 		$(INST_ARCHLIB) $(INSTALLARCHLIB) \
 		$(INST_BIN) $(INSTALLBIN) \
 		$(INST_SCRIPT) $(INSTALLSCRIPT) \
-		$(INST_HTMLLIBDIR) $(INSTALLHTMLPRIVLIBDIR) \
-		$(INST_HTMLSCRIPTDIR) $(INSTALLHTMLSCRIPTDIR) \
 		$(INST_MAN1DIR) $(INSTALLMAN1DIR) \
 		$(INST_MAN3DIR) $(INSTALLMAN3DIR)
 	@$(WARN_IF_OLD_PACKLIST) \
@@ -682,15 +727,12 @@ pure_site_install ::
 		$(INST_ARCHLIB) $(INSTALLSITEARCH) \
 		$(INST_BIN) $(INSTALLBIN) \
 		$(INST_SCRIPT) $(INSTALLSCRIPT) \
-		$(INST_HTMLLIBDIR) $(INSTALLHTMLSITELIBDIR) \
-		$(INST_HTMLSCRIPTDIR) $(INSTALLHTMLSCRIPTDIR) \
 		$(INST_MAN1DIR) $(INSTALLMAN1DIR) \
 		$(INST_MAN3DIR) $(INSTALLMAN3DIR)
 	@$(WARN_IF_OLD_PACKLIST) \
 		$(PERL_ARCHLIB)/auto/$(FULLEXT)
 
 doc_perl_install ::
-	-@$(MKPATH) $(INSTALLARCHLIB)
 	-@$(DOC_INSTALL) \
 		"Module" "$(NAME)" \
 		"installed into" "$(INSTALLPRIVLIB)" \
@@ -700,7 +742,6 @@ doc_perl_install ::
 		>> $(INSTALLARCHLIB)/perllocal.pod
 
 doc_site_install ::
-	-@$(MKPATH) $(INSTALLARCHLIB)
 	-@$(DOC_INSTALL) \
 		"Module" "$(NAME)" \
 		"installed into" "$(INSTALLSITELIB)" \
@@ -753,7 +794,7 @@ Makefile : Makefile.PL $(CONFIGDEP)
 
 # --- MakeMaker makeaperl section ---
 MAP_TARGET    = perl
-FULLPERL      = /usr/local/bin/perl
+FULLPERL      = /usr/bin/perl
 
 $(MAP_TARGET) :: static $(MAKE_APERL_FILE)
 	$(MAKE) -f $(MAKE_APERL_FILE) $@
@@ -793,14 +834,14 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"0,83,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i686-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
+	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"0,87,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i386-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
 
 # --- MakeMaker pm_to_blib section:
 
 pm_to_blib: $(TO_INST_PM)
 	@$(PERL) "-I$(INST_ARCHLIB)" "-I$(INST_LIB)" \
 	"-I$(PERL_ARCHLIB)" "-I$(PERL_LIB)" -MExtUtils::Install \
-        -e "pm_to_blib({qw{$(PM_TO_BLIB)}},'$(INST_LIB)/auto','$(PM_FILTER)')"
+        -e "pm_to_blib({qw{$(PM_TO_BLIB)}},'$(INST_LIB)/auto')"
 	@$(TOUCH) $@
 
 

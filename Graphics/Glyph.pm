@@ -486,10 +486,10 @@ sub draw_dashed_connector {
 sub filled_box {
   my $self = shift;
   my $gd = shift;
-  my ($x1,$y1,$x2,$y2) = @_;
+  my ($x1,$y1,$x2,$y2,$bg,$fg) = @_;
 
-  my $fg = $self->fgcolor;
-  my $bg = $self->bgcolor;
+  $bg ||= $self->bgcolor;
+  $fg ||= $self->fgcolor;
   my $linewidth = $self->option('linewidth') || 1;
 
   $gd->filledRectangle($x1,$y1,$x2,$y2,$bg);
@@ -515,18 +515,19 @@ sub filled_box {
 sub filled_oval {
   my $self = shift;
   my $gd = shift;
-  my ($x1,$y1,$x2,$y2) = @_;
+  my ($x1,$y1,$x2,$y2,$bg,$fg) = @_;
   my $cx = ($x1+$x2)/2;
   my $cy = ($y1+$y2)/2;
 
-  my $fg = $self->fgcolor;
+  $fg ||= $self->fgcolor;
+  $bg ||= $self->bgcolor;
   my $linewidth = $self->linewidth;
 
   $fg = $self->set_pen($linewidth) if $linewidth > 1;
   $gd->arc($cx,$cy,$x2-$x1,$y2-$y1,0,360,$fg);
 
   # and fill it
-  $gd->fill($cx,$cy,$self->bgcolor);
+  $gd->fill($cx,$cy,$bg);
 }
 
 sub oval {
@@ -541,6 +542,39 @@ sub oval {
 
   $fg = $self->set_pen($linewidth) if $linewidth > 1;
   $gd->arc($cx,$cy,$x2-$x1,$y2-$y1,0,360,$fg);
+}
+
+sub filled_arrow {
+  my $self = shift;
+  my $gd  = shift;
+  my $orientation = shift;
+
+  my ($x1,$y1,$x2,$y2) = @_;
+  my ($width) = $gd->getBounds;
+  my $indent = $y2-$y1 < $x2-$x1 ? $y2-$y1 : ($x2-$x1)/2;
+
+  return $self->filled_box($gd,@_)
+    if ($orientation == 0)
+      or ($x1 < 0 && $orientation < 0)
+        or ($x2 > $width && $orientation > 0)
+	  or ($indent <= 0);
+
+  my $fg = $self->fgcolor;
+  if ($orientation >= 0) {
+    $gd->line($x1,$y1,$x2-$indent,$y1,$fg);
+    $gd->line($x2-$indent,$y1,$x2,($y2+$y1)/2,$fg);
+    $gd->line($x2,($y2+$y1)/2,$x2-$indent,$y2,$fg);
+    $gd->line($x2-$indent,$y2,$x1,$y2,$fg);
+    $gd->line($x1,$y2,$x1,$y1,$fg);
+    $gd->fill($x1+1,($y1+$y2)/2,$self->bgcolor);
+  } else {
+    $gd->line($x1,($y2+$y1)/2,$x1+$indent,$y1,$fg);
+    $gd->line($x1+$indent,$y1,$x2,$y1,$fg);
+    $gd->line($x2,$y2,$x1+$indent,$y2,$fg);
+    $gd->line($x1+$indent,$y2,$x1,($y1+$y2)/2,$fg);
+    $gd->line($x2,$y1,$x2,$y2,$fg);
+    $gd->fill($x2-1,($y1+$y2)/2,$self->bgcolor);
+  }
 }
 
 sub linewidth {
@@ -569,9 +603,15 @@ sub draw_component {
   my $gd = shift;
   my ($left,$top) = @_;
   my($x1,$y1,$x2,$y2) = $self->bounds(@_);
-  $self->filled_box($gd,
-		    $x1, $y1,
-		    $x2, $y2);
+  if ($self->option('strand_arrow')) {
+    $self->filled_arrow($gd,$self->feature->strand,
+			$x1, $y1,
+			$x2, $y2)
+  } else {
+    $self->filled_box($gd,
+		      $x1, $y1,
+		      $x2, $y2)
+  }
 }
 
 sub subseq {

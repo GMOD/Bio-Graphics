@@ -427,12 +427,18 @@ sub rgb {
 
 sub translate_color {
   my $self = shift;
-  my $color = shift;
-  if ($color =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
+  my @colors = @_;
+  if (@colors == 3) {
+    my $gd = $self->gd or return 1;
+    return $gd->colorClosest(@colors);
+  }
+  elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
     my $gd = $self->gd or return 1;
     my ($r,$g,$b) = (hex($1),hex($2),hex($3));
     return $gd->colorClosest($r,$g,$b);
-  } else {
+  }
+  else {
+    my $color = $colors[0];
     my $table = $self->{translations} or return 1;
     return defined $table->{$color} ? $table->{$color} : 1;
   }

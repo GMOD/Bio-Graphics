@@ -8,6 +8,7 @@ Graphics/Glyph/segments.pm
 Graphics/Glyph/arrow.pm
 Graphics/Glyph/ellipse.pm
 Graphics/Glyph/generic.pm
+Graphics/Glyph/graded_segments.pm
 Graphics/Glyph/group.pm
 Graphics/Glyph/track.pm
 Graphics/Glyph/transcript.pm

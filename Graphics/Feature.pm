@@ -86,7 +86,12 @@ sub segments {
   my $s = $self->{segments} or return wantarray ? () : 0;
   @$s;
 }
-sub score    { shift->{score}       }
+sub score    {
+  my $self = shift;
+  my $d = $self->{score};
+  $self->{score} = shift if @_;
+  $d;
+}
 sub primary_tag     { shift->{type}        }
 sub strand   { shift->{strand}      }
 sub name     { shift->{name}        }
