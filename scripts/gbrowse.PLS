@@ -20,7 +20,7 @@ $Config{startperl} -w
 print OUT <<'!NO!SUBS!';
 
 # Bio::DB::GFF/Bio::Graphics-based annotation browser
-# $Id: gbrowse.PLS,v 1.17 2001-12-21 17:56:18 lstein Exp $
+# $Id: gbrowse.PLS,v 1.18 2001-12-21 18:05:42 lstein Exp $
 
 use strict;
 use Bio::DB::GFF;
@@ -1341,11 +1341,18 @@ sub error {
 sub bookmark_link {
   my $settings = shift;
   my $q = new CGI('');
-  my @keys = $settings->{name} ? qw(name source width labels eurl)
-                               : qw(start stop ref source width labels eurl);
+  my @keys = $settings->{name} ? qw(name source width eurl)
+                               : qw(start stop ref source width eurl);
   foreach (@keys) {
     $q->param(-name=>$_,-value=>$settings->{$_});
   }
+  # handle selected features slightly differently
+  my @selected;
+  my @labels = labels($settings);
+  for (my $i=0; $i<@labels; $i++) {
+    push @selected,$i if $settings->{labels}[$i];
+  }
+  $q->param(-name=>'label',-value=>\@selected);
   return $q->url(-relative=>1,-path_info=>1,-query=>1);
 }
 
@@ -1526,11 +1533,6 @@ sub help {
   print div({-align=>'RIGHT'},$do_close);
   close F;
 }
-
-
-
-
-
 
 !NO!SUBS!
 close OUT or die "Can't close $file: $!";
