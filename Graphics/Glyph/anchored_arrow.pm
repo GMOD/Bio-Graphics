@@ -6,6 +6,38 @@ use vars '@ISA';
 use Bio::Graphics::Glyph::arrow;
 @ISA = 'Bio::Graphics::Glyph::arrow';
 
+sub draw_label {
+  my $self = shift;
+  my ($gd,$left,$top,$partno,$total_parts) = @_;
+  my $label = $self->label or return;
+  my $label_align = $self->option('label_align');
+  if ($label_align && ($label_align eq 'center' || $label_align eq 'right')) {
+      my $x = $self->left + $left;
+      my $font = $self->option('labelfont') || $self->font;
+      my $middle = $self->left + $left + ($self->right - $self->left) / 2;
+      my $label_width = $font->width * length($label);
+      if ($label_align eq 'center') {
+          my $new_x = $middle - $label_width / 2;
+          $x = $new_x if ($new_x > $x);;
+      }
+      else {
+          my $new_x = $left + $self->right - $label_width;
+          $x = $new_x if ($new_x > $x);
+      }
+      $x = $self->panel->left + 1 if $x <= $self->panel->left;
+      #detect collision (mostlikely no bump when want centering label)
+      #lay down all features on one line e.g. cyto bands
+      return if (!$self->option('bump') && ($label_width + $x) > $self->right);
+      $gd->string($font,
+                  $x,
+                  $self->top + $top,
+                  $label,
+                  $self->fontcolor);
+  }
+  else {
+      $self->SUPER::draw_label(@_);
+  }
+}
 
 sub arrowheads {
   my $self = shift;
