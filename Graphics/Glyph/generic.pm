@@ -94,9 +94,14 @@ sub _description {
 
 sub draw {
   my $self = shift;
+  warn "in generic::draw()";
+  warn "SUPER::draw()";
   $self->SUPER::draw(@_);
-  $self->draw_label(@_)      if $self->option('label');
+  warn "draw_label()";
+  $self->draw_label(@_)       if $self->option('label');
+  warn "draw_description()";
   $self->draw_description(@_) if $self->option('description');
+  warn "generic::Draw() done";
 }
 
 sub draw_label {

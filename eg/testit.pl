@@ -156,6 +156,9 @@ $panel->add_track(generic => [$segment,$zk154_1,[$zk154_2,$xyz4]],
 #		  -tkcolor => $colors[rand @colors],
 		  -key => 'Signals',
 		 );
+$panel->add_track(generic => [],
+		  -key => 'Foobar');
+
 $panel->add_track(graded_segments => $partial_gene,
 		  -bgcolor =>'blue',
 		  -label   => 1,

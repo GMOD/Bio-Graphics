@@ -12,4 +12,13 @@ sub connector {
   return 'none';
 }
 
+#sub draw {
+#  my $self = shift;
+#  my ($gd,$left,$top,$partno,$total_parts) = @_;
+#  $self->SUPER::draw(@_);
+#}
+
+# do nothing for components
+# sub draw_component { }
+
 1;

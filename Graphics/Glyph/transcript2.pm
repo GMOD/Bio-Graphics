@@ -25,6 +25,13 @@ sub connector {
   return 'hat';
 }
 
+sub label {
+  my $self = shift;
+  return $self->SUPER::label(@_) if $self->all_callbacks;
+  return 0 unless $self->feature->sub_SeqFeature;
+  return $self->SUPER::label(@_);
+}
+
 sub bump {
   my $self = shift;
   return $self->SUPER::bump(@_) if $self->all_callbacks;

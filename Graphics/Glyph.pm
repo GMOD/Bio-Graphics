@@ -280,11 +280,18 @@ sub bump {
   return $self->option('bump');
 }
 
+# we also look for the "color" option for Ace::Graphics compatibility
 sub fgcolor {
-  shift->color('fgcolor');
+  my $self = shift;
+  my $index = $self->option('fgcolor') || $self->option('color') || return 0;
+  $self->factory->translate_color($index);
 }
+
+# we also look for the "background-color" option for Ace::Graphics compatibility
 sub bgcolor {
-  shift->color('bgcolor');
+  my $self = shift;
+  my $index = $self->option('fillcolor') || $self->option('bgcolor') || return 0;
+  $self->factory->translate_color($index);
 }
 sub font {
   shift->option('font');
@@ -561,7 +568,8 @@ sub filled_arrow {
     if ($orientation == 0)
       or ($x1 < 0 && $orientation < 0)
         or ($x2 > $width && $orientation > 0)
-	  or ($indent <= 0);
+	  or ($indent <= 0)
+	    or ($x2 - $x1 < 3);
 
   my $fg = $self->fgcolor;
   if ($orientation >= 0) {
@@ -577,7 +585,9 @@ sub filled_arrow {
     $gd->line($x2,$y2,$x1+$indent,$y2,$fg);
     $gd->line($x1+$indent,$y2,$x1,($y1+$y2)/2,$fg);
     $gd->line($x2,$y1,$x2,$y2,$fg);
-    $gd->fillToBorder($x2-1,($y1+$y2)/2,$fg,$self->bgcolor);
+    if ($x2 > 0 && $x2<=$self->panel->right) {
+       $gd->fillToBorder($x2-1,($y1+$y2)/2,$fg,$self->bgcolor);
+    }
   }
 }
 

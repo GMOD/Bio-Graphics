@@ -262,7 +262,10 @@ sub height {
   my $spacing    = $self->spacing;
   my $key_height = $self->format_key;
   my $height = 0;
-  $height += $_->layout_height + $spacing foreach @{$self->{tracks}};
+  foreach (@{$self->{tracks}}) {
+    next unless $_->parts;
+    $height += $_->layout_height + $spacing;
+  }
   return $height + $key_height + $self->pad_top + $self->pad_bottom;
 }
 
@@ -273,6 +276,8 @@ sub gd {
 
   my $width  = $self->width;
   my $height = $self->height;
+
+  warn "in gd(), dimensions = ${width}x${height}";
 
   my $gd = GD::Image->new($width,$height);
   my %translation_table;
@@ -293,6 +298,9 @@ sub gd {
 
   $offset = $pt;
   for my $track (@{$self->{tracks}}) {
+    warn "on track $track";
+    next unless $track->parts;
+    warn "drawing track $track";
     $gd->filledRectangle($pl,
 			 $offset,
 			 $width-$self->pad_right,
@@ -303,6 +311,7 @@ sub gd {
     $offset += $self->draw_between_key($gd,$track,$offset)
       if $self->{key_style} eq 'between' && $track->option('key');
     $track->draw($gd,0,$offset,0,1);
+    warn "done drawing";
     $offset += $track->layout_height + $self->spacing;
   }
 
