@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.17 2003-01-21 23:14:55 sshu Exp $
+# $Id: transcript.pm,v 1.18 2003-01-22 23:44:17 sshu Exp $
 
 use strict;
 use Bio::Graphics::Glyph::segments;
@@ -87,6 +87,8 @@ sub draw {
   my($x1,$y1,$x2,$y2) = $self->bounds(@_);
 
   my ($start_codon, $stop_codon) = ($self->feature->start_codon, $self->feature->stop_codon);
+  return unless ($start_codon && $stop_codon);
+
   my ($start, $end, $cwidth);
   my ($min, $fudge, $width) = (1, 1.3, $self->panel->width);
   #start codon
