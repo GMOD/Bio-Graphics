@@ -27,6 +27,7 @@ Graphics/Glyph/track.pm
 Graphics/Glyph/transcript.pm
 Graphics/Glyph/transcript2.pm
 Graphics/Glyph/triangle.pm
+Graphics/Glyph/diamond.pm
 Graphics/Glyph/wormbase_transcript.pm
 Graphics/Panel.pm
 MANIFEST

@@ -53,7 +53,6 @@ sub new {
   $self->{point} = $arg{-point} ? $self->height : undef;
   if($self->option('point')){
     my ($left,$right) = $factory->map_pt($self->start,$self->stop);
-#    my $center = int(($self->{right} + $self->{left}) / 2);
     my $center = int(($left+$right)/2);
 
     $self->{width} = $self->height;
@@ -170,8 +169,8 @@ sub layout_width {
 
 # returns the rectangle that surrounds the physical part of the
 # glyph, excluding labels and other "extra" stuff
-sub calculate_boundaries {return shift->bounds(@_);}#is this right?
-                                                    #should be gd->getBounds()?
+sub calculate_boundaries {return shift->bounds(@_);}
+
 sub bounds {
   my $self = shift;
   my ($dx,$dy) = @_;
@@ -181,6 +180,7 @@ sub bounds {
    $dx + $self->{left} + $self->{width} -1,
    $dy + $self->bottom - $self->pad_bottom);
 }
+
 sub box {
   my $self = shift;
   my $gd = shift;
@@ -1107,7 +1107,11 @@ L<Bio::Graphics::Glyph::box>,
 L<Bio::Graphics::Glyph::primers>,
 L<Bio::Graphics::Glyph::segments>,
 L<Bio::Graphics::Glyph::toomany>,
+L<Bio::Graphics::Glyph::triangle>,
+L<Bio::Graphics::Glyph::diamond>,
 L<Bio::Graphics::Glyph::transcript>,
+L<Bio::Graphics::Glyph::transcript2>,
+L<Bio::Graphics::Glyph::wormbase_transcript>
 
 =head1 AUTHOR
 

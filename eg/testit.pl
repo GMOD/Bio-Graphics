@@ -178,6 +178,11 @@ $panel->add_track(graded_segments => $partial_gene,
 		  -label   => 1,
 		  -key     => 'Scored thing');
 
+$panel->add_track(diamond => [$segment,$zk154_1,$zk154_2,$zk154_3,$xyz4,$zed_27],
+		  -bgcolor =>'blue',
+		  -label   => 1,
+		  -key     => 'pointy thing');
+
 #print $panel->png;
 
 my $gd    = $panel->gd;
