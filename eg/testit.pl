@@ -89,7 +89,7 @@ $panel->add_track($segment,
 		 );
 $panel->unshift_track(generic => [$segment,$zk154_1,$zk154_2,$zk154_3,[$xyz4,$zed_27]],
 		      -label     => 1,
-		      -bgcolor   => sub { shift->type eq 'predicted' ? 'cyan' : 'pink'},
+		      -bgcolor   => sub { shift->type eq 'predicted' ? 'olive' : 'red'},
 		      -connector => sub { my $feature = shift;
 					  my $type = $feature->type;
 					  $type eq 'group'      ? 'dashed'

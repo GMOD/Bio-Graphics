@@ -203,18 +203,17 @@ sub move {
 # get an option
 sub option {
   my $self = shift;
-  my ($option_name,$partno) = @_;
+  my $option_name = shift;
   my $factory = $self->factory;
   return unless $factory;
-  $factory->option($self,$option_name,$partno);
+  $factory->option($self,$option_name,@{$self}{qw(partno total_parts)});
 }
 
 # some common options
 sub color {
   my $self = shift;
   my $color = shift;
-  my $partno = shift;
-  my $index = $self->option($color,$partno);
+  my $index = $self->option($color);
   # turn into a color index
   return $self->factory->translate_color($index) if defined $index;
   return 0;
@@ -253,8 +252,7 @@ sub font2color {
 sub tkcolor { shift->color('tkcolor') } # "track color"
 sub connector_color {
   my $self = shift;
-  my $partno = shift;
-  $self->color('connector_color',$partno) || $self->fgcolor;
+  $self->color('connector_color') || $self->fgcolor;
 }
 
 # handle collision detection
@@ -278,10 +276,8 @@ sub layout {
     return $self->{layout_height} = $highest + $self->pad_top + $self->pad_bottom;
   }
 
-  my @occupied;
-
-  warn "bump...\n";
-  for my $g (sort { $a->left <=> $b->left} @parts) {
+  my %occupied;
+  for my $g (sort { $a->left <=> $b->left } @parts) {
 
     my $pos = 0;
 
@@ -289,28 +285,26 @@ sub layout {
       # look for collisions
       my $bottom = $pos + $g->{layout_height};
 
-      my $collision = 0;
-      for my $old (@occupied) {
-	last if $old->right + 2 < $g->left;
-	next if $old->bottom < $pos;
-	next if $old->top > $bottom;
+      my $collision;
+      for my $old (sort {$b->[2]<=> $a->[2]} values %occupied) {
+	last if $old->[2] + 2 < $g->left;
+	next if $old->[3]  < $pos;
+	next if $old->[1] > $bottom;
 	$collision = $old;
 	last;
       }
       last unless $collision;
 
-      warn (($g->parts)[0]->label," collides with ",($collision->parts)[0]->label,"\n");
-
       if ($bump_direction > 0) {
-	$pos += $collision->{layout_height} + BUMP_SPACING;                    # collision, so bump
+	$pos += $collision->[3]-$collision->[1] + BUMP_SPACING;                    # collision, so bump
 
       } else {
-	$pos -= $g->{layout_height} - BUMP_SPACING;
+#	$pos -= $g->{layout_height} - BUMP_SPACING;
+	$pos -= BUMP_SPACING;
       }
     }
     $g->move(0,$pos);
-
-    @occupied = sort { $b->right <=> $a->right } ($g,@occupied);
+    $occupied{$g} = [$g->left,$g->top,$g->right,$g->bottom];
   }
 
   # If -1 bumping was allowed, then normalize so that the top glyph is at zero
@@ -333,6 +327,9 @@ sub draw {
   my $gd = shift;
   my ($left,$top,$partno,$total_parts) = @_;
 
+  local($self->{partno},$self->{total_parts});
+  @{$self}{qw(partno total_parts)} = ($partno,$total_parts);
+
   $self->layout;
   if (my @parts = $self->parts) {
     my $connector =  $self->connector;
@@ -343,7 +340,7 @@ sub draw {
     }
     $self->draw_connectors($gd,$x,$y) if $connector;
   } else {  # no part
-    $self->draw_component($gd,$left,$top,$partno,$total_parts);
+    $self->draw_component($gd,$left,$top);
   }
 }
 
@@ -363,7 +360,7 @@ sub draw_connectors {
     my $top2     = $dy + $yt;
     my $bottom2  = $dy + $yb;
 
-    $self->draw_connector($gd,$i,
+    $self->draw_connector($gd,
 			  $top1,$bottom1,$left,
 			  $top2,$bottom2,$right,
 			 );
@@ -373,10 +370,9 @@ sub draw_connectors {
 sub draw_connector {
   my $self   = shift;
   my $gd     = shift;
-  my $partno = shift;
 
-  my $color          = $self->connector_color($partno||0);
-  my $connector_type = $self->connector($partno) or return;
+  my $color          = $self->connector_color;
+  my $connector_type = $self->connector or return;
   if ($connector_type eq 'hat') {
     $self->draw_hat_connector($gd,$color,@_);
   } elsif ($connector_type eq 'solid') {
@@ -561,3 +557,357 @@ sub default_factory {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Bio::Graphics::Glyph - Base class for Bio::Graphics::Glyph objects
+
+=head1 SYNOPSIS
+
+See L<Bio::Graphics::Panel>.
+
+=head1 DESCRIPTION
+
+Bio::Graphics::Glyph is the base class for all glyph objects.  Each
+glyph is a wrapper around an Bio:SeqFeatureI object, knows how to
+render itself on an Bio::Graphics::Panel, and has a variety of
+configuration variables.
+
+End developers will not ordinarily work directly with
+Bio::Graphics::Glyph objects, but with Bio::Graphics::Glyph::generic
+and its subclasses.  Similarly, most glyph developers will want to
+subclass from Bio::Graphics::Glyph::generic because the latter
+provides labeling and arrow-drawing facilities.
+
+=head1 METHODS
+
+This section describes the class and object methods for
+Bio::Graphics::Glyph.
+
+=head2 CONSTRUCTORS
+
+Bio::Graphics::Glyph objects are constructed automatically by an
+Bio::Graphics::Glyph::Factory, and are not usually created by
+end-developer code.
+
+=over 4
+
+=item $glyph = Bio::Graphics::Glyph->new(-feature=>$feature,-factory=>$factory)
+
+Given a sequence feature, creates an Bio::Graphics::Glyph object to
+display it.  The B<-feature> argument points to the Bio:SeqFeatureI
+object to display, and B<-factory> indicates an
+Bio::Graphics::Glyph::Factory object from which the glyph will fetch
+all its run-time configuration information.  Factories are created and
+manipulated by the Bio::Graphics::Panel object.
+
+A standard set of options are recognized.  See L<OPTIONS>.
+
+=back
+
+=head2 OBJECT METHODS
+
+Once a glyph is created, it responds to a large number of methods.  In
+this section, these methods are grouped into related categories.
+
+Retrieving glyph context:
+
+=over 4
+
+=item $factory = $glyph->factory
+
+Get the Bio::Graphics::Glyph::Factory associated with this object.
+This cannot be changed once it is set.
+
+=item $panel = $glyph->panel
+
+Get the Bio::Graphics::Panel associated with this object.  This cannot
+be changed once it is set.
+
+=item $feature = $glyph->feature
+
+Get the sequence feature associated with this object.  This cannot be
+changed once it is set.
+
+=back
+
+Retrieving glyph options:
+
+=over 4
+
+=item $fgcolor = $glyph->fgcolor
+
+=item $bgcolor = $glyph->bgcolor
+
+=item $fontcolor = $glyph->fontcolor
+
+=item $fontcolor = $glyph->font2color
+
+=item $fillcolor = $glyph->fillcolor
+
+These methods return the configured foreground, background, font,
+alternative font, and fill colors for the glyph in the form of a
+GD::Image color index.
+
+=item $color = $glyph->tkcolor
+
+This method returns a color to be used to flood-fill the entire glyph
+before drawing (currently used by the "track" glyph).
+
+=item $width = $glyph->width([$newwidth])
+
+Return the width of the glyph, not including left or right padding.
+This is ordinarily set internally based on the size of the feature and
+the scale of the panel.
+
+=item $width = $glyph->layout_width
+
+Returns the width of the glyph including left and right padding.
+
+=item $width = $glyph->height
+
+Returns the height of the glyph, not including the top or bottom
+padding.  This is calculated from the "height" option and cannot be
+changed.
+
+
+=item $font = $glyph->font
+
+Return the font for the glyph.
+
+=item $option = $glyph->option($option)
+
+Return the value of the indicated option.
+
+=item $index = $glyph->color($color)
+
+Given a symbolic or #RRGGBB-form color name, returns its GD index.
+
+=back
+
+Retrieving information about the sequence:
+
+=over 4
+
+=item $start = $glyph->start
+
+=item $end   = $glyph->end
+
+These methods return the start and end of the glyph in base pair
+units.
+
+=item $offset = $glyph->offset
+
+Returns the offset of the segment (the base pair at the far left of
+the image).
+
+=item $length = $glyph->length
+
+Returns the length of the sequence segment.
+
+=back
+
+
+Retrieving formatting information:
+
+=over 4
+
+=item $top = $glyph->top
+
+=item $left = $glyph->left
+
+=item $bottom = $glyph->bottom
+
+=item $right = $glyph->right
+
+These methods return the top, left, bottom and right of the glyph in
+pixel coordinates.
+
+=item $height = $glyph->height
+
+Returns the height of the glyph.  This may be somewhat larger or
+smaller than the height suggested by the GlyphFactory, depending on
+the type of the glyph.
+
+=item $scale = $glyph->scale
+
+Get the scale for the glyph in pixels/bp.
+
+=item $height = $glyph->labelheight
+
+Return the height of the label, if any.
+
+=item $label = $glyph->label
+
+Return a human-readable label for the glyph.
+
+=back
+
+These methods are called by Bio::Graphics::Track during the layout
+process:
+
+=over 4
+
+=item $glyph->move($dx,$dy)
+
+Move the glyph in pixel coordinates by the indicated delta-x and
+delta-y values.
+
+=item ($x1,$y1,$x2,$y2) = $glyph->box
+
+Return the current position of the glyph.
+
+=back
+
+These methods are intended to be overridden in subclasses:
+
+=over 4
+
+=item $glyph->calculate_height
+
+Calculate the height of the glyph.
+
+=item $glyph->calculate_left
+
+Calculate the left side of the glyph.
+
+=item $glyph->calculate_right
+
+Calculate the right side of the glyph.
+
+=item $glyph->draw($gd,$left,$top)
+
+Optionally offset the glyph by the indicated amount and draw it onto
+the GD::Image object.
+
+
+=item $glyph->draw_label($gd,$left,$top)
+
+Draw the label for the glyph onto the provided GD::Image object,
+optionally offsetting by the amounts indicated in $left and $right.
+
+=back
+
+These methods are useful utility routines:
+
+=over 4
+
+=item $pixels = $glyph->map_pt($bases);
+
+Map the indicated base position, given in base pair units, into
+pixels, using the current scale and glyph position.
+
+=item $glyph->filled_box($gd,$x1,$y1,$x2,$y2)
+
+Draw a filled rectangle with the appropriate foreground and fill
+colors, and pen width onto the GD::Image object given by $gd, using
+the provided rectangle coordinates.
+
+=item $glyph->filled_oval($gd,$x1,$y1,$x2,$y2)
+
+As above, but draws an oval inscribed on the rectangle.
+
+=back
+
+=head2 OPTIONS
+
+The following options are standard among all Glyphs.  See individual
+glyph pages for more options.
+
+  Option      Description               Default
+  ------      -----------               -------
+
+  -fgcolor    Foreground color		black
+
+  -outlinecolor				black
+	      Synonym for -fgcolor
+
+  -bgcolor    Background color          white
+
+  -fillcolor  Interior color of filled  turquoise
+	      images
+
+  -linewidth  Width of lines drawn by	1
+		    glyph
+
+  -height     Height of glyph		10
+
+  -font       Glyph font		gdSmallFont
+
+  -label      Whether to draw a label	false
+
+You may pass an anonymous subroutine to -label, in which case the
+subroutine will be invoked with the feature as its single argument.
+The subroutine must return a string to render as the label.
+
+=head1 SUBCLASSING Bio::Graphics::Glyph
+
+By convention, subclasses are all lower-case.  Begin each subclass
+with a preamble like this one:
+
+ package Bio::Graphics::Glyph::crossbox;
+
+ use strict;
+ use vars '@ISA';
+ @ISA = 'Bio::Graphics::Glyph';
+
+Then override the methods you need to.  Typically, just the draw()
+method will need to be overridden.  However, if you need additional
+room in the glyph, you may override calculate_height(),
+calculate_left() and calculate_right().  Do not directly override
+height(), left() and right(), as their purpose is to cache the values
+returned by their calculating cousins in order to avoid time-consuming
+recalculation.
+
+A simple draw() method looks like this:
+
+ sub draw {
+  my $self = shift;
+  $self->SUPER::draw(@_);
+  my $gd = shift;
+
+  # and draw a cross through the box
+  my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries(@_);
+  my $fg = $self->fgcolor;
+  $gd->line($x1,$y1,$x2,$y2,$fg);
+  $gd->line($x1,$y2,$x2,$y1,$fg);
+ }
+
+This subclass draws a simple box with two lines criss-crossed through
+it.  We first call our inherited draw() method to generate the filled
+box and label.  We then call calculate_boundaries() to return the
+coordinates of the glyph, disregarding any extra space taken by
+labels.  We call fgcolor() to return the desired foreground color, and
+then call $gd->line() twice to generate the criss-cross.
+
+For more complex draw() methods, see Bio::Graphics::Glyph::transcript
+and Bio::Graphics::Glyph::segments.
+
+=head1 BUGS
+
+Please report them.
+
+=head1 SEE ALSO
+
+L<Ace::Sequence>, L<Ace::Sequence::Feature>, L<Bio::Graphics::Panel>,
+L<Bio::Graphics::Track>, L<Bio::Graphics::Glyph::anchored_arrow>,
+L<Bio::Graphics::Glyph::arrow>,
+L<Bio::Graphics::Glyph::box>,
+L<Bio::Graphics::Glyph::primers>,
+L<Bio::Graphics::Glyph::segments>,
+L<Bio::Graphics::Glyph::toomany>,
+L<Bio::Graphics::Glyph::transcript>,
+
+=head1 AUTHOR
+
+Lincoln Stein <lstein@cshl.org>.
+
+Copyright (c) 2001 Cold Spring Harbor Laboratory
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.  See DISCLAIMER.txt for
+disclaimers of warranty.
+
+=cut

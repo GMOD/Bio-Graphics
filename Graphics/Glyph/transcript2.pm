@@ -6,12 +6,12 @@ use base 'Bio::Graphics::Glyph::generic';
 sub draw_component {
   my $self = shift;
   my $gd = shift;
-  my ($left,$top,$partno,$total_parts) = @_;
+  my ($left,$top) = @_;
   my @rect = $self->bounds(@_);
 
-  if ($self->feature->strand < 0 && $partno == 0) { # first exon, minus strand transcript
+  if ($self->feature->strand < 0 && $self->{partno} == 0) { # first exon, minus strand transcript
     $self->filled_arrow($gd,-1,@rect);
-  } elsif ($self->feature->strand >= 0 && $partno == $total_parts-1) { # last exon, plus strand
+  } elsif ($self->feature->strand >= 0 && $self->{partno} == $self->{total_parts}-1) { # last exon, plus strand
         $self->filled_arrow($gd,+1,@rect);
   } else {
     $self->SUPER::draw_component($gd,@_);

@@ -113,7 +113,8 @@ HTMLLIBPODS    =
 HTMLSCRIPTPODS = 
 MAN1PODS = 
 MAN3PODS = Graphics/Feature.pm \
-	Graphics/Glyph/arrow.pm
+	Graphics/Glyph/arrow.pm \
+	Graphics/Panel.pm
 HTMLEXT = html
 INST_MAN1DIR = blib/man1
 INSTALLMAN1DIR = /usr/local/man/man1
@@ -156,31 +157,35 @@ EXPORT_LIST =
 PERL_ARCHIVE = 
 
 TO_INST_PM = Graphics/Feature.pm \
+	Graphics/Feature.pm~ \
 	Graphics/Glyph.pm \
 	Graphics/Glyph.pm~ \
 	Graphics/Glyph/Factory.pm \
 	Graphics/Glyph/Factory.pm~ \
+	Graphics/Glyph/alignment.pm \
+	Graphics/Glyph/alignment.pm~ \
 	Graphics/Glyph/arrow.pm \
 	Graphics/Glyph/arrow.pm~ \
+	Graphics/Glyph/ellipse.pm \
+	Graphics/Glyph/ellipse.pm~ \
 	Graphics/Glyph/generic.pm \
 	Graphics/Glyph/generic.pm~ \
 	Graphics/Glyph/group.pm \
+	Graphics/Glyph/group.pm~ \
 	Graphics/Glyph/oval.pm \
+	Graphics/Glyph/oval.pm~ \
 	Graphics/Glyph/track.pm \
+	Graphics/Glyph/track.pm~ \
 	Graphics/Glyph/transcript.pm \
 	Graphics/Glyph/transcript.pm~ \
 	Graphics/Glyph/transcript2.pm \
 	Graphics/Panel.pm \
 	Graphics/Panel.pm~
 
-PM_TO_BLIB = Graphics/Glyph/generic.pm~ \
+PM_TO_BLIB = Graphics/Glyph/track.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/track.pm~ \
+	Graphics/Glyph/generic.pm~ \
 	$(INST_LIBDIR)/Graphics/Glyph/generic.pm~ \
-	Graphics/Glyph/transcript.pm~ \
-	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ \
-	Graphics/Glyph/arrow.pm~ \
-	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ \
-	Graphics/Glyph/Factory.pm~ \
-	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ \
 	Graphics/Glyph/generic.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/generic.pm \
 	Graphics/Glyph/arrow.pm \
@@ -189,24 +194,44 @@ PM_TO_BLIB = Graphics/Glyph/generic.pm~ \
 	$(INST_LIBDIR)/Graphics/Glyph/group.pm \
 	Graphics/Glyph/transcript.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm \
+	Graphics/Glyph/ellipse.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/ellipse.pm \
+	Graphics/Panel.pm~ \
+	$(INST_LIBDIR)/Graphics/Panel.pm~ \
+	Graphics/Glyph/oval.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/oval.pm~ \
+	Graphics/Glyph/track.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
+	Graphics/Glyph.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph.pm~ \
+	Graphics/Panel.pm \
+	$(INST_LIBDIR)/Graphics/Panel.pm \
+	Graphics/Glyph/alignment.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/alignment.pm~ \
+	Graphics/Glyph/transcript2.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript2.pm \
+	Graphics/Glyph/alignment.pm \
+	$(INST_LIBDIR)/Graphics/Glyph/alignment.pm \
+	Graphics/Glyph/transcript.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ \
+	Graphics/Feature.pm~ \
+	$(INST_LIBDIR)/Graphics/Feature.pm~ \
+	Graphics/Glyph/Factory.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ \
+	Graphics/Glyph/arrow.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ \
+	Graphics/Glyph/group.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/group.pm~ \
+	Graphics/Glyph/ellipse.pm~ \
+	$(INST_LIBDIR)/Graphics/Glyph/ellipse.pm~ \
 	Graphics/Glyph/oval.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/oval.pm \
 	Graphics/Feature.pm \
 	$(INST_LIBDIR)/Graphics/Feature.pm \
 	Graphics/Glyph/Factory.pm \
 	$(INST_LIBDIR)/Graphics/Glyph/Factory.pm \
-	Graphics/Panel.pm~ \
-	$(INST_LIBDIR)/Graphics/Panel.pm~ \
-	Graphics/Glyph/track.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/track.pm \
 	Graphics/Glyph.pm \
-	$(INST_LIBDIR)/Graphics/Glyph.pm \
-	Graphics/Glyph.pm~ \
-	$(INST_LIBDIR)/Graphics/Glyph.pm~ \
-	Graphics/Panel.pm \
-	$(INST_LIBDIR)/Graphics/Panel.pm \
-	Graphics/Glyph/transcript2.pm \
-	$(INST_LIBDIR)/Graphics/Glyph/transcript2.pm
+	$(INST_LIBDIR)/Graphics/Glyph.pm
 
 
 # --- MakeMaker tool_autosplit section:
@@ -435,10 +460,13 @@ POD2MAN = $(PERL) -we '%m=@ARGV;for (keys %m){' \
 -e 'chmod(oct($(PERM_RW))), $$m{$$_} or warn "chmod $(PERM_RW) $$m{$$_}: $$!\n";}'
 
 manifypods : pure_all Graphics/Feature.pm \
+	Graphics/Panel.pm \
 	Graphics/Glyph/arrow.pm
 	@$(POD2MAN) \
 	Graphics/Feature.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Feature.$(MAN3EXT) \
+	Graphics/Panel.pm \
+	$(INST_MAN3DIR)/Bio::Graphics::Panel.$(MAN3EXT) \
 	Graphics/Glyph/arrow.pm \
 	$(INST_MAN3DIR)/Bio::Graphics::Glyph::arrow.$(MAN3EXT)
 
@@ -467,7 +495,7 @@ clean ::
 # Delete temporary files (via clean) and also delete installed files
 realclean purge ::  clean
 	rm -rf $(INST_AUTODIR) $(INST_ARCHAUTODIR)
-	rm -f $(INST_LIBDIR)/Graphics/Glyph/generic.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ $(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ $(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Panel.pm~ $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm $(INST_LIBDIR)/Graphics/Glyph.pm~ $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm
+	rm -f $(INST_LIBDIR)/Graphics/Glyph/track.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm~ $(INST_LIBDIR)/Graphics/Glyph/generic.pm $(INST_LIBDIR)/Graphics/Glyph/arrow.pm $(INST_LIBDIR)/Graphics/Glyph/group.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm $(INST_LIBDIR)/Graphics/Panel.pm~ $(INST_LIBDIR)/Graphics/Glyph/oval.pm~ $(INST_LIBDIR)/Graphics/Glyph/track.pm $(INST_LIBDIR)/Graphics/Glyph.pm~ $(INST_LIBDIR)/Graphics/Panel.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm~ $(INST_LIBDIR)/Graphics/Glyph/transcript2.pm $(INST_LIBDIR)/Graphics/Glyph/alignment.pm $(INST_LIBDIR)/Graphics/Glyph/transcript.pm~ $(INST_LIBDIR)/Graphics/Feature.pm~ $(INST_LIBDIR)/Graphics/Glyph/Factory.pm~ $(INST_LIBDIR)/Graphics/Glyph/arrow.pm~ $(INST_LIBDIR)/Graphics/Glyph/group.pm~ $(INST_LIBDIR)/Graphics/Glyph/ellipse.pm~ $(INST_LIBDIR)/Graphics/Glyph/oval.pm $(INST_LIBDIR)/Graphics/Feature.pm $(INST_LIBDIR)/Graphics/Glyph/Factory.pm $(INST_LIBDIR)/Graphics/Glyph.pm
 	rm -rf Makefile Makefile.old
 
 

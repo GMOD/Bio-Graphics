@@ -56,6 +56,7 @@ sub _label {
   my $label = $self->option('label');
   return unless defined $label;
   return $label unless $label eq '1';
+  return "1"    if $label eq '1 ';
 
   # figure it out ourselves
   my $f = $self->feature;
@@ -71,6 +72,7 @@ sub _description {
   my $label = $self->option('description');
   return unless defined $label;
   return $label unless $label eq '1';
+  return "1"   if $label eq '1 ';
 
   # fetch modularity-breaking acedb sequence object information
   # for backward compatibility with wormbase requirements

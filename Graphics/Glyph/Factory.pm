@@ -104,7 +104,7 @@ sub set_option {
 #    ...followed by generic options
 sub option {
   my $self = shift;
-  my ($glyph,$option_name,$partno) = @_;
+  my ($glyph,$option_name,$partno,$total_parts) = @_;
   return unless defined $option_name;
   $option_name = lc $option_name;   # canonicalize
 
@@ -115,7 +115,8 @@ sub option {
     if (defined(my $value  = $map->{$option_name})) {
       my $feature = $glyph->feature;
       return $value unless ref $value eq 'CODE';
-      return $value->($feature,$option_name,$partno);
+      my $val = $value->($feature,$option_name,$partno,$total_parts);
+      return defined $val && $val eq '*default*' ? $GENERIC_OPTIONS{$option_name} : $val;
     }
   }
 
