@@ -4,10 +4,10 @@ use strict;
 use vars '$VERSION';
 $VERSION = 1.1;
 
-*end         = \&stop;
+*stop        = \&end;
 *info        = \&name;
 *seqname     = \&name;
-*primary_tag = \&type;
+*type        = \&primary_tag;
 *exons       = *sub_SeqFeature = *merged_segments = \&segments;
 
 # usage:
@@ -59,9 +59,16 @@ sub add_segment {
 
   for my $seg (@_) {
     if (ref($seg) eq 'ARRAY') {
-      push @segments,$self->new(-start=>$seg->[0],
-				-stop=>$seg->[1],
-				-strand=>$self->{strand},
+      my ($start,$stop) = @{$seg};
+      my $strand = $self->{strand};
+
+      if ($start > $stop) {
+	($start,$stop) = ($stop,$start);
+	$strand *= -1;
+      }
+      push @segments,$self->new(-start=>$start,
+				-stop=>$stop,
+				-strand=>$strand,
 				-type  => $type);
     } else {
       push @segments,$seg;
@@ -70,7 +77,7 @@ sub add_segment {
   if (@segments) {
     $self->{segments} = [ sort {$a->start <=> $b->start } @segments ];
     $self->{start} = $self->{segments}[0]->start;
-    ($self->{stop}) = sort { $b <=> $a } map { $_->stop} @segments;
+    ($self->{stop}) = sort { $b <=> $a } map { $_->end} @segments;
   }
 }
 
@@ -80,20 +87,20 @@ sub segments {
   @$s;
 }
 sub score    { shift->{score}       }
-sub type     { shift->{type}        }
+sub primary_tag     { shift->{type}        }
 sub strand   { shift->{strand}      }
 sub name     { shift->{name}        }
 sub start    {
   my $self = shift;
   return $self->{start};
 }
-sub stop    {
+sub end    {
   my $self = shift;
   return $self->{stop};
 }
 sub length {
   my $self = shift;
-  return $self->stop - $self->start + 1;
+  return $self->end - $self->start + 1;
 }
 
 sub source_tag { shift->{source} }

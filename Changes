@@ -1,5 +1,7 @@
 Revision history for Perl extension Bio::Graphics.
-
+0.85  Mon Oct  1 16:41:57 EDT 2001
+	- Changed all instances of stop() to end() so that BioSeqFeatureI is supported
+	  correctly.
 0.82  Fri Jul 20 10:36:57 EDT 2001
 	- Removed perl 5.6'isms.
 	- Added appropriate documentation to Feature.

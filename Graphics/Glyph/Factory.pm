@@ -88,8 +88,8 @@ sub feature_to_glyph {
 
   return scalar $self->{stylesheet}->glyph($feature) if $self->{stylesheet};
   my $map = $self->glyph_map    or return 'generic';
-  return $map->($feature)       || 'generic' if ref($map) eq 'CODE';
-  return $map->{$feature->type} || 'generic';
+  return $map->($feature)              || 'generic' if ref($map) eq 'CODE';
+  return $map->{$feature->primary_tag} || 'generic';
 }
 
 sub set_option {

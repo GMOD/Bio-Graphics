@@ -16,9 +16,9 @@ my $zk154_3 = $ftr->new(-start=>900,-end=>1200,-name=>'ZK154.3',-type=>'gene');
 my $zed_27 = $ftr->new(-segments=>[[400,500],[550,600],[800,950]],
 		   -name=>'zed-27',
 		   -subtype=>'exon',-type=>'transcript');
-my $abc3 = $ftr->new(-segments=>[[100,200],[350,400],[500,550]],
-		    -name=>'abc3',
-		   -strand => -1,
+my $abc3 = $ftr->new(-segments=>[[550,500],[400,350],[200,100]],
+		    -name=>'abc53',
+ 		    -strand => +1,
 		    -subtype=>'exon',-type=>'transcript');
 my $xyz4 = $ftr->new(-segments=>[[40,80],[100,120],[200,280],[300,320]],
 		     -name=>'xyz4',
@@ -71,8 +71,8 @@ my $panel = Bio::Graphics::Panel->new(
 my @colors = $panel->color_names();
 
 $panel->add_track(
-		  generic => [$abc3,$zed_27],
-#		  transcript2 => [$abc3,$zed_27],
+#		  generic => [$abc3,$zed_27],
+		  transcript2 => [$abc3,$zed_27],
 		  -label => 1,
 		  -bump => 1,
 		  -key => 'Prophecies',
@@ -90,9 +90,9 @@ $panel->add_track($segment,
 		 );
 $panel->unshift_track(generic => [$segment,$zk154_1,$zk154_2,$zk154_3,[$xyz4,$zed_27]],
 		      -label     => 1,
-		      -bgcolor   => sub { shift->type eq 'predicted' ? 'olive' : 'red'},
+		      -bgcolor   => sub { shift->primary_tag eq 'predicted' ? 'olive' : 'red'},
 		      -connector => sub { my $feature = shift;
-					  my $type = $feature->type;
+					  my $type = $feature->primary_tag;
 					  $type eq 'group'      ? 'dashed'
 					    : $type eq 'transcript' ? 'hat'
 					      : $type eq 'alignment'  ? 'solid'
@@ -125,7 +125,7 @@ $panel->add_track(
 #		  -description => sub { shift->sub_SeqFeature > 0 },
 		  -description => sub {
 		    my $feature = shift;
-		    return 1   if $feature->type eq 'transcript';
+		    return 1   if $feature->primary_tag eq 'transcript';
 		    return '*' if $feature->source_tag eq 'predicted';
 		    return;
 		  },
@@ -136,10 +136,10 @@ $panel->add_track(
 		 );
 $panel->add_track(generic => [$segment,$zk154_1,[$zk154_2,$xyz4]],
 		  -label     => 1,
-		  -bgcolor   => sub { shift->type eq 'predicted' ? 'green' : 'blue'},
-		  -connector => sub { my $type = shift->type;
-				      $type eq 'transcript' ? 'hat'
-				    : $type eq 'alignment'  ? 'solid'
+		  -bgcolor   => sub { shift->primary_tag eq 'predicted' ? 'green' : 'blue'},
+		  -connector => sub { my $primary_tag = shift->primary_tag;
+				      $primary_tag eq 'transcript' ? 'hat'
+				    : $primary_tag eq 'alignment'  ? 'solid'
 				    : undef},
 		  -connector_color => 'black',
 		  -height => 10,

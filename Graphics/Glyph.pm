@@ -78,7 +78,7 @@ sub start   {
 sub stop    {
   my $self = shift;
   return $self->{stop} if exists $self->{stop};
-  $self->{stop} = $self->{feature}->stop;
+  $self->{stop} = $self->{feature}->end;
 }
 sub end     { shift->stop }
 sub map_pt  { shift->{factory}->map_pt(@_) }
@@ -206,7 +206,7 @@ sub boxes {
 
   $self->layout;
   for my $part ($self->parts) {
-    if ($part->feature->type eq 'group') {
+    if ($part->feature->primary_tag eq 'group') {
       push @result,$part->boxes($left+$self->left,$top+$self->top);
     } else {
       my ($x1,$y1,$x2,$y2) = $part->box;
