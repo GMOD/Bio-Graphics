@@ -71,7 +71,7 @@ my $panel = Bio::Graphics::Panel->new(
 my @colors = $panel->color_names();
 
 $panel->add_track(
-		  crossbox => [$abc3,$zed_27],
+		  generic => [$abc3,$zed_27],
 #		  transcript2 => [$abc3,$zed_27],
 		  -label => 1,
 		  -bump => 1,
