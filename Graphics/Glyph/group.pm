@@ -9,7 +9,7 @@ use Bio::Graphics::Glyph::segmented_keyglyph;
 sub connector {
   my $self = shift;
   return $self->SUPER::connector(@_) if $self->all_callbacks;
-  return 'dashed';
+  return 'dashed' unless $self->SUPER::connector eq 'none';
 }
 
 #sub layout_width {

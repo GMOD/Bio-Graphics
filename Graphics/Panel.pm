@@ -49,7 +49,7 @@ sub new {
 
   return bless {
 		tracks => [],
-		width  => $options{-width} || 600,
+		width      => $options{-width} || 600,
 		pad_top    => $options{-pad_top}||0,
 		pad_bottom => $options{-pad_bottom}||0,
 		pad_left   => $options{-pad_left}||0,
@@ -102,7 +102,7 @@ sub map_pt {
   my $pr = $self->width - $self->pad_right;
   my @result;
   foreach (@_) {
-    my $val = $pl + ($_-$offset) * $scale;
+    my $val = $pl + ($_-$offset-1) * $scale;
     $val = $pl-1 if $val < $pl;
     $val = $pr+1 if $val > $pr;
     push @result,$val;
@@ -111,7 +111,7 @@ sub map_pt {
 }
 sub scale {
   my $self = shift;
-  $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right)/$self->length;
+  $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right-1)/($self->length-1);
 }
 sub offset { shift->{offset} }
 sub width {
@@ -155,6 +155,8 @@ sub length {
   }
   $d;
 }
+
+sub gridcolor {shift->{gridcolor}}
 
 sub all_callbacks { shift->{all_callbacks} }
 

@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.15 2002-02-12 19:32:56 lstein Exp $
+# $Id: FeatureFile.pm,v 1.16 2002-02-16 09:49:22 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -141,7 +141,8 @@ sub parse_line {
   if (/^([\w ]+?)\s*=\s*(.*)/) {   # key value pair within a configuration section
     my $tag = lc $1;
     my $cc = $self->{current_config} ||= 'general';       # in case no configuration named
-    $self->{config}{$cc}{$tag} = $2 || '';    # empty string, not undef
+    my $value = defined $2 ? $2 : '';
+    $self->{config}{$cc}{$tag} = $value;
     $self->{current_tag} = $tag;
     return;
   }
@@ -153,7 +154,7 @@ sub parse_line {
   }
 
   # parse data lines
-  my @tokens = eval { shellwords($_) };
+  my @tokens = eval { shellwords($_||'') };
   unshift @tokens,'' if /^\s+/;
 
   # close any open group
@@ -277,6 +278,15 @@ sub style {
   my $hashref = $config->{$type} or return;
 
   return map {("-$_" => $hashref->{$_})} keys %$hashref;
+}
+
+# retrieve just the glyph part of the configuration
+sub glyph {
+  my $self = shift;
+  my $type = shift;
+  my $config  = $self->{config}  or return;
+  my $hashref = $config->{$type} or return;
+  return $hashref->{glyph};
 }
 
 # return list of configured types, in proper order
@@ -474,7 +484,7 @@ sub refs {
 sub feature2label {
   my $self = shift;
   my $feature = shift;
-  my $type  = $feature->type;
+  my $type  = eval {$feature->type} or return;
   my $label = $self->type2label($type) || $self->type2label($feature->primary_tag) || $type;
   $label;
 }
@@ -517,7 +527,7 @@ sub invert_types {
   my %inverted;
   for my $label (keys %{$config}) {
     my $feature = $config->{$label}{feature} or next;
-    foreach (shellwords($feature)) {
+    foreach (shellwords($feature||'')) {
       $inverted{$_} = $label;
     }
   }

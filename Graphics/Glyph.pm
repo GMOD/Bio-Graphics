@@ -182,7 +182,7 @@ sub bounds {
   $dx += 0; $dy += 0;
   ($dx + $self->{left},
    $dy + $self->top    + $self->pad_top,
-   $dx + $self->{left} + $self->{width} -1,
+   $dx + $self->{left} + $self->{width} - 1,
    $dy + $self->bottom - $self->pad_bottom);
 }
 
@@ -454,7 +454,7 @@ sub draw {
       $parts[$i]->draw($gd,$fake_x,$y,$i,scalar(@parts));
       $last_x = $parts[$i]->right;
     }
-    $self->draw_connectors($gd,$x,$y) if $connector;
+    $self->draw_connectors($gd,$x,$y) if $connector && $connector ne 'none';
   } else {  # no part
     $self->draw_component($gd,$left,$top);
   }

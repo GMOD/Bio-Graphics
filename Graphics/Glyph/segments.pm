@@ -17,7 +17,7 @@ use vars '@ISA';
 sub connector {
   my $self = shift;
   return $self->SUPER::connector(@_) if $self->all_callbacks;
-  return 'solid';
+  return return $self->SUPER::connector(@_) || 'solid';
 }
 # group sets connector to 'solid'
 sub bump {
