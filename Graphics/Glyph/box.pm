@@ -3,6 +3,7 @@ package Bio::Graphics::Glyph::box;
 
 use strict;
 use vars '@ISA';
+use Bio::Graphics::Glyph::generic;
 @ISA = 'Bio::Graphics::Glyph::generic';
 
 1;
