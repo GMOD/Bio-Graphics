@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.99';
+$VERSION = '1.00';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 5; # extra space between key columns
@@ -94,15 +94,17 @@ sub pad_bottom {
   $self->{pad_bottom} = shift if @_;
   $g;
 }
+
+# numerous direct calls into array used here for performance considerations
 sub map_pt {
   my $self = shift;
   my $offset = $self->{offset};
-  my $scale  = $self->scale;
-  my $pl = $self->pad_left;
-  my $pr = $self->width - $self->pad_right;
+  my $scale  = $self->{scale} || $self->scale;
+  my $pl = $self->{pad_left};
+  my $pr = $self->{width} - $self->{pad_right};
   my @result;
   foreach (@_) {
-    my $val = $pl + ($_-$offset-1) * $scale;
+    my $val = int (0.5 + $pl + ($_-$offset-1) * $scale);
     $val = $pl-1 if $val < $pl;
     $val = $pr+1 if $val > $pr;
     push @result,$val;
@@ -113,6 +115,10 @@ sub scale {
   my $self = shift;
   $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right-1)/($self->length-1);
 }
+
+sub start { shift->{offset}+1}
+sub end   { $_[0]->start + $_[0]->{length}-1}
+
 sub offset { shift->{offset} }
 sub width {
   my $self = shift;
@@ -238,7 +244,7 @@ sub _add_track {
   $features = [$features] unless ref $features eq 'ARRAY';
 
   # optional middle-level glyph is the group
-  foreach my $f (@$features) {
+  foreach my $f (grep {ref $_ eq 'ARRAY'} @$features) {
     next unless ref $f eq 'ARRAY';
     $f = Bio::Graphics::Feature->new(
 				     -segments=>$f,
@@ -306,7 +312,7 @@ sub gd {
     $gd->filledRectangle($pl,
 			 $offset,
 			 $width-$self->pad_right,
-			 $offset+$track->layout_height 
+			 $offset+$track->layout_height
 			 + ($self->{key_style} eq 'between' ? $self->{key_font}->height : 0),
 			 $track->tkcolor)
       if defined $track->tkcolor;
@@ -395,10 +401,13 @@ sub format_key {
       if (my @parts = $track->parts) {
 	$glyph = $parts[0]->keyglyph;
       } else {
-	my $t = Bio::Graphics::Feature->new(-segments=>[Bio::Graphics::Feature->new(-start=>1,-stop=>1)]);
+	my $t = Bio::Graphics::Feature->new(-segments=>
+					    [Bio::Graphics::Feature->new(-start => $self->offset,
+									 -stop  => $self->offset+$self->length)]);
 	my $g = $track->factory->make_glyph($t);
 	$glyph = $g->keyglyph;
       }
+      next unless $glyph;
 
       $tracks{$track} = $glyph;
       my ($h,$w) = ($glyph->layout_height,
@@ -462,7 +471,10 @@ sub draw_grid {
     @positions = @{$self->{grid}};
   } else {
     my ($major,$minor) = $self->ticks;
-    @positions = (@$major,@$minor);
+    my $first_tick = $minor * int(0.5 + $self->start/$minor);
+    for (my $i = $first_tick; $i < $self->end; $i += $minor) {
+      push @positions,$i;
+    }
   }
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
@@ -476,45 +488,26 @@ sub draw_grid {
 # calculate major and minor ticks, given a start position
 sub ticks {
   my $self = shift;
-  my ($start,$end,$font,$divisor) = @_;
-  $start   = $self->{offset}+1             unless defined $start;
-  $end     = $start + $self->{length} - 1  unless defined $end;
-  $font ||= gdSmallFont;
-  $divisor ||= 1;
+  my ($length,$minwidth) = @_;
 
-  my (@major,@minor);
+  $length   = $self->{length}       unless defined $length;
+  $minwidth = gdSmallFont->width*7  unless defined $minwidth;
+
+  my ($major,$minor);
 
   # figure out tick mark scale
   # we want no more than 1 major tick mark every 40 pixels
   # and enough room for the labels
   my $scale = $self->scale;
-  my $width = $font->width;
 
   my $interval = 1;
-  my $mindist  = 4 + $width*8;
-  my $widest   = 4 + (CORE::length(int($end/$divisor)) * $width);
-  $mindist = $widest if $widest > $mindist;
 
   while (1) {
     my $pixels = $interval * $scale;
-    last if $pixels >= $mindist;
+    last if $pixels >= $minwidth;
     $interval *= 10;
   }
-
-  my $first_tick = $interval * int(0.5 + $start/$interval);
-
-  for (my $i = $first_tick; $i < $end; $i += $interval) {
-    push @major,$i;
-  }
-
-  $interval /= 10;
-  $first_tick = $interval * int(0.5 + $start/$interval);
-
-  for (my $i = $first_tick; $i < $end; $i += $interval) {
-    push @minor,$i;
-  }
-
-  return (\@major,\@minor);
+  return ($interval,$interval/10);
 }
 
 # reverse of translate(); given index, return rgb tripler
@@ -736,35 +729,88 @@ Bio::Graphics::Panel - Generate GD images of Bio::Seq objects
 
 =head1 SYNOPSIS
 
-  use Ace::Sequence;  # or any Bio::Seq factory
-  use Bio::Graphics::Panel;
+=head1 NAME
 
-  my $db     = Ace->connect(-host=>'brie2.cshl.org',-port=>2005) or die;
-  my $cosmid = Ace::Sequence->new(-seq=>'Y16B4A',
-				  -db=>$db,-start=>-15000,-end=>15000) or die;
+Bio::Graphics - Generate GD images of Bio::Seq objects
 
-  my @transcripts = $cosmid->transcripts;
+=head1 SYNOPSIS
 
+  use Bio::Graphics;
+  use Bio::DB::BioFetch;  # or some other Bio::SeqI generator
+
+  # get a Bio::SeqI object somehow
+  my $bf     = Bio::DB::BioFetch->new;
+  my $cosmid = $bf->getSeq_by_id('CEF58D5');
+
+  my @features = $seq->all_SeqFeatures;
+  my @CDS      = grep {$_->primary_tag eq 'CDS'}  @features;
+  my @gene     = grep {$_->primary_tag eq 'gene'} @features;
+  my @tRNAs    = grep {$_->primary_tag eq 'tRNA'} @features;
+
+  # let the drawing begin...
   my $panel = Bio::Graphics::Panel->new(
 				      -segment => $cosmid,
 				      -width  => 800
 				     );
 
-
   $panel->add_track(arrow => $cosmid,
- 		  -bump => 0,
- 		  -tick=>2);
+	  	   -bump => 0,
+		   -double=>1,
+		   -tick => 2);
 
-  $panel->add_track(transcript => \@transcripts,
- 		    -bgcolor   =>  'wheat',
- 		    -fgcolor   =>  'black',
-                    -key       => 'Curated Genes',
- 		    -bump      =>  +1,
- 		    -height    =>  10,
- 		    -label     =>  1);
+  $panel->add_track(transcript  => \@gene,
+		   -bgcolor    =>  'blue',
+		   -fgcolor    =>  'black',
+		   -key        => 'Genes',
+		   -bump       =>  +1,
+		   -height     =>  10,
+		   -label      => 1,
+		   -description=> 1
+		 ) ;
 
-  my $boxes = $panel->boxes;
-  print $panel->png;
+  $panel->add_track(transcript2  => \@CDS,
+		    -bgcolor    =>  'cyan',
+		    -fgcolor    =>  'black',
+		    -key        => 'CDS',
+		    -bump       =>  +1,
+		    -height     =>  10,
+		    -label      => \&cds_label,
+		    -description=> \&cds_description,
+		 );
+
+  $panel->add_track(generic    => \@tRNAs,
+		    -bgcolor   =>  'red',
+		    -fgcolor   =>  'black',
+		    -key       => 'tRNAs',
+		    -bump      =>  +1,
+		    -height    =>  8,
+		    -label      => 1,
+		   );
+
+  my $gd = $panel->gd;
+  print $gd->can('png') ? $gd->png : $gd->gif;
+
+  # these are callbacks used to generate nice labels and descriptions for
+  # the features...
+  sub cds_label {
+    my $feature = shift;
+    my @notes;
+    foreach (qw(product gene)) {
+      next unless $feature->has_tag($_);
+      @notes = $feature->each_tag_value($_);
+      last;
+    }
+    $notes[0];
+  }
+
+  sub cds_description {
+    my $feature = shift;
+    my @notes = $feature->each_tag_value('notes')
+                if $feature->has_tag('notes');
+    return unless @notes;
+    substr($notes[0],30) = '...' if length $notes[0] > 30;
+    $notes[0];
+  }
 
 =head1 DESCRIPTION
 

@@ -12,7 +12,7 @@ key = C. elegans conserved regions
 [EST]
 glyph = segments
 bgcolor= yellow
-connector = dashed
+connector = solid
 height = 5
 
 [FGENESH]

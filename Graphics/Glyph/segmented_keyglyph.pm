@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::segmented_keyglyph;
 
-# $Id: segmented_keyglyph.pm,v 1.3 2002-02-13 04:21:22 lstein Exp $
+# $Id: segmented_keyglyph.pm,v 1.4 2002-03-06 11:54:06 lstein Exp $
 # Don't use this package.  It's just for inheriting the segmented glyph in the panel key.
 
 use strict;

@@ -37,10 +37,10 @@ sub new {
   }
 
   if (defined $self->start && defined $self->stop) {
-      my ($left,$right) = $factory->map_pt($self->start,$self->stop);
-      ($left,$right) = ($right,$left) if $left > $right;  # paranoia
-      $self->{left}    = $left;
-      $self->{width}   = $right - $left + 1;
+    my ($left,$right) = $factory->map_pt($self->start,$self->stop);
+    ($left,$right) = ($right,$left) if $left > $right;  # paranoia
+    $self->{left}    = $left;
+    $self->{width}   = $right - $left + 1;
   }
   if (@subglyphs) {
       my $l            = $subglyphs[0]->left;
@@ -381,7 +381,7 @@ sub layout {
     my $highest = 0;
     foreach (@parts) {
       my $height = $_->layout_height;
-      $highest = $height > $highest ? $height : $highest;
+      $highest   = $height > $highest ? $height : $highest;
     }
     return $self->{layout_height} = $highest + $self->pad_top + $self->pad_bottom;
   }
@@ -439,9 +439,8 @@ sub draw {
   local($self->{partno},$self->{total_parts});
   @{$self}{qw(partno total_parts)} = ($partno,$total_parts);
 
-  $self->layout;
+  my $connector =  $self->connector;
   if (my @parts = $self->parts) {
-    my $connector =  $self->connector;
     my $x = $left;
     my $y = $top  + $self->top + $self->pad_top;
 
@@ -450,13 +449,17 @@ sub draw {
       # lie just a little bit to avoid lines overlapping and
       # make the picture prettier
       my $fake_x = $x;
-      $fake_x-- if defined $last_x && $parts[$i]->left - $last_x <= 1;
+      $fake_x-- if defined $last_x && $parts[$i]->left - $last_x == 1;
       $parts[$i]->draw($gd,$fake_x,$y,$i,scalar(@parts));
       $last_x = $parts[$i]->right;
     }
     $self->draw_connectors($gd,$x,$y) if $connector && $connector ne 'none';
-  } else {  # no part
+  }
+
+  else {  # no part
     $self->draw_component($gd,$left,$top);
+    $self->draw_connectors($gd,$left,$top)
+      if $connector && $connector ne 'none' && !$self->is_recursive;
   }
 }
 
@@ -469,7 +472,8 @@ sub draw_connectors {
     $self->_connector($gd,$dx,$dy,$parts[$i]->bounds,$parts[$i+1]->bounds);
   }
 
-  if (1) { # this is working, but it's a bit awkward
+  # extra connectors going off ends
+  if (@parts>1) {
     my($x1,$y1,$x2,$y2) = $self->bounds(0,0);
     my($xl,$xt,$xr,$xb) = $parts[0]->bounds;
     $self->_connector($gd,$dx,$dy,$x1,$xt,$x1,$xb,$xl,$xt,$xr,$xb);
@@ -488,7 +492,7 @@ sub _connector {
     my $bottom1  = $dy + $xb;
     my $top2     = $dy + $yt;
     my $bottom2  = $dy + $yb;
-    return unless $right-$left >= 1;
+    return unless $right-$left > 1;
 
     $self->draw_connector($gd,
 			  $top1,$bottom1,$left,
@@ -631,6 +635,7 @@ sub filled_arrow {
   my $orientation = shift;
 
   my ($x1,$y1,$x2,$y2) = @_;
+
   my ($width) = $gd->getBounds;
   my $indent = $y2-$y1 < $x2-$x1 ? $y2-$y1 : ($x2-$x1)/2;
 
@@ -702,12 +707,27 @@ sub draw_component {
   }
 }
 
+# memoize _subseq -- it's a bottleneck with segments
 sub subseq {
-  my $class = shift;
+  my $self    = shift;
   my $feature = shift;
-  return $feature->merged_segments if $feature->can('merged_segments');
-  return $feature->segments        if $feature->can('segments');
-  return $feature->sub_SeqFeature  if $feature->can('sub_SeqFeature');
+  return $self->_subseq($feature) unless ref $self;
+  return @{$self->{cached_subseq}{$feature}} if $self->{cached_subseq}{$feature};
+  my @ss = $self->_subseq($feature);
+  $self->{cached_subseq}{$feature} = \@ss;
+  @ss;
+}
+
+sub _subseq {
+  my $class   = shift;
+  my $feature = shift;
+  return $feature->merged_segments         if $feature->can('merged_segments');
+  return $feature->segments                if $feature->can('segments');
+  my @split = eval { my $id = $feature->location->seq_id;
+		     my @subs = $feature->location->sub_Location;
+		     grep {$id eq $_->seq_id} $feature->location->sub_Location};
+  return @split if @split;
+  return $feature->sub_SeqFeature          if $feature->can('sub_SeqFeature');
   return;
 }
 
@@ -749,6 +769,16 @@ sub all_callbacks {
 
 sub default_factory {
   croak "no default factory implemented";
+}
+
+# This returns true if the underlying feature is fully recursive, like Bio::DB::GFF or
+# Gadfly, false if the underlying feature has split locations, like Bio::Seq::RichSeq.
+# Play with this if you start getting labels appearing on each element of a segmented
+# glyph.
+sub is_recursive {
+  my $self = shift;
+  return $self->{_recursive} if exists $self->{_recursive};
+  return $self->{_recursive} = !$self->feature->isa('Bio::SeqFeature::Generic');
 }
 
 1;
