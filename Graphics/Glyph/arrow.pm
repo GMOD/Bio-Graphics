@@ -93,7 +93,7 @@ sub draw_parallel {
     my $offset   = $relative ? $self->feature->start-1 : 0;
     my $reversed = $self->feature->strand < 0;
 
-    my $units = $self->option('units') || '';
+    my $units = $self->option('units') || $self->calculate_units($start,$self->feature->length);
     my $divisor = $UNITS{$units} || 1 if $units;
 
     my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font,$divisor);
@@ -104,7 +104,8 @@ sub draw_parallel {
     my $left  = $sw ? $x1+$height : $x1;
     my $right = $ne ? $x2-$height : $x2;
 
-    my $format = ($major_ticks->[1]-$major_ticks->[0])/($divisor||1) < 1 ? "%.1f$units" : "%d$units";
+#    my $format = ($major_ticks->[1]-$major_ticks->[0])/($divisor||1) < 1 ? "%.6g$units" : "%d$units";
+      my $format = "%.6g$units";
 
     for my $i (@$major_ticks) {
       my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
@@ -154,6 +155,15 @@ sub arrowheads {
   }
   return ($sw,$ne,0,0) unless $self->option('base');
   return ($sw,$ne,!$sw,!$ne);
+}
+
+sub calculate_units {
+  my $self   = shift;
+  my ($start,$length) = @_;
+  return ''  if $length <= 1e3;
+  return 'G' if $start >= 1e8 || $length >= 1e9;
+  return 'M' if $start >= 1e7 || $length >= 1e6;
+  return 'K';
 }
 
 1;

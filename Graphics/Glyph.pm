@@ -41,7 +41,7 @@ sub new {
       ($left,$right) = ($right,$left) if $left > $right;  # paranoia
       $self->{left}    = $left;
       $self->{width}   = $right - $left + 1;
-  } 
+  }
   if (@subglyphs) {
       my $l            = $subglyphs[0]->left;
       $self->{left}    = $l if !defined($self->{left}) || $l < $self->{left};
