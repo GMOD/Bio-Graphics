@@ -1,4 +1,7 @@
 Revision history for Perl extension Bio::Graphics.
+0.96 Fri Jan 11 13:23:03 EST 2002
+	-Added support for displaying heterogeneous features, such as WABA similarities.
+
 0.95 Thu Jan  3 08:50:01 EST 2002  (LS)
 	-Removed generic genome browser from project, it is now part of
 	 Generic-Genome-Browser.
