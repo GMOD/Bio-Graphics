@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.10 2001-12-29 18:40:13 lstein Exp $
+# $Id: FeatureFile.pm,v 1.11 2001-12-29 18:54:24 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -197,8 +197,11 @@ sub parse_line {
   # the reference is specified by the GFF reference line first,
   # the last reference line we saw second,
   # or the reference line in the "general" section.
-  $ref  ||= $self->{config}{$self->{current_config}}{'reference'}
-            || $self->{config}{general}{reference};
+  {
+    local $^W = 0;
+    $ref  ||= $self->{config}{$self->{current_config}}{'reference'}
+      || $self->{config}{general}{reference};
+  }
   $self->{refs}{$ref}++ if defined $ref;
 
   my @parts = map { [/(-?\d+)(?:-|\.\.)(-?\d+)/]} split /(?:,| )\s*/,$bounds;
@@ -208,8 +211,10 @@ sub parse_line {
     $self->{max} = $_->[1] if !defined $self->{max} || $_->[1] > $self->{max};
   }
 
-  ($ref,@parts) = $self->{coordinate_mapper}->($ref,@parts) if $ref && $self->{coordinate_mapper};
-  return unless $ref;
+  if ($self->{coordinate_mapper} && $ref) {
+    ($ref,@parts) = $self->{coordinate_mapper}->($ref,@parts);
+    return unless $ref;
+  }
 
   # either create a new feature or add a segment to it
   if (my $feature = $self->{seenit}{$type,$name}) {
