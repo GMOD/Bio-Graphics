@@ -106,6 +106,13 @@ sub draw_parallel {
 
     my ($major_interval,$minor_interval) = $self->panel->ticks($stop-$start+1,$minlen);
 
+    if ($self->option('major_interval')) { ## allow user to overwrite, or too many ticks for chromsome
+        $major_interval = $self->option('major_interval');
+        $major_interval =~ s/K/000/i;
+        $major_interval =~ s/M/000000/i;
+        $minor_interval = $major_interval / 10;
+    }
+
     my $left  = $sw ? $x1+$height : $x1;
     my $right = $ne ? $x2-$height : $x2;
 

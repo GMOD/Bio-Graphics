@@ -3,8 +3,8 @@ package Bio::Graphics::Glyph::ruler_arrow;
 
 use strict;
 use vars '@ISA';
-use Bio::Graphics::Glyph::generic;
-@ISA = 'Bio::Graphics::Glyph::generic';
+use Bio::Graphics::Glyph::arrow;
+@ISA = 'Bio::Graphics::Glyph::arrow';
 
 my %UNITS = (K => 1000,
 	     M => 1_000_000,
@@ -26,6 +26,8 @@ sub draw {
   $self->draw_perpendicular(@_) unless $parallel;
   $self->draw_label(@_) if ($self->option('label'));
 }
+
+=begin
 
 sub draw_perpendicular {
   my $self = shift;
@@ -158,6 +160,8 @@ sub arrowheads {
   return ($sw,$ne,!$sw,!$ne);
 }
 
+=cut
+
 sub draw_label {
   my $self = shift;
   my ($gd,$left,$top) = @_;
@@ -174,8 +178,9 @@ sub draw_label {
   my $units = $self->option('units') || '';
   my $divisor = $UNITS{$units} || 1 if $units;
 
-  my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$self->font,$divisor);
-  my $tick_scale = " (".($major_ticks->[1]-$major_ticks->[0])." bp/";
+  my ($major_ticks,$minor_ticks) = $self->panel->ticks; #($start,$stop,$self->font,$divisor);
+  #my $tick_scale = " (".($major_ticks->[1]-$major_ticks->[0])." bp/";
+  my $tick_scale = "($major_ticks bp/";
   $tick_scale .= ($self->option('tick') >= 2)?"major tick)":"tick)";
 
   my $top_left_label = $label5;
@@ -228,7 +233,7 @@ Ace::Graphics::Glyph::arrow - The "ruler_arrow" glyph
 =head1 DESCRIPTION
 
 This glyph draws arrows.  Label, if requested, will be 5' and 3' at both ends
-and tick scale is printed if no_tick_label option is set and tick option set.
+and tick scale is printed if no_tick_label option is set as (interval bp/tick)
 Depending on options, the arrows can be labeled, be oriented vertically 
 or horizontally, or can contain major and minor ticks suitable for use as a scale.
 
