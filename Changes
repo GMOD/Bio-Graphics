@@ -1,4 +1,11 @@
 Revision history for Perl extension Bio::Graphics.
+1.02 Sun Mar 31 16:19:35 EST 2002
+	- This is the same version that is in BioPerl version 1.01.
+	- Make the Bio::Graphics::Feature objects more-or-less compatible with
+		Bio::SeqFeatureI and Bio::LocationI.  Slightly difficult because
+		this is a moving target.
+	- Minor bugfixes to support Generic Genome browser version 1.37
+	
 0.98 Fri Feb 22 14:02:11 EST 2002
 	-Fixed up the scale so that numbers don't (or shouldn't)
 	overlap.

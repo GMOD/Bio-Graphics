@@ -4,7 +4,7 @@ use Bio::SeqFeatureI;
 use Bio::LocationI;
 
 use vars '$VERSION','@ISA';
-$VERSION = '1.31';
+$VERSION = '1.40';
 @ISA  = qw(Bio::SeqFeatureI Bio::LocationI);
 
 *stop        = \&end;
@@ -37,11 +37,12 @@ sub new {
   $self->{type}    = $arg{-type}   || 'feature';
   $self->{subtype} = $arg{-subtype} if exists $arg{-subtype};
   $self->{source}  = $arg{-source} || $arg{-source_tag} || '';
-  $self->{score}   = $arg{-score}  || 0;
+  $self->{score}   = $arg{-score}   if exists $arg{-score};
   $self->{start}   = $arg{-start};
   $self->{stop}    = $arg{-end} || $arg{-stop};
   $self->{ref}     = $arg{-ref};
-  $self->{url}     = $arg{-url} if $arg{-url};
+  $self->{class}   = $arg{-class} if exists $arg{-class};
+  $self->{url}     = $arg{-url}   if exists $arg{-url};
 
   # fix start, stop
   if (defined $self->{stop} && defined $self->{start}

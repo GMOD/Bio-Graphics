@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.9 2002-03-24 19:15:06 lstein Exp $
+# $Id: transcript.pm,v 1.10 2002-03-31 21:22:48 lstein Exp $
 
 use strict;
 use Bio::Graphics::Glyph::generic;
