@@ -3,26 +3,14 @@ package Bio::Graphics::Glyph::anchored_arrow;
 
 use strict;
 use vars '@ISA';
-@ISA = 'Bio::Graphics::Glyph::generic';
+use Bio::Graphics::Glyph::arrow;
+@ISA = 'Bio::Graphics::Glyph::arrow';
 
-sub calculate_height {
-  my $self = shift;
-  my $val = $self->SUPER::calculate_height;
-  $val += $self->font->height if $self->option('tick');
-  $val;
-}
 
-# override draw method
-sub draw {
+sub arrowheads {
   my $self = shift;
-  my $gd = shift;
+  my ($ne,$sw,$base_e,$base_w);
   my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries(@_);
-
-  my $fg = $self->fgcolor;
-  my $a2 = ($y2-$y1)/2;
-  my $center = $y1+$a2;
-
-  $gd->line($x1,$center,$x2,$center,$fg);
 
   my $gstart  = $x1;
   my $gend    = $x2;
@@ -30,101 +18,13 @@ sub draw {
   my $pend    = $self->panel->right;
 
   if ($gstart < $pstart) {  # off left end
-    if ($x2 > $a2) {
-      $gd->line($x1,$center,$x1+$a2,$center-$a2,$fg);  # arrowhead
-      $gd->line($x1,$center,$x1+$a2,$center+$a2,$fg);
-    }
-  } else {
-    $gd->line($x1,$center-$a2,$x1,$center+$a2,$fg);  # tick/base
+    $sw = 1;
   }
-
-  if ($gend > $pend) {# off right end
-    if ($x1 < $x2-$a2-1) {
-      $x2--;
-      $gd->line($x2,$center,$x2-$a2,$center+$a2,$fg);  # arrowhead
-      $gd->line($x2,$center,$x2-$a2,$center-$a2,$fg);
-    }
-  } else {
-    # problems occur right at the very end because of GD confusion
-    $x2-- if $gend == $pend;
-    $gd->line($x2,$center-$a2,$x2,$center+$a2,$fg);  # tick/base
+  if ($gend > $pend) { # off right end
+    $ne = 1;
   }
-
-  $self->draw_ticks($gd,@_) if $self->option('tick');
-
-  # add a label if requested
-  $self->draw_label($gd,@_) if $self->option('label');
+  return ($sw,$ne,!$sw,!$ne);
 }
-
-sub draw_label {
-  my $self = shift;
-  my ($gd,$left,$top) = @_;
-  my $label = $self->label or return;
-  my $start = $self->left + ($self->right - $self->left - length($label) * $self->font->width)/2;
-  $gd->string($self->font,$left + $start,$top + $self->top,$label,$self->fontcolor);
-}
-
-sub draw_ticks {
-  my $self  = shift;
-  my ($gd,$left,$top) = @_;
-
-  my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries($left,$top);
-  my $a2 = ($y2-$y1)/2;
-  my $center = $y1+$a2;
-
-  my $scale = $self->scale;
-  my $fg = $self->fgcolor;
-
-  # figure out tick mark scale
-  # we want no more than 1 tick mark every 30 pixels
-  # and enough room for the labels
-  my $font = $self->font;
-  my $width = $font->width;
-  my $font_color = $self->fontcolor;
-
-  my $relative = $self->option('relative_coords');
-  my $start    = $relative ? 1 : $self->feature->start;
-  my $stop     = $start + $self->feature->length  - 1;
-
-  my $reversed = 0;
-  if ($self->feature->strand == -1) {
-    $stop = -$stop;
-    $reversed = 1;
-  }
-
-  my $interval = 1;
-  my $mindist =  30;
-  my $widest = 5 + (length($stop) * $width);
-  $mindist = $widest if $widest > $mindist;
-
-  while (1) {
-    my $pixels = $interval * $scale;
-    last if $pixels >= $mindist;
-    $interval *= 10;
-  }
-
-  my $first_tick = $interval * int(0.5 + $start/$interval);
-
-  for (my $i = $first_tick; $i < $stop; $i += $interval) {
-    my $tickpos = !$reversed ? $left + $self->map_pt($i-1 + $self->feature->start)
-                             : $left + $self->map_pt($self->feature->start - $i - 1);
-    $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
-    my $middle = $tickpos - (length($i) * $width)/2;
-    $gd->string($font,$middle,$center+$a2-1,$i,$font_color) 
-      if $middle > 0 && $middle < $self->factory->panel->width-($font->width * length $i);
-  }
-
-  if ($self->option('tick') >= 2) {
-    my $a4 = ($y2-$y1)/4;
-    for (my $i = $first_tick; $i < $stop; $i += $interval/10) {
-      my $tickpos = !$reversed ? $left + $self->map_pt($i-1 + $self->feature->start)
-	                       : $left + $self->map_pt($self->feature->start - $i - 1);
-      $gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
-    }
-  }
-}
-
-
 
 1;
 

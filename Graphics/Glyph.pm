@@ -99,7 +99,7 @@ sub add_feature {
 # link a set of features together so that they bump as a group
 sub add_group {
   my $self = shift;
-  my @features = @_;
+  my @features = ref($_[0]) eq 'ARRAY' ? @{$_[0]} : @_;
   my $f    = Bio::Graphics::Feature->new(
 				     -segments=>\@features,
 				     -type => 'group'
@@ -615,8 +615,12 @@ sub set_pen {
 sub draw_component {
   my $self = shift;
   my $gd = shift;
-  my ($left,$top) = @_;
   my($x1,$y1,$x2,$y2) = $self->bounds(@_);
+
+  # clipping
+  my $panel = $self->panel;
+  return unless $x2 >= $panel->left and $x1 <= $panel->right;
+
   if ($self->option('strand_arrow')) {
     $self->filled_arrow($gd,$self->feature->strand,
 			$x1, $y1,

@@ -28,6 +28,10 @@ my $m3 = $ftr->new(-segments=>[[20,40],[30,60],[90,270],[290,300]],
 		   -name=>'M3',
 		   -subtype=>'predicted',-type=>'alignment');
 
+my $bigone = $ftr->new(-segments=>[[-200,-120],[90,270],[290,300]],
+		   -name=>'big one',
+		   -subtype=>'predicted',-type=>'alignment');
+
 my $fred_12 = $ftr->new(-segments=>[$xyz4,$zed_27],
 			-type => 'group',
 			-name =>'fred-12');
@@ -61,8 +65,9 @@ foreach (@segments) {
 }
 
 my $panel = Bio::Graphics::Panel->new(
-				      -grid => [50,100,150,200,250,300,310,320,330],
-				      -gridcolor => 'orange',
+#				      -grid => [50,100,150,200,250,300,310,320,330],
+				      -gridcolor => 'lightcyan',
+				      -grid => 1,
 				      -segment => $segment,
 #				      -offset => 300,
 #				      -length  => 1000,
@@ -115,12 +120,18 @@ $panel->unshift_track(generic => [$segment,$zk154_1,$zk154_2,$zk154_3,[$xyz4,$ze
 		      -key => 'Signs',
 		 );
 
-my $track = $panel->add_track('arrow',
+my $track = $panel->add_track('transcript2',
 			      -label   => 1,
-			      -tkcolor => 'turquoise',
+			      -point  => 0,
+			      -orient => 'N',
+			      -height => 8,
+			      -base => 1,
+			      -relative_coords => 1,
+			      -tick  => 2,
+			      -bgcolor => 'red',
 			      -key     => 'Dynamically Added');
-$track->add_feature($zed_27,$abc3);
-$track->add_group($confirmed_exon1,$predicted_exon1,$predicted_exon2,$confirmed_exon3);
+$track->add_feature($bigone,$zed_27,$abc3);
+$track->add_group($predicted_exon1,$predicted_exon2,$confirmed_exon3);
 
 $panel->add_track(
 		  [$abc3,$zed_27,$partial_gene],

@@ -291,10 +291,12 @@ sub gd {
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
   my $offset = $pt;
+  my $keyheight   = $self->{key_font}->height;
+  my $between_key = $self->{key_style} eq 'between';
+  my $spacing = $self->spacing;
 
-  $self->draw_grid($gd)  if $self->{grid};
-
-  $offset = $pt;
+  # we draw in two steps, once for background of tracks, and once for
+  # the contents.  This allows the grid to sit on top of the track background.
   for my $track (@{$self->{tracks}}) {
     next unless $track->parts;
     $gd->filledRectangle($pl,
@@ -304,10 +306,18 @@ sub gd {
 			 + ($self->{key_style} eq 'between' ? $self->{key_font}->height : 0),
 			 $track->tkcolor)
       if defined $track->tkcolor;
-    $offset += $self->draw_between_key($gd,$track,$offset)
-      if $self->{key_style} eq 'between' && $track->option('key');
+    $offset += $keyheight if $between_key && $track->option('key');
+    $offset += $track->layout_height + $spacing;
+  }
+
+  $self->draw_grid($gd)  if $self->{grid};
+
+  $offset = $pt;
+  for my $track (@{$self->{tracks}}) {
+    next unless $track->parts;
+    $offset += $self->draw_between_key($gd,$track,$offset) if $between_key && $track->option('key');;
     $track->draw($gd,0,$offset,0,1);
-    $offset += $track->layout_height + $self->spacing;
+    $offset += $track->layout_height + $spacing;
   }
 
   $self->draw_bottom_key($gd,$pl,$offset) if $self->{key_style} eq 'bottom';
@@ -481,7 +491,10 @@ sub ticks {
     push @major,$i;
   }
 
-  for (my $i = $start+$interval/10; $i < $end; $i += $interval/10) {
+  $interval /= 10;
+  $first_tick = $interval * int(0.5 + $start/$interval);
+
+  for (my $i = $first_tick; $i < $end; $i += $interval) {
     push @minor,$i;
   }
 

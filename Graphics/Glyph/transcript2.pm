@@ -31,6 +31,12 @@ sub label {
   return 0 unless $self->feature->sub_SeqFeature;
   return $self->SUPER::label(@_);
 }
+sub description {
+  my $self = shift;
+  return $self->SUPER::description(@_) if $self->all_callbacks;
+  return 0 unless $self->feature->sub_SeqFeature;
+  return $self->SUPER::description(@_);
+}
 
 sub bump {
   my $self = shift;

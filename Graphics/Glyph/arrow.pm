@@ -61,56 +61,54 @@ sub draw_parallel {
   my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
 
   my $fg = $self->set_pen;
-  my $a2 = ($y2-$y1)/2;
+  my $a2 = ($self->height)/2;
   my $center = $y1+$a2;
 
-  my ($ne,$sw,$base);
-  if ($self->option('double')) {
-    $ne = $sw = 1;
-  } else {
-    $ne   = $self->option('northeast') || $self->option('east');
-    $sw   = $self->option('southwest') || $self->option('west');
-    $base = $self->option('base');
-  }
-
-  unless (defined($ne) || defined($sw)) {
-    # turn on both if neither specified
-    $ne = 1 if $self->feature->strand > 0;
-    $sw = 1 if $self->feature->strand < 0;
-  }
-
+  my ($sw,$ne,$base_w,$base_e) = $self->arrowheads;
   $gd->line($x1,$center,$x2,$center,$fg);
-  if ($sw) {  # west arrow
-    $self->arrowhead($gd,$x1,$center,$a2,-1);
-    $gd->line($x2,$center-$a2,$x2,$center+$a2,$fg) if $base;
-  }
-  if ($ne) {  # east arrow
-    $self->arrowhead($gd,$x2,$center,$a2,+1);
-    $gd->line($x1,$center-$a2,$x1,$center+$a2,$fg) if $base;
-  }
+  $self->arrowhead($gd,$x1,$center,$a2,-1) if $sw; # west arrow
+  $self->arrowhead($gd,$x2,$center,$a2,+1) if $ne; # east arrow
+  $gd->line($x2,$center-$a2,$x2,$center+$a2,$fg) if $base_e; #east base
+  $gd->line($x1,$center-$a2,$x1,$center+$a2,$fg) if $base_w; #west base
 
   # turn on ticks
   if ($self->option('tick')) {
     my $font = $self->font;
     my $width      = $font->width;
     my $font_color = $self->fontcolor;
-    my ($major_ticks,$minor_ticks) = $self->panel->ticks($self->start,$self->end,$font);
+    my $height   = $self->height;
+
+    my $relative = $self->option('relative_coords');
+    my $start    = $relative ? 1 : $self->feature->start;
+    my $stop     = $start + $self->feature->length  - 1;
+
+    my $offset   = $relative ? $self->feature->start-1 : 0;
+    my $reversed = $self->feature->strand < 0;
+
+    my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font);
 
     ## Does the user want to override the internal scale?
     my $scale = $self->option('scale');
 
+    my $left  = $sw ? $x1+$height : $x1;
+    my $right = $ne ? $x2-$height : $x2;
+
     for my $i (@$major_ticks) {
-      my $tickpos = $dx + $self->map_pt($i);
-      $gd->line($tickpos,$center-$a2,$dx+$tickpos,$center+$a2,$fg);
+      my $tickpos = $dx + $reversed ? $self->map_pt($stop - $i + $offset)
+	                            : $self->map_pt($i + $offset);
+      next if $tickpos < $left or $tickpos > $right;
+      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
       my $middle = $tickpos - (length($i) * $width)/2;
       my $label = $scale ? $i / $scale : $i;
       $gd->string($font,$middle,$center+$a2-1,$label,$font_color);
     }
 
     if ($self->option('tick') >= 2) {
-      my $a4 = ($y2-$y1)/4;
+      my $a4 = $self->height/4;
       for my $i (@$minor_ticks) {
-	my $tickpos = $dx + $self->map_pt($i);
+	my $tickpos = $dx + $reversed ? $self->map_pt($stop - $i + $offset)
+	                              : $self->map_pt($i + $offset);
+	next if $tickpos < $left or $tickpos > $right;
 	$gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
       }
     }
@@ -119,6 +117,25 @@ sub draw_parallel {
   # add a label if requested
   $self->draw_label($gd,$dx,$dy)       if $self->option('label');
   $self->draw_description($gd,$dx,$dy) if $self->option('description');
+}
+
+sub arrowheads {
+  my $self = shift;
+  my ($ne,$sw,$base_e,$base_w);
+  if ($self->option('double')) {
+    $ne = $sw = 1;
+  } else {
+    $ne   = $self->option('northeast') || $self->option('east');
+    $sw   = $self->option('southwest') || $self->option('west');
+  }
+  # otherwise use strandedness to define the arrow
+  unless (defined($ne) || defined($sw)) {
+    # turn on both if neither specified
+    $ne = 1 if $self->feature->strand > 0;
+    $sw = 1 if $self->feature->strand < 0;
+  }
+  return ($sw,$ne,0,0) unless $self->option('base');
+  return ($sw,$ne,!$sw,!$ne);
 }
 
 1;

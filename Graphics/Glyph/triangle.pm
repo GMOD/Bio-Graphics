@@ -5,7 +5,7 @@ use strict;
 use vars '@ISA';
 @ISA = 'Bio::Graphics::Glyph::generic';
 
-sub draw {
+sub draw_component {
   my $self = shift;
   my $gd = shift;
   my $fg = $self->fgcolor;
@@ -20,29 +20,27 @@ sub draw {
 
   #make an equilateral
   my ($p,$q) = ($self->option('height'),($x2-$x1)/2);
-  if (defined $self->option('point')){
-#    $p = $self->option('height');
+  if ($self->option('point')){
     $q = $p/sqrt(3); #2;
     $x1 = $xmid - $q; $x2 = $xmid + $q;
     $y1 = $ymid - $q; $y2 = $ymid + $q;
   }
 
-  if   ($orient eq 'N'){$vx1=$xmid-$q;$vy1=$y1;$vx2=$xmid+$q;$vy2=$y1;$vx3=$xmid;$vy3=$y2;}
-  elsif($orient eq 'S'){$vx1=$xmid-$q;$vy1=$y2;$vx2=$xmid+$q;$vy2=$y2;$vx3=$xmid;$vy3=$y1;}
-  elsif($orient eq 'E'){$vx1=$x2;$vy1=$y1;$vx2=$x2;$vy2=$y2;$vx3=$x2-$p;$vy3=$ymid;}
-  elsif($orient eq 'W'){$vx1=$x1;$vy1=$y1;$vx2=$x1;$vy2=$y2;$vx3=$x1+$p;$vy3=$ymid;}
+  if   ($orient eq 'S'){$vx1=$xmid-$q;$vy1=$y1;$vx2=$xmid+$q;$vy2=$y1;$vx3=$xmid;$vy3=$y2;}
+  elsif($orient eq 'N'){$vx1=$xmid-$q;$vy1=$y2;$vx2=$xmid+$q;$vy2=$y2;$vx3=$xmid;$vy3=$y1;}
+  elsif($orient eq 'W'){$vx1=$x2;$vy1=$y1;$vx2=$x2;$vy2=$y2;$vx3=$x2-$p;$vy3=$ymid;}
+  elsif($orient eq 'E'){$vx1=$x1;$vy1=$y1;$vx2=$x1;$vy2=$y2;$vx3=$x1+$p;$vy3=$ymid;}
 
   # now draw the triangle
   $gd->line($vx1,$vy1,$vx2,$vy2,$fg);
   $gd->line($vx2,$vy2,$vx3,$vy3,$fg);
   $gd->line($vx3,$vy3,$vx1,$vy1,$fg);
 
-  if ($self->option('fillcolor')){
-    my $c = $self->color('fillcolor');
-    $gd->fill($xmid,$ymid,$c);
+  if (my $c = $self->bgcolor){
+    $gd->fillToBorder($xmid,$ymid,$fg,$c) if $orient eq 'S' || $orient eq 'N';
+    $gd->fillToBorder($x1+1,$ymid,$fg,$c) if $orient eq 'E';
+    $gd->fillToBorder($x2-1,$ymid,$fg,$c) if $orient eq 'W';
   }
-
-  $self->draw_label($gd,@_) if $self->option('label');
 }
 
 1;
@@ -51,7 +49,7 @@ __END__
 
 =head1 NAME
 
-Bio::Graphics::Glyph::ex - The "triangle" glyph
+Bio::Graphics::Glyph::triangle - The "triangle" glyph
 
 =head1 SYNOPSIS
 
@@ -67,15 +65,16 @@ the triangle with the base on the N, S, E, or W side.
 
 In addition to the common options, the following glyph-specific
 options are recognized:
+
   Option      Description                  Default
   ------      -----------                  -------
 
-  -point      Whether to draw a triangle   feature width
-              with base the scaled width
-              of the feature or length
-              point.
+  -point      If true, the triangle         0
+              will drawn at the center
+              of the range, and not scaled
+              to the feature width.
 
-  -orient     On which side shall the      S
+  -orient     On which side shall the       S
               base be? (NSEW)
 
 =head1 BUGS

@@ -49,7 +49,7 @@ sub label {
 sub description {
   my $self = shift;
   return exists $self->{description} ? $self->{description}
-                                    : $self->{description} = $self->_description;
+                                     : $self->{description} = $self->_description;
 }
 sub _label {
   my $self = shift;
@@ -104,7 +104,7 @@ sub draw_label {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   my $label = $self->label or return;
   $gd->string($self->font,
-	      $self->left + $left,
+	      $self->left + $left+1,
 	      $self->top + $top,
 	      $label,
 	      $self->fontcolor);
@@ -114,7 +114,7 @@ sub draw_description {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   my $label = $self->description or return;
   $gd->string($self->font,
-	      $self->left   + $left,
+	      $self->left   + $left+1,
 	      $self->bottom - $self->pad_bottom + $top,
 	      $label,
 	      $self->font2color);
