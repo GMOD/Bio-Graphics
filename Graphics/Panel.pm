@@ -7,7 +7,7 @@ use Carp 'cluck';
 use GD;
 use vars '$VERSION';
 
-$VERSION = '0.88';
+$VERSION = '0.90';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns

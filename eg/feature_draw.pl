@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use lib '..';
+use lib '.','..';
 use Bio::Graphics::Panel;
 use Bio::Graphics::Feature;
 use Bio::Graphics::FeatureFile;

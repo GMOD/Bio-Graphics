@@ -76,20 +76,16 @@ sub _description {
   return $label unless $label eq '1';
   return "1"   if $label eq '1 ';
 
-  # fetch modularity-breaking acedb sequence object information
-  # for backward compatibility with wormbase requirements
-  my $f = $self->feature;
-  my $acedb_info = eval {
-    my $t       = $f->info;
-    my $id      = $t->Brief_identification;
-    my $comment = $t->Locus;
-    $comment   .= $comment ? " ($id)" : $id if $id;
-    $comment;
-  };
-  return $acedb_info if $acedb_info;
-  my $tag = $f->source_tag;
+  return $self->get_description($self->feature);
+}
+
+sub get_description {
+  my $self = shift;
+  my $feature = shift;
+  my $tag = $feature->source_tag;
   return undef if $tag eq '';
   $tag;
+
 }
 
 sub draw {
@@ -103,8 +99,10 @@ sub draw_label {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   my $label = $self->label or return;
+  my $x = $self->left + $left;
+  $x = $self->panel->left + 1 if $x <= $self->panel->left;
   $gd->string($self->font,
-	      $self->left + $left+1,
+	      $x,
 	      $self->top + $top,
 	      $label,
 	      $self->fontcolor);
@@ -113,8 +111,10 @@ sub draw_description {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   my $label = $self->description or return;
+  my $x = $self->left + $left;
+  $x = $self->panel->left + 1 if $x <= $self->panel->left;
   $gd->string($self->font,
-	      $self->left   + $left+1,
+	      $x,
 	      $self->bottom - $self->pad_bottom + $top,
 	      $label,
 	      $self->font2color);

@@ -1,5 +1,5 @@
 package Bio::Graphics::FeatureFile;
-# $Id: FeatureFile.pm,v 1.3 2001-10-27 13:56:43 lstein Exp $
+# $Id: FeatureFile.pm,v 1.4 2001-11-16 17:51:43 lstein Exp $
 
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
@@ -12,7 +12,7 @@ use Bio::Graphics::Feature;
 use Carp;
 use IO::File;
 use vars '$VERSION';
-$VERSION = '1.00';
+$VERSION = '1.01';
 
 sub new {
   my $class = shift;
@@ -103,14 +103,25 @@ sub parse_line {
      return;
   }
 
-  if (/^(\w+)\s*=\s*(.+)/) {   # key value pair within a configuration section
+  if (/^([\w ]+?)\s*=\s*(.+)/) {   # key value pair within a configuration section
+    my $tag = lc $1;
     my $cc = $self->{current_config} ||= 'general';       # in case no configuration named
-    $self->{config}{$cc}{lc $1} = $2;
+    $self->{config}{$cc}{$tag} = $2;
+    $self->{current_tag} = $tag;
     return;
   }
 
+
+  if (/^\s+(.+)/ && $self->{current_tag}) { # continuation line
+      my $value = $1;
+      my $cc = $self->{current_config} ||= 'general';       # in case no configuration named
+      $self->{config}{$cc}{$self->{current_tag}} .= ' ' . $value;
+      return;
+  }
+
+
   if (/^$/) { # empty line
-    undef $self->{current_config};
+    undef $self->{current_tag};
     return;
   }
 

@@ -99,3 +99,102 @@ After installation, feature_draw.pl will be available on your command
 path.  Run "man feature_draw.pl" to see the manual page, or use the -h
 option to get a quick summary of usage.
 
+THE GBROWSE CGI SCRIPT
+
+The gbrowse script is a CGI script that will render features contained
+in a Bio::DB::GFF database.  It implements a sequence browser that is
+eerily similar to the one used by Wormbase
+(http://www.wormbase.org/db/searches/hunter.cgi).  It is currently
+under development, so little documentation is provided.  However, here
+is the brief synopsis:
+
+ 1) install the following packages:
+
+	Bio::Graphics
+	Digest::MD5
+	Bio::DB::GFF
+
+    These can all be found on CPAN, with the exception of Bio::DB::GFF, which
+    must be downloaded from the bioperl CVS site, http://www.bioperl.org
+
+ 2) Copy the file scripts/gbrowse to your CGI scripts directory, e.g.
+    http://your.host/cgi-bin
+
+ 3) Create a subdirectory named gbrowse.conf which will hold your configuration
+	files.  I suggest placing it with other web server configuration files,
+	such as /usr/local/apache/conf/gbrowse.conf
+
+ 4) Modify the installed gbrowse script to point at the correct configuration
+	file.  Find this line:
+
+         my $CONF_DIR = '/usr/local/apache/conf/gbrowse.conf';
+
+         and change it to wherever you put the gbrowse.conf directory.
+
+ 5) Copy the contents of eg/gbrowse/images into a directory in your
+	web server document root, for example:
+
+	   /usr/local/apache/htdocs/gbrowse/images
+
+ 	This contains a set of gif images used to create buttons.
+
+ 6) Create a directory in the web server document root that the
+        script can write into.  This will be used to create
+	temporary images before sending them to the user.  The
+	directory should either be world writable, or owned by
+	the "nobody" user.  I suggest a directory named "tmp"
+	under the images directory.  For example:
+
+	   /usr/local/apache/htdocs/gbrowse/images/tmp
+
+ 7) Copy the stylesheet file found in eg/gbrowse/gbrowse.css into
+	your web server document root, for example:
+
+           /usr/local/apache/htdocs/gbrowse/gbrowse.css
+
+    This is the stylesheet that gives gbrowse its user-friendly appearance.
+
+ 8) Create a configuration file and place it into the gbrowse.conf 
+	configuration directory.  You should start with the wormbase.conf 
+	sample file located in eg/gbrowse/gbrowse.conf/wormbase.conf.
+
+        There is some documentation embedded in the sample configuration 
+	file.  You will need to adjust the [GENERAL] section to point to
+	the database and host on which your database is located.
+
+	At the minimum you should adjust the following options:
+
+         a) database = dbi:mysql:database=wormbase;host=localhost
+            This is the database name used by Bio::DB::GFF
+        
+         b) fasta_files = /var/www/elegans
+            This is the location in which the FASTA files containing
+		the raw DNA are located.
+
+         c) stylesheet  = /gbrowse/gbrowse.css
+             This is the URL for the stylesheet.
+
+         d) buttons     = /gbrowse/images
+             This is the URL for the static images
+
+         e) tmpimages    = /gbrowse/images/tmp
+             This is the location of the temporary
+	     images directory.  This directory MUST
+ 	     be writable by the web server user, and
+	     MUST be located under the document root.
+
+	After the [GENERAL] section are a set of [FEATURE NAME] sections,
+	that correspond to each of the sequence feature types 
+	that you wish to make browsable.  The examples are very
+	wormbase specific.  You will need to edit this heavily to
+	suit the list of features you wish to display.
+
+ 9) Load the GFF database, following the instructions contained
+	in the Bio::DB::GFF module.  Be careful.  The format
+	of the GFF load file is very specific.
+
+Let me know if you actually get this working.  More detailed
+documentation and an install script are coming.
+
+Lincoln Stein <lstein@cshl.org>
+November 16, 2001

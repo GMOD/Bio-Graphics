@@ -45,9 +45,9 @@ sub new {
     $self->{width}   = $right - $self->{left} + 1;
   }
 
-  #Glyphs that don't actually fill their space, but merely mark a point.
+  #Handle glyphs that don't actually fill their space, but merely mark a point.
   #They need to have their collision bounds altered.  We will (for now)
-  #hard code them to be in the center or their feature.
+  #hard code them to be in the center of their feature.
   $self->{point} = $arg{-point} ? $self->height : undef;
   if($self->option('point')){
     my ($left,$right) = $factory->map_pt($self->start,$self->stop);
@@ -77,11 +77,25 @@ sub start   {
   my $self = shift;
   return $self->{start} if exists $self->{start};
   $self->{start} = $self->{feature}->start;
+
+  # handle the case of features whose endpoints are undef
+  # (this happens with wormbase clones where one or more clone end is not defined)
+  # in this case, we set the start to one minus the beginning of the panel
+  $self->{start} = $self->panel->offset - 1 unless defined $self->{start};
+
+  return $self->{start};
 }
 sub stop    {
   my $self = shift;
   return $self->{stop} if exists $self->{stop};
   $self->{stop} = $self->{feature}->end;
+
+  # handle the case of features whose endpoints are undef
+  # (this happens with wormbase clones where one or more clone end is not defined)
+  # in this case, we set the start to one plus the end of the panel
+  $self->{stop} = $self->panel->offset + $self->panel->length + 1 unless defined $self->{stop};
+
+  return $self->{stop}
 }
 sub end     { shift->stop }
 sub map_pt  { shift->{factory}->map_pt(@_) }
@@ -209,7 +223,7 @@ sub boxes {
 
   $self->layout;
   for my $part ($self->parts) {
-    if ($part->feature->primary_tag eq 'group') {
+    if (eval{$part->feature->primary_tag} eq 'group') {
       push @result,$part->boxes($left+$self->left,$top+$self->top);
     } else {
       my ($x1,$y1,$x2,$y2) = $part->box;
@@ -258,6 +272,19 @@ sub option {
   my $factory = $self->factory;
   return unless $factory;
   $factory->option($self,$option_name,@{$self}{qw(partno total_parts)});
+}
+
+# set an option globally
+sub configure {
+  my $self = shift;
+  my $factory = $self->factory;
+  my $option_map = $factory->option_map;
+  while (@_) {
+    my $option_name  = shift;
+    my $option_value = shift;
+    ($option_name = lc $option_name) =~ s/^-//;
+    $option_map->{$option_name} = $option_value;
+  }
 }
 
 # some common options
@@ -397,8 +424,15 @@ sub draw {
     my $connector =  $self->connector;
     my $x = $left;
     my $y = $top  + $self->top + $self->pad_top;
+
+    my $last_x;
     for (my $i=0; $i<@parts; $i++) {
-      $parts[$i]->draw($gd,$x,$y,$i,scalar(@parts));
+      # lie just a little bit to avoid lines overlapping and
+      # make the picture prettier
+      my $fake_x = $x;
+      $fake_x-- if defined $last_x && $parts[$i]->left - $last_x <= 1;
+      $parts[$i]->draw($gd,$fake_x,$y,$i,scalar(@parts));
+      $last_x = $parts[$i]->right;
     }
     $self->draw_connectors($gd,$x,$y) if $connector;
   } else {  # no part
@@ -434,6 +468,7 @@ sub _connector {
     my $bottom1  = $dy + $xb;
     my $top2     = $dy + $yt;
     my $bottom2  = $dy + $yb;
+    return unless $right-$left >= 1;
 
     $self->draw_connector($gd,
 			  $top1,$bottom1,$left,
@@ -766,6 +801,17 @@ be changed once it is set.
 Get the sequence feature associated with this object.  This cannot be
 changed once it is set.
 
+=item $feature = $glyph->add_feature(@features)
+
+Add the list of features to the glyph, creating subparts.  This is
+most common done with the track glyph returned by
+Ace::Graphics::Panel->add_track().
+
+=item $feature = $glyph->add_group(@features)
+
+This is similar to add_feature(), but the list of features is treated
+as a group and can be configured as a set.
+
 =back
 
 Retrieving glyph options:
@@ -819,6 +865,17 @@ Return the value of the indicated option.
 =item $index = $glyph->color($color)
 
 Given a symbolic or #RRGGBB-form color name, returns its GD index.
+
+=back
+
+Setting an option:
+
+=over 4
+
+=item $glyph->configure(-name=>$value)
+
+You may change a glyph option after it is created using set_option().
+This is most commonly used to configure track glyphs.
 
 =back
 

@@ -83,14 +83,15 @@ my $panel = Bio::Graphics::Panel->new(
 				     );
 my @colors = $panel->color_names();
 
-$panel->add_track(
-#		  generic => [$abc3,$zed_27],
-		  transcript2 => [$abc3,$zed_27],
-		  -label => 1,
-		  -bump => 1,
-		  -key => 'Prophecies',
-#		  -tkcolor => $colors[rand @colors],
-		 );
+my $t = $panel->add_track(
+			  #		  generic => [$abc3,$zed_27],
+			  transcript2 => [$abc3,$zed_27],
+			  -label => 1,
+			  -bump => 1,
+			  -key => 'Prophecies',
+			  #		  -tkcolor => $colors[rand @colors],
+			 );
+$t->set_option(-bump=>1);
 $panel->add_track($segment,
 		  -glyph => 'arrow',
 		  -label => 'base pairs',
@@ -121,13 +122,15 @@ $panel->unshift_track(generic => [$segment,$zk154_1,$zk154_2,$zk154_3,[$xyz4,$ze
 		 );
 
 my $track = $panel->add_track('transcript2',
-			      -label   => 1,
+			      -label   => sub { 1 } ,
+			      -connector => sub { return shift->type eq 'group' ? 'dashed' : ''},
 			      -point  => 0,
 			      -orient => 'N',
 			      -height => 8,
 			      -base => 1,
 			      -relative_coords => 1,
 			      -tick  => 2,
+			      -all_callbacks => 1,
 			      -bgcolor => 'red',
 			      -key     => 'Dynamically Added');
 $track->add_feature($bigone,$zed_27,$abc3);

@@ -11,6 +11,7 @@ WriteMakefile(
 				}, # e.g., Module::Name => 1.1
 	      PL_FILES       => {
 				 'scripts/feature_draw.PLS'  => 'scripts/feature_draw.pl',
+				 'scripts/gbrowse.PLS'  => 'scripts/gbrowse',
 				 },
 	      EXE_FILES      => [
 				 'scripts/feature_draw.pl'

@@ -64,6 +64,9 @@ sub draw_parallel {
   my $a2 = ($self->height)/2;
   my $center = $y1+$a2;
 
+  $x1 = $self->panel->left  if $x1 < $self->panel->left;
+  $x2 = $self->panel->right if $x2 > $self->panel->right;
+
   my ($sw,$ne,$base_w,$base_e) = $self->arrowheads;
   $gd->line($x1,$center,$x2,$center,$fg);
   $self->arrowhead($gd,$x1,$center,$a2,-1) if $sw; # west arrow
@@ -94,8 +97,8 @@ sub draw_parallel {
     my $right = $ne ? $x2-$height : $x2;
 
     for my $i (@$major_ticks) {
-      my $tickpos = $dx + $reversed ? $self->map_pt($stop - $i + $offset)
-	                            : $self->map_pt($i + $offset);
+      my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
+	                             : $self->map_pt($i + $offset));
       next if $tickpos < $left or $tickpos > $right;
       $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
       my $middle = $tickpos - (length($i) * $width)/2;
@@ -106,8 +109,8 @@ sub draw_parallel {
     if ($self->option('tick') >= 2) {
       my $a4 = $self->height/4;
       for my $i (@$minor_ticks) {
-	my $tickpos = $dx + $reversed ? $self->map_pt($stop - $i + $offset)
-	                              : $self->map_pt($i + $offset);
+	my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
+	                               : $self->map_pt($i + $offset));
 	next if $tickpos < $left or $tickpos > $right;
 	$gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
       }

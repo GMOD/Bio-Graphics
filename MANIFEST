@@ -1,5 +1,6 @@
 Changes
 Graphics.pm
+Graphics/Browser.pm
 Graphics/Feature.pm
 Graphics/FeatureFile.pm
 Graphics/Glyph.pm
@@ -22,4 +23,6 @@ README
 eg/testit.pl
 eg/testit2.pl
 eg/feature_data.txt
+eg/gbrowse.conf/wormbase.conf
 scripts/feature_draw.PLS
+scripts/gbrowse.PLS
