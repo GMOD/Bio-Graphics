@@ -2,7 +2,9 @@ package Bio::Graphics::Glyph::arrow;
 # package to use for drawing an arrow
 
 use strict;
-use base 'Bio::Graphics::Glyph::generic';
+use vars '@ISA';
+use Bio::Graphics::Glyph::generic;
+@ISA = 'Bio::Graphics::Glyph::generic';
 
 sub pad_bottom {
   my $self = shift;

@@ -1,4 +1,5 @@
 package Bio::Graphics::Glyph::Factory;
+
 use strict;
 use Carp qw(:DEFAULT cluck);
 use GD;

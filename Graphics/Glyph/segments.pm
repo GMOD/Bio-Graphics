@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::segments;
 
 use strict;
-use base 'Bio::Graphics::Glyph::generic';
+use Bio::Graphics::Glyph::generic;
+use vars '@ISA';
+@ISA = 'Bio::Graphics::Glyph::generic';
 
 # group sets connector to 'solid'
 sub connector {

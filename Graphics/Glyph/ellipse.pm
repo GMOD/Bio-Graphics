@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::ellipse;
 
 use strict;
-use base 'Bio::Graphics::Glyph';
+use vars '@ISA';
+use Bio::Graphics::Glyph;
+@ISA = 'Bio::Graphics::Glyph';
 
 # override draw_component to draw an oval rather than a rectangle (weird)
 sub draw_component {

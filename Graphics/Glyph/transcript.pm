@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::transcript;
 
 use strict;
-use base 'Bio::Graphics::Glyph::generic';
+use Bio::Graphics::Glyph::generic;
+use vars '@ISA';
+@ISA = 'Bio::Graphics::Glyph::generic';
 
 sub pad_left  {
   my $self = shift;

@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::generic;
 
 use strict;
-use base 'Bio::Graphics::Glyph';
+use Bio::Graphics::Glyph;
+use vars '@ISA';
+@ISA = 'Bio::Graphics::Glyph';
 
 # new options are 'label'       -- short label to print over glyph
 #                 'description'  -- long label to print under glyph

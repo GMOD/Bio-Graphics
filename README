@@ -1,2 +1,63 @@
-First pass on rewrite of Bio::Graphics module for displaying
-horizontal sequence and clone maps.
+Bio::Graphics::Panel - Generate GD images of Bio::Seq objects
+
+SYNOPSIS
+
+  use Ace::Sequence;  # or any Bio::Seq factory
+  use Bio::Graphics::Panel;
+
+  my $db     = Ace->connect(-host=>'brie2.cshl.org',-port=>2005) or die;
+  my $cosmid = Ace::Sequence->new(-seq=>'Y16B4A',
+				  -db=>$db,-start=>-15000,-end=>15000) or die;
+
+  my @transcripts = $cosmid->transcripts;
+
+  my $panel = Ace::Graphics::Panel->new(
+				      -segment => $cosmid,
+				      -width  => 800
+				     );
+
+
+  $panel->add_track(arrow => $cosmid,
+ 		  -bump => 0,
+ 		  -tick=>2);
+
+  $panel->add_track(transcript => \@transcripts,
+ 		    -bgcolor   =>  'wheat',
+ 		    -fgcolor   =>  'black',
+                    -key       => 'Curated Genes',
+ 		    -bump      =>  +1,
+ 		    -height    =>  10,
+ 		    -label     =>  1);
+
+  my $boxes = $panel->boxes;
+  print $panel->png;
+
+DESCRIPTION
+
+The Bio::Graphics::Panel class provides drawing and formatting
+services for any object that implements the Bio::SeqFeatureI
+interface, including Ace::Sequence::Feature and Das::Segment::Feature
+objects.  It can be used to draw sequence annotations, physical
+(contig) maps, or any other type of map in which a set of discrete
+ranges need to be laid out on the number line.
+
+The module supports a drawing style in which each type of feature
+occupies a discrete "track" that spans the width of the display.  Each
+track will have its own distinctive "glyph", a configurable graphical
+representation of the feature.
+
+The module also supports a more flexible style in which several
+different feature types and their associated glyphs can occupy the
+same track.  The choice of glyph is under run-time control.
+
+Semantic zooming (for instance, changing the type of glyph depending
+on the density of features) is supported by a callback system for
+configuration variables.  The module has built-in support for Bio::Das
+stylesheets, and stylesheet-driven configuration can be intermixed
+with semantic zooming, if desired.
+
+You can add a key to the generated image using either of two key
+styles.  One style places the key captions at the top of each track.
+The other style generates a graphical key at the bottom of the image.
+
+Note that this modules depends on GD.

@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::group;
 
 use strict;
-use base 'Bio::Graphics::Glyph';
+use vars '@ISA';
+use Bio::Graphics::Glyph::generic;
+@ISA = 'Bio::Graphics::Glyph::generic';
 
 # group sets connector to 'dashed'
 sub connector {

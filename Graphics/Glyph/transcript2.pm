@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::transcript2;
 
 use strict;
-use base 'Bio::Graphics::Glyph::generic';
+use Bio::Graphics::Glyph::generic;
+use vars '@ISA';
+@ISA = 'Bio::Graphics::Glyph::generic';
 
 sub draw_component {
   my $self = shift;

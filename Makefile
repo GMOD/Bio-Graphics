@@ -50,9 +50,9 @@ AR_STATIC_ARGS = cr
 NAME = Bio::Graphics
 DISTNAME = Bio-Graphics
 NAME_SYM = Bio_Graphics
-VERSION = 0.80
-VERSION_SYM = 0_80
-XS_VERSION = 0.80
+VERSION = 0.81
+VERSION_SYM = 0_81
+XS_VERSION = 0.81
 INST_BIN = blib/bin
 INST_EXE = blib/script
 INST_LIB = blib/lib
@@ -741,7 +741,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"0,80,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i586-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
+	@$(PERL) -e "print qq{<SOFTPKG NAME=\"Bio-Graphics\" VERSION=\"0,81,0,0\">\n}. qq{\t<TITLE>Bio-Graphics</TITLE>\n}. qq{\t<ABSTRACT></ABSTRACT>\n}. qq{\t<AUTHOR></AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"GD\" VERSION=\"1,2,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i586-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > Bio-Graphics.ppd
 
 # --- MakeMaker pm_to_blib section:
 

@@ -1,14 +1,13 @@
 package Bio::Graphics::Panel;
 
-require 5.6.0;
-
 use strict;
 use Bio::Graphics::Glyph::Factory;
 use Bio::Graphics::Feature;
 use Carp 'cluck';
 use GD;
+use vars '$VERSION';
 
-our $VERSION = '0.80';
+$VERSION = '0.82';
 
 use constant KEYLABELFONT => gdMediumBoldFont;
 use constant KEYSPACING   => 10; # extra space between key columns

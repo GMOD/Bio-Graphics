@@ -1,5 +1,19 @@
 Revision history for Perl extension Bio::Graphics.
 
+0.82  Fri Jul 20 10:36:57 EDT 2001
+	- Removed perl 5.6'isms.
+	- Added appropriate documentation to Feature.
+
+0.81  Tue Jun 12 09:30:10 EDT 2001
+	- Messed up sourceforge upload, so bumping version no
+		to clean up.
+
+0.80  Tue Jun 12 09:10:15 EDT 2001
+	- Basically functional
+	- examples in eg/
+	- Bio::Graphics::Panel documentation complete,
+		other documentation incomplete
+
 0.01  Tue Jun  5 07:26:52 2001
 	- original version; created by h2xs 1.20 with options
 		-n Bio::Graphics -A
