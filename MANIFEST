@@ -1,5 +1,7 @@
 Changes
+Graphics.pm
 Graphics/Feature.pm
+Graphics/FeatureFile.pm
 Graphics/Glyph.pm
 Graphics/Glyph/Factory.pm
 Graphics/Glyph/segments.pm
