@@ -1,11 +1,5 @@
 Bio::Graphics - Generate GD images of Bio::Seq objects
 
-IMPORTANT NOTE
-
-As of March 10, 2002, the Bio::Graphics module has become an integral
-part of BioPerl (http://www.bioperl.org). It will be maintained as a
-separate module on the GMOD site for a short period of time.
-
 SYNOPSIS
 
 This is a simple GD-based renderer (diagram drawer) for DNA and
@@ -93,15 +87,16 @@ You can add a key to the generated image using either of two key
 styles.  One style places the key captions at the top of each track.
 The other style generates a graphical key at the bottom of the image.
 
-Note that this modules depends on GD and the Text::Shellwords module.
+Note that this modules depends on Bio::Perl, GD and the
+Text::Parsewords module.
 
 BUILDING AND INSTALLING
 
 From the directory in which this README file is located:
 
-  % perl Makefile.PL
-  % make test
-  % make install
+  % perl ./Build.PL
+  % ./Build test
+  % ./Build install
 
 The last step may need to be run as root.
 
@@ -143,7 +138,9 @@ get it by anonymous CVS to SourceForge:
  cvs -d:pserver:anonymous@cvs.gmod.sourceforge.net:/cvsroot/gmod \
 	co Generic-Genome-Browser
 
-Lincoln Stein <lstein@cshl.org>
-April 12, 2002
+Lincoln Stein <lincoln.stein@oicr.on.ca>
+12 December 2008
+
+
 
 
