@@ -2,7 +2,7 @@ Build.PL
 Makefile.PL
 Changes
 DISCLAIMER.txt
-docs/README
+README.bioperl
 eg/feature_data.gff
 eg/feature_data.txt
 eg/testit.pl

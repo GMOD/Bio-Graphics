@@ -1,8 +1,0 @@
-To build the HTML documentation,  go into the top level of the Bio::Graphics
-distribution and type ./make_docs.pl
-
-This will create a set of .shtml files based on the POD documentation contained
-in the modules.  You might find it easier to read the POD documentation directly.
-For example:
-
-   perldoc Bio::Graphics::Panel
