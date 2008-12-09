@@ -10,9 +10,9 @@ my $build = Module::Build->new(
     dist_version_from => 'lib/Bio/Graphics.pm',
     dist_author       => 'Lincoln Stein <lincoln.stein@oicr.on.ca>',
     requires          => {
-	'Bio::Perl'       => 0,
-	'GD'              => 2.30,
-	'Text::ParseWords' => 0,
+	'Bio::Root::Version'  => 1.006,
+	'GD'                  => 2.30,
+	'Text::ParseWords'    => 0,
     },
     recommends        => {
 	'GD::SVG'   => 0, 
