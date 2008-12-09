@@ -90,6 +90,9 @@ The other style generates a graphical key at the bottom of the image.
 Note that this modules depends on Bio::Perl, GD and the
 Text::Parsewords module.
 
+A good tutorial on this module can be found at
+http://www.bioperl.org/wiki/HOWTO:Graphics.
+
 BUILDING AND INSTALLING
 
 From the directory in which this README file is located:
