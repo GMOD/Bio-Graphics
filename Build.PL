@@ -23,7 +23,7 @@ my $build = Module::Build->new(
 		     'scripts/search_overview.pl',
 		     'scripts/render_msa.pl',
     ],
-    create_makefile_pl => 'passthru',
+    create_makefile_pl => 'passthrough',
     build_class        => 'Module::Build',
     );
 
