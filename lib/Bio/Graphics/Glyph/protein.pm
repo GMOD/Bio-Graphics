@@ -212,7 +212,11 @@ default, the KD plot will use a window size of 9 residues, but this
 can be changed by specifying the kd_window option.
 
 For this glyph to work, the feature must return a protein sequence
-string in response to the seq() method.
+string in response to the seq() method.  Accordingly, this glyph
+only works properly when it is used on protein features, not
+DNA features, so it won't work in the normal context of GBrowse.
+It should work if GBrowse is being used as a protein browser instead of
+a DNA feature browser though.
 
 =head2 OPTIONS
 
