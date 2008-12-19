@@ -71,7 +71,7 @@ sub draw {
   my @parts = $self->parts;
   @parts    = $self if !@parts && $self->level == 0 && !$self->require_subparts;
 
-  my $fits = $self->protein_fits;
+  my $fits   = $self->protein_fits;
   my $strand = $self->feature->strand || 1;
 
   # draw the staff (musically speaking)
@@ -141,15 +141,15 @@ sub draw {
     $part->{cds_frame}     = $frame;
     $part->{cds_offset}    = $offset;
 
-    if ($fits && (my $seq = $feature->seq)) {
+    if ($self->do_cds_translation && (my $seq = $feature->seq)) {
       BLOCK: {
 	  $seq     = $self->get_seq($seq);
-
+      
 	  # do in silico splicing in order to find the codon that
 	  # arises from the splice
 	  my $protein = $seq->translate(undef,undef,$phase,$codon_table)->seq;
 	  $part->{cds_translation}  = $protein;
-
+      
 	  length $protein >= $feature->length/3           and last BLOCK;
 	  ($feature->length - $phase) % 3 == 0            and last BLOCK;
 	      
@@ -176,6 +176,7 @@ sub draw {
   $self->panel->endGroup($gd);
 }
 
+sub do_cds_translation { return shift->protein_fits }
 
 # draw the notes on the staff
 sub draw_component {
@@ -192,7 +193,8 @@ sub draw_component {
     my $height = ($y2-$y1)/$linecount;
     my $offset = $y1 + $height*$frame;
     $offset   += ($y2-$y1)/2 if $self->sixframe && $self->strand < 0;
-    $offset   = $y1 + (($y2-$y1) - ($offset-$y1))-$height if $self->{flip}; # ugh. This works, but I don't know why
+    # ugh. This works, but I don't know why
+    $offset   = $y1 + (($y2-$y1) - ($offset-$y1))-$height if $self->{flip}; 
     $gd->filledRectangle($x1,$offset,$x2,$offset+2,$color);
     return;
   }
@@ -205,6 +207,7 @@ sub draw_component {
   my $fontwidth = $font->width;
 
   $strand *= -1 if $self->{flip};
+  $y      += ($y2-$y1)/2 if $self->sixframe && $strand < 0;
 
   # have to remap feature start and end into pixel coords in order to:
   # 1) correctly align the amino acids with the nucleotide seq
@@ -213,7 +216,6 @@ sub draw_component {
   my $stop  = $self->map_no_trunc($feature->end   + $self->{cds_offset});
 
   ($start,$stop) = ($stop,$start) if $stop < $start;  # why does this keep happening?
-  #  ($start,$stop) = ($stop,$start) if $self->{flip};
 
   my @residues = split '',$self->{cds_translation};
 

@@ -12,6 +12,15 @@ sub description { 0 }
 # turn off label
 # sub label { 1 }
 
+sub pad_top {
+    my $self = shift;
+    my $font = $self->font;
+    my $pt   = $self->SUPER::pad_top;
+    return $self->dna_fits 
+	   ? $pt + $font->height+5
+           : 16;
+}
+
 sub height {
   my $self = shift;
   my $font = $self->font;

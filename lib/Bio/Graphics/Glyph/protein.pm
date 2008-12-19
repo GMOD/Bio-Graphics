@@ -1,7 +1,8 @@
 package Bio::Graphics::Glyph::protein;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::generic);
+use base qw(Bio::Graphics::Glyph::cds);
+
 
 # turn off description
 sub description { 0 }
@@ -26,23 +27,21 @@ sub do_kd {
 
 sub draw_component {
   my $self = shift;
-  my $gd = shift;
+  my $gd   = shift;
   my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
-
-  my $protein = eval { $self->feature->seq };
-  $protein = $protein->seq
-      if ref($protein) and $protein->can('seq'); # to catch Bio::PrimarySeqI objects
-  $protein or return;
-
-  # workaround for my misreading of interface -- LS
-  $protein = $protein->seq if ref($protein) && $protein->can('seq');
-
-  if ($self->dna_fits) {
-    $self->draw_protein($gd,$protein,$x1,$y1,$x2,$y2);
-  } elsif ($self->do_kd) {
-    $self->draw_kd_plot($gd,$protein,$x1,$y1,$x2,$y2);
+  
+  if ($self->protein_fits && $self->{cds_translation}) {
+      return $self->SUPER::draw_component($gd,@_);
+  }
+  elsif ($self->{cds_translation}) {
+    $self->draw_kd_plot($gd,$self->{cds_translation},$x1,$y1,$x2,$y2);
+  }
+  else {
+      $self->Bio::Graphics::Glyph::generic::draw_component($gd,@_);
   }
 }
+
+sub do_cds_translation { return 1 }
 
 sub draw_protein {
   my $self = shift;
@@ -152,8 +151,10 @@ sub draw_kd_plot {
   $gd->line($x1+5,$y2,        $x2-5,$y2,        $bgcolor);
   $gd->line($x1+5,($y2+$y1)/2,$x2-5,($y2+$y1)/2,$bgcolor);
   $gd->line($x1+5,$y1,        $x2-5,$y1,        $bgcolor);
-  $gd->string($self->font,$x1+5,$y1,'Kyte-Doolittle hydropathy plot',$axiscolor)
-      if $bin_height > $self->font->height*2;
+  my $label = 'Kyte-Doolittle hydropathy plot';
+  $gd->string($self->font,$x1+5,$y1,$label,$axiscolor)
+      if $bin_height > $self->font->height*2 && 
+        $self->width > $self->font->width*length($label);
 
   $gd->string($self->font,$x2-20,$y1,$maxkd,$axiscolor) 
     if $bin_height > $self->font->height*2.5;
@@ -211,12 +212,10 @@ magnifications, the glyph will plot the Kyte-Doolite hydropathy.  By
 default, the KD plot will use a window size of 9 residues, but this
 can be changed by specifying the kd_window option.
 
-For this glyph to work, the feature must return a protein sequence
-string in response to the seq() method.  Accordingly, this glyph
-only works properly when it is used on protein features, not
-DNA features, so it won't work in the normal context of GBrowse.
-It should work if GBrowse is being used as a protein browser instead of
-a DNA feature browser though.
+The feature may return either a protein sequence or a DNA sequence in
+response to the seq() method. However, if it returns a DNA sequence,
+then the feature must also return the correct phase and strand in
+order for the glyph to translate its open reading frame correctly!
 
 =head2 OPTIONS
 
@@ -267,6 +266,10 @@ options are recognized:
 
   -axis_color Color of the vertical axes  fgcolor
               in the KD hydropathy plot
+
+  -phase_style  The way phase is to be
+                interpreted. One of            "012"
+                "012" or "021"
 
 
 =head1 BUGS
