@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.3 2008-12-22 20:36:31 lstein Exp $
+# $Id: FeatureFile.pm,v 1.4 2008-12-22 20:50:37 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -1883,6 +1883,7 @@ __END__
  mRNA B0511.1 Chr1:101..200,300..400,500..800 Type=CDS
  mRNA B0511.1 Chr1:801..1000 Type=UTR
 
+ reference = Chr3
  Cosmid	B0511	516..619
  Cosmid	B0511	3185..3294
  Cosmid	B0511	10946..11208
