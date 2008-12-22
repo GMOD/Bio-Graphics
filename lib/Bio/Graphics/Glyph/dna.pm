@@ -183,7 +183,9 @@ sub draw_gc_content {
   my $bin_width  = ($x2-$x1)/@bins;
   my $bin_height = $y2-$y1;
   my $fgcolor    = $self->fgcolor;
-  my $bgcolor    = $self->factory->translate_color($self->panel->gridcolor);
+  my $bgcolor    = $self->factory->translate_color(
+                      $self->option('grid color') || $self->panel->gridmajorcolor
+                   );
   my $axiscolor  = $self->color('axis_color') || $fgcolor;
 
 # Draw the axes

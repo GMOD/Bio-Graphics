@@ -88,6 +88,18 @@ Ace::Sequence, which has a slightly different API from SeqFeatureI:
 
 =over 4
 
+=item attributes()
+
+An alternative interface to get_tag_values. Pass the name of an
+attribute to get the value(s) of that attribute:
+
+   $expression_level = $gene->attributes('expression');
+
+Call attributes() without any arguments to get a hash of all
+attributes:
+
+  %attributes = $gene->attributes;
+
 =item url()
 
 Get/set the URL that the graphical rendering of this feature will link to.

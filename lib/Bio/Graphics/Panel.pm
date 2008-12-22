@@ -954,36 +954,71 @@ sub rgb {
 }
 
 sub translate_color {
-  my $self = shift;
-  my @colors = @_;
+  my $self    = shift;
+  my @colors  = @_;
+
+  return $self->{closestcache}{"@colors"} if exists $self->{closestcache}{"@colors"};
+
+  my $index;
+  my $gd    = $self->gd             or return 1;
+  my $table = $self->{translations} or return 1;
+
   if (@colors == 3) {
-    my $gd = $self->gd or return 1;
-    return $self->colorClosest($gd,@colors);
+    $index = $self->colorClosest($gd,@colors);
+  }
+  elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
+    my ($r,$g,$b,$alpha) = (hex($1),hex($2),hex($3),hex($4));
+    $index = $gd->colorAllocateAlpha($r,$g,$b,$alpha);
   }
   elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
-    my $gd = $self->gd or return 1;
     my ($r,$g,$b) = (hex($1),hex($2),hex($3));
-    return $self->colorClosest($gd,$r,$g,$b);
+    $index = $self->colorClosest($gd,$r,$g,$b);
   }
-  elsif ($colors[0] =~ /^(\d+),(\d+),(\d+)/i) {
-    my $gd = $self->gd or return 1;
-    return $self->colorClosest($gd,$1,$2,$3);
+  elsif ($colors[0] =~ /^(\d+),(\d+),(\d+),([\d.]+)$/i ||
+	 $colors[0] =~ /^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/) {
+      my $alpha = $self->adjust_alpha($4);
+      my (@rgb) = map {/(\d+)%/ ? int(255 * $1 / 100) : $_} ($1,$2,$3);
+      $index = $gd->colorAllocateAlpha(@rgb,$4);
+  }
+  elsif ($colors[0] =~ /^(\d+),(\d+),(\d+)$/i ||
+	 $colors[0] =~ /^rgb\((\d+),(\d+),(\d+)\)$/i
+      ) {
+      my (@rgb) = map {/(\d+)%/ ? int(255 * $1 / 100) : $_} ($1,$2,$3);
+      $index = $self->colorClosest($gd,@rgb);
+  }
+  elsif ($colors[0] eq 'transparent') {
+      $index = $gd->colorAllocateAlpha(255,255,255,127);
+  }
+  elsif ($colors[0] =~ /^(\w+):([\d.]+)/) {  # color:alpha
+      my @rgb   = $self->color_name_to_rgb($1);
+      my $alpha = $self->adjust_alpha($2);
+      $index = $gd->colorAllocateAlpha(@rgb,$alpha);
   }
   else {
-    my $color = $colors[0];
-    my $table = $self->{translations} or return 1;
-    return defined $table->{$color} ? $table->{$color} : 1;
+      $index = defined $table->{$colors[0]} ? $table->{$colors[0]} : 1;
   }
+  return $self->{closestcache}{"@colors"} = $index;
+}
+
+# change CSS opacity values (0-1.0) into GD opacity values (127-0)
+sub adjust_alpha {
+    my $self  = shift;
+    my $value = shift;
+    my $alpha = $value =~ /\./ # floating point
+	          ? int(127-($value*127)+0.5) 
+		  : $value;
+    $alpha    = 0   if $alpha < 0;
+    $alpha    = 127 if $alpha > 127;
+    return $alpha;
 }
 
 # workaround for bad GD
 sub colorClosest {
   my ($self,$gd,@c) = @_;
-  return $self->{closestcache}{"@c"} if exists $self->{closestcache}{"@c"};
-  return $self->{closestcache}{"@c"} = $gd->colorResolve(@c) if $GD::VERSION < 2.04;
+  return $gd->colorResolve(@c) if $GD::VERSION < 2.04;
 
   my $index = $gd->colorResolve(@c);
-  return $self->{closestcache}{"@c"} = $index if $index >= 0;
+  return $index if $index >= 0;
 
   my $value;
   for (keys %COLORS) {
@@ -991,7 +1026,7 @@ sub colorClosest {
     my $dist = ($r-$c[0])**2 + ($g-$c[1])**2 + ($b-$c[2])**2;
     ($value,$index) = ($dist,$_) if !defined($value) || $dist < $value;
   }
-  return $self->{closestcache}{"@c"} = $self->{translations}{$index};
+  return $self->{translations}{$index};
 }
 
 sub bgcolor {
@@ -2120,10 +2155,27 @@ some are shared by all glyphs:
                display. Must be a CODE reference.
 
 B<Specifying colors:> Colors can be expressed in either of two ways:
-as symbolic names such as "cyan" and as HTML-style #RRGGBB triples.
-The symbolic names are the 140 colors defined in the Netscape/Internet
-Explorer color cube, and can be retrieved using the
-Bio::Graphics::Panel-E<gt>color_names() method.
+as symbolic names such as "cyan", as HTML-style #RRGGBB triples, and
+r,g,b comma-separated numbers. The symbolic names are the 140 colors
+defined in the Netscape/Internet Explorer color cube, and can be
+retrieved using the Bio::Graphics::Panel-E<gt>color_names() method.
+
+Transparent and semi-transparent colors can be specified using the
+following syntax:
+
+     #RRGGBBAA     - red, green, blue and alpha
+     r,g,b,a       - red, green, blue, alpha
+     blue:alpha    - symbolic name and alpha
+     rgb(r,g,b)    - CSS style rgb values
+     rgba(r,g,b,a) - CSS style rgba values
+
+Alpha values can be specified as GD style integers ranging from 0
+(opaque) to 127 (transparent), or as CSS-style floating point numbers
+ranging from 0.0 (transparent) through 1.0 (opaque). As a special
+case, a completely transparent color can be specified using the color
+named "transparent". In the rgb() and rgba() forms, red, green, blue
+values can be specified as percentages, as in rgb(100%,0%,50%);
+otherwise, the values are integers from 0 to 255.
 
 B<Foreground color:> The -fgcolor option controls the foreground
 color, including the edges of boxes and the like.

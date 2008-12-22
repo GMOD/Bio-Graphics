@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.1 2008-12-08 23:15:57 lstein Exp $
+# $Id: FeatureFile.pm,v 1.2 2008-12-22 17:59:27 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -65,6 +65,37 @@ There are two types of entry in the file format: feature entries, and
 formatting entries.  They can occur in any order.  See the Appendix
 for a full example.
 
+Formatting entries are in the form:
+
+ [Stanza Name]
+ option1 = value1
+ option2 = value2
+ option3 = value3
+
+ [Stanza Name 2]
+ option1 = value1
+ option2 = value2
+ ...
+
+There can be zero or more stanzas, each with a unique name. The names
+can contain any character except the [] characters. Each stanza
+consists of one or more option = value pairs, where the option and the
+value are separated by an "=" sign and optional whitespace. Values can
+be continued across multiple lines by indenting the continuation lines
+by one or more spaces, as in:
+
+ [Named Genes]
+ feature = gene
+ glyph   = transcript2
+ description = These are genes that have been named
+   by the international commission on gene naming
+   (The Hague).
+
+Typically configuration stanzas will consist of several Bio::Graphics
+formatting options. A -option=>$value pair passed to
+Bio::Graphics::Panel->add_track() becomes a "option=value" pair in the
+feature file.
+
 Feature entries can take several forms.  At their simplest, they look
 like this:
 
@@ -99,18 +130,47 @@ the same way as in the shell:
 
  'Putative Gene' my\ favorite\ gene 516-11208
 
-Features can be grouped so that they are rendered by the "group" glyph
-(so far this has only been used to relate 5' and 3' ESTs).  To start a
-group, create a two-column feature entry showing the group type and a
-name for the group.  Follow this with a list of feature entries with a
-blank type.  For example:
+Features can be grouped so that they are rendered by the "group"
+glyph.  To start a group, create a two-column feature entry showing
+the group type and a name for the group.  Follow this with a list of
+feature entries with a blank type.  For example:
 
  EST	yk53c10
  	yk53c10.3	15000-15500,15700-15800
  	yk53c10.5	18892-19154
 
 This example is declaring that the ESTs named yk53c10.3 and yk53c10.5
-belong to the same group named yk53c10.  
+belong to the same group named yk53c10.
+
+Lines that begin with the # sign are treated as comments and
+ignored. When a # sign appears within a line, everything to the right
+of the symbol is also ignored, unless it looks like an HTML fragment or
+an HTML color, e.g.:
+
+ # this is ignored
+ [Example]
+ glyph   = generic   # this comment is ignored
+ bgcolor = #FF0000
+ link    = http://www.google.com/search?q=$name#results
+
+Be careful, because the processing of # signs uses a regexp heuristic. To be safe, 
+always put a space after the # sign to make sure it is treated as a comment.
+
+The special comment "#include 'filename'" acts like the C preprocessor
+directive and will insert the comments of a named file into the
+position at which it occurs. Relative paths will be treated relative
+to the file in which the #include occurs. Nested #include directives
+are allowed:
+
+ #include "/usr/local/share/my_directives.txt"
+ #include 'my_directives.txt'
+ #include chromosome3_features.gff3
+
+You can enclose the file path in single or double quotes as shown
+above. If there are no spaces in the filename the quotes are optional.
+
+Include file processing is not very smart. Avoid creating circular
+#include references. You have been warned!
 
 =cut
 
@@ -121,6 +181,8 @@ use Carp 'cluck','carp','croak';
 use IO::File;
 use Text::ParseWords 'shellwords';
 use Bio::DB::SeqFeature::Store;
+use File::Basename 'dirname';
+use Cwd 'getcwd';
 
 # default colors for unconfigured features
 my @COLORS = qw(cyan blue red yellow green wheat turquoise orange);
@@ -239,25 +301,27 @@ sub new {
   $self->safe_world(1)                            if $args{-safe_world};
   $self->allow_whitespace(1)                      if $args{-allow_whitespace};
 
+  $self->init_parse();
+
   # call with
   #   -file
   #   -text
-  my $fh;
   if (my $file = $args{-file}) {
     no strict 'refs';
-    if (defined fileno($file)) {
-      $fh = $file;
+    if (defined fileno($file)) { # a filehandle
+	$self->parse_fh($file);
     } elsif ($file eq '-') {
       $self->parse_argv();
     } else {
-      $fh = IO::File->new($file) or croak("Can't open $file: $!\n");
+	$self->_stat($file);
+	$self->parse_file($file);
     }
-    $self->parse_file($fh);
   } elsif (my $text = $args{-text}) {
-    $self->parse_text($text);
+      $self->parse_text($text);
   }
-  close($fh) or warn "Error closing file: $!" if $fh;
-  $self;
+
+  $self->finish_parse();
+  return $self;
 }
 
 # render our features onto a panel using configuration data
@@ -414,8 +478,8 @@ sub render {
 
 sub _stat {
   my $self = shift;
-  my $fh   = shift;
-  $self->{stat} = [stat($fh)];
+  my $file = shift;
+  $self->{stat} = [stat($file)];
 }
 
 sub _visible {
@@ -464,40 +528,42 @@ sub smart_features {
 
 sub parse_argv {
   my $self = shift;
-  $self->init_parse;
-
   local $/ = "\n";
   while (<>) {
     chomp;
     $self->parse_line($_);
   }
-  $self->finish_parse;
 }
 
 sub parse_file {
-  my $self = shift;
-  my $fh   = shift or return;
+    my $self = shift;
+    my $file = shift;
 
-  $self->_stat($fh);
-  $self->init_parse;
+    my $fh   = IO::File->new($file) or return;
 
-  local $/ = "\n";
-  while (<$fh>) {
-    chomp;
-    $self->parse_line($_) || last;
-  }
-  $self->finish_parse;
+    my $cwd  = getcwd();
+    chdir(dirname($file));
+    $self->parse_fh($fh);
+    chdir($cwd);
+}
+
+sub parse_fh {
+    my $self = shift;
+    my $fh   = shift;
+    local $/ = "\n";
+    while (<$fh>) {
+	chomp;
+	$self->parse_line($_) || last;
+    }
 }
 
 sub parse_text {
   my $self = shift;
   my $text = shift;
 
-  $self->init_parse;
   foreach (split m/\015?\012|\015\012?/,$text) {
     $self->parse_line($_);
   }
-  $self->finish_parse;
 }
 
 sub parse_line {
@@ -507,8 +573,13 @@ sub parse_line {
   $line =~ s/\015//g;  # get rid of carriage returns left over by MS-DOS/Windows systems
   $line =~ s/\s+$//;   # get rid of trailing whitespace
 
-  return 1 if $line =~ /^\s*\#[^\#]?$/;   # comment line
+  if (/^#include\s+(.+)/) {  # #include directive
+      my ($include_file) = shellwords($1);
+      $self->parse_file($include_file);
+      return 1;
+  }
 
+  return 1 if $line =~ /^\s*\#[^\#]?$/;   # comment line
 
   # Are we in a configuration section or a data section?
   # We start out in 'config' state, and are triggered to
@@ -560,7 +631,7 @@ sub parse_config_line {
     local $_ = shift;
 
     # strip right-column comments unless they look like colors or html fragments
-    s/\s*\#.*$// unless /\#[0-9a-f]{6}\s*$/i || /\w+\#\w+/;   
+    s/\s*\#.*$// unless /\#[0-9a-f]{6,8}\s*$/i || /\w+\#\w+/;   
 
     if (/^\s+(.+)/ && $self->{current_tag}) { # configuration continuation line
 	my $value = $1;
