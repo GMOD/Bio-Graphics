@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.4 2008-12-22 20:50:37 lstein Exp $
+# $Id: FeatureFile.pm,v 1.5 2008-12-23 08:07:58 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -370,9 +370,10 @@ sub new {
   if (my $file = $args{-file}) {
     no strict 'refs';
     if (defined fileno($file)) { # a filehandle
+	$self->_stat($file);
 	$self->parse_fh($file);
     } elsif ($file eq '-') {
-      $self->parse_argv();
+	$self->parse_argv();
     } else {
 	$self->_stat($file);
 	$self->parse_file($file);
