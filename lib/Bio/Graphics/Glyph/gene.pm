@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::gene;
 
-# $Id: gene.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: gene.pm,v 1.2 2009-01-23 16:27:59 lstein Exp $
 
 use strict;
 use base 'Bio::Graphics::Glyph::processed_transcript';
@@ -79,7 +79,10 @@ sub _label_transcripts {
 
 sub draw_connectors {
   my $self = shift;
-  return if $self->feature->primary_tag eq 'gene';
+  if ($self->feature->primary_tag eq 'gene') {
+      my @parts = $self->parts;
+      return if @parts && $parts[0] =~ /rna|transcript|pseudogene/i;
+  }
   $self->SUPER::draw_connectors(@_);
 }
 
