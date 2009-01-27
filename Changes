@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.83 Fri Jan  9 20:44:41 MST 2009
+     - Made #include directive case-insensitive.
+1.80 December 2008
+     - Split off from Bio::Perl after a 6-year hiatus.
 1.05 Fri Apr 12 20:53:42 EDT 2002
 	- Version 1.04 had a fatal bug.  Do not use.  1.05 fixes this
 	and is identical to BioPerl 1.01.

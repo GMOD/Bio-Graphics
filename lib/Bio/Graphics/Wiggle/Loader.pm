@@ -95,7 +95,7 @@ use Statistics::Descriptive;
 use IO::Seekable;
 use File::Spec;
 use Bio::Graphics::Wiggle;
-use Bio::Graphics::Browser::Util 'shellwords';
+use Text::ParseWords();
 use File::stat;
 use CGI 'escape';
 
@@ -608,6 +608,19 @@ sub translate_color {
     }
   }
   return $color_name{$clr} || $clr;
+}
+
+# work around an annoying uninit variable warning from Text::Parsewords
+sub shellwords {
+    my @args = @_;
+    return unless @args;
+    foreach(@args) {
+	s/^\s+//;
+	s/\s+$//;
+	$_ = '' unless defined $_;
+    }
+    my @result = Text::ParseWords::shellwords(@args);
+    return @result;
 }
 
 1;

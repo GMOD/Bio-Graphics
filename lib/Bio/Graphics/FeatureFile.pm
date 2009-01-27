@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.5 2008-12-23 08:07:58 lstein Exp $
+# $Id: FeatureFile.pm,v 1.6 2009-01-27 13:50:22 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -229,6 +229,8 @@ are allowed:
 
 You can enclose the file path in single or double quotes as shown
 above. If there are no spaces in the filename the quotes are optional.
+The #include directive is case insensitive, allowing you to use
+#INCLUDE or #Include if you prefer.
 
 Include file processing is not very smart. Avoid creating circular
 #include references. You have been warned!
@@ -635,7 +637,7 @@ sub parse_line {
   $line =~ s/\015//g;  # get rid of carriage returns left over by MS-DOS/Windows systems
   $line =~ s/\s+$//;   # get rid of trailing whitespace
 
-  if (/^#include\s+(.+)/) {  # #include directive
+  if (/^#include\s+(.+)/i) {  # #include directive
       my ($include_file) = shellwords($1);
       $self->parse_file($include_file);
       return 1;

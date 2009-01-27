@@ -12,10 +12,12 @@ my $build = Module::Build->new(
     requires          => {
 	'Bio::Root::Version'  => '1.005009001',
 	'GD'                  => 2.30,
-	'Text::ParseWords'    => 0,
     },
     recommends        => {
-	'GD::SVG'   => 0, 
+	'GD::SVG'                 => 0.32, 
+	'Statistics::Descriptive' => 2.6,   # required for Bio::Graphics::Wiggle::Loader
+	'Text::ParseWords'        => 3.26,  # required for Bio::Graphics::Wiggle::Loader
+	'Bio::SCF'                => 1.01,  # required for Bio::Graphics::Glyph::trace
     },
     script_files => ['scripts/contig_draw.pl',
 		     'scripts/feature_draw.pl',
