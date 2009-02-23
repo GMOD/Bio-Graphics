@@ -2705,6 +2705,7 @@ annotation.  Recognized variables include:
      $description The feature's description (notes)
      $start       The start position of this feature, relative to $ref
      $end         The end position of this feature, relative to $ref
+     $length      Length of this feature
      $segstart    The left end of $ref displayed in the detailed view
      $segend      The right end of $ref displayed in the detailed view
 
