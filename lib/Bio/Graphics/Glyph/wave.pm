@@ -13,6 +13,8 @@ sub default_radius
   return 5;  
 }
 
+sub connector { 'none' }
+
 sub draw_component {
   my $self = shift;
   my $gd = shift;

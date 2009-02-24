@@ -14,6 +14,8 @@ sub default_interval
   return 10;  
 }
 
+sub connector { 'none' }
+
 sub draw_component {
   my $self = shift;
   my $gd = shift;

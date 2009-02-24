@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.1 2008-12-08 23:15:57 lstein Exp $
+# $Id: Glyph.pm,v 1.2 2009-02-24 05:36:40 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -820,8 +820,9 @@ sub draw_connectors {
     my @p       = map {$_->feature} @parts;
     $self->_connector($gd,$dx,$dy,$parts[-1]->bounds,$x2,$xt2,$x2,$xb2) if $x2 > $xr2;
   } else {
-    my ($x1,$y1,$x2,$y2) = $self->bounds($dx,$dy);
-    $self->draw_connector($gd,$y1,$y2,$x1,$y1,$y2,$x2);
+      # I don't understand what this code is for... LS
+      #    my ($x1,$y1,$x2,$y2) = $self->bounds($dx,$dy);
+      #    $self->draw_connector($gd,$y1,$y2,$x1,$y1,$y2,$x2);
   }
 
 }
