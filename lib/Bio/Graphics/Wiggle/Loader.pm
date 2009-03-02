@@ -2,7 +2,7 @@ package Bio::Graphics::Wiggle::Loader;
 
 =head1 SYNOPSIS
 
-  my $loader = Bio::Graphics::Wiggle::Loader->new('/base/directory/for/wigfiles');
+  my $loader = Bio::Graphics::Wiggle::Loader->new('/base/directory/for/wigfiles','wibfilename');
   my $fh = IO::File->new('uploaded_file.txt');
   $loader->load($fh);
 
@@ -18,20 +18,22 @@ http://genome.ucsc.edu/google/goldenPath/help/wiggle.html
 
 Several data sets can be grouped together in a single WIG source
 file. The load() method accepts the path to a WIG source file, and
-will create one or more .wig databases of quantitative data in the
-directory indicated when you created the loader. Call the
-featurefile() method to return a text file in either GFF3 or
-Bio::Graphics::FeatureFile format, suitable for loading into a gbrowse
-database.
+will create one or more .wib ("wiggle binary") databases of
+quantitative data in the directory indicated when you created the
+loader. Call the featurefile() method to return a text file in either
+GFF3 or Bio::Graphics::FeatureFile format, suitable for loading into a
+gbrowse database.
 
 =head2 METHODS
 
 =over 4
 
-=item $loader = Bio::Graphics::Wiggle::Loader->new('/base/directory')
+=item $loader = Bio::Graphics::Wiggle::Loader->new('/base/directory' [,'my_data'])
 
-Create a new loader. Specify the base directory in which the loaded
-.wig files will be created.
+Create a new loader. The first argument specifies the base directory
+in which the loaded .wib files will be created. The second argument
+specifies the base name for the created .wib files, or "track" if not
+specified.
 
 =item $loader->load($fh)
 
@@ -41,13 +43,13 @@ Load the data from a source WIG file opened on a filehandle.
 
 Return the data corresponding to a GFF3 or
 Bio::Graphics::FeatureFile. The returned file will have one feature
-per WIG track, and a properlyl formatted "wigfile" attribute that
+per WIG track, and a properly formatted "wigfile" attribute that
 directs Bio::Graphics to the location of the quantitative data.
 
 $type is one of "gff3" or "featurefile". In the case of "gff3", you
 may specify an optional method and source for use in describing each
 feature. In the case of "featurefile", the returned file will contain
-GBrowse stanzas that describe a reasonable starting format do display
+GBrowse stanzas that describe a reasonable starting format to display
 the data.
 
 =back
@@ -107,12 +109,14 @@ use constant BIG_FILE_SAMPLES => 5_000;     # number of probes to make
 
 sub new {
   my $class = shift;
-  my $base  = shift or croak "Usage: Bio::Graphics::Wiggle::Loader->new('/base/path')";
+  my $base      = shift 
+                 or croak "Usage: Bio::Graphics::Wiggle::Loader->new('/base/path','trackname')";
+  my $trackname = shift or 'track';
   -d $base && -w _  or croak "$base is not a writeable directory";
   return bless {
 		base            => $base,
 		tracks          => {},
-		trackname       => 'track',
+		trackname       => $trackname,
 	        tracknum        => '000',
 		track_options   => {},
 	       },ref $class || $class;
@@ -555,9 +559,9 @@ sub wigfile {
   my $seqid = shift;
   my $ts    = time();
   my $current_track = $self->{tracknum};
-  my $tname          = $self->{trackname};
+  my $tname         = $self->{trackname};
   unless (exists $self->current_track->{seqids}{$seqid}{wig}) {
-    my $path    = File::Spec->catfile($self->{base},"$tname\_$current_track.$seqid.$ts.wig");
+    my $path    = File::Spec->catfile($self->{base},"$tname\_$current_track.$seqid.$ts.wib");
     my @stats;
     foreach (qw(min max mean stdev)) {
 	my $value = $self->current_track->{seqids}{$seqid}{$_} ||
@@ -571,7 +575,6 @@ sub wigfile {
 	1;
     my $trim      = $self->current_track->{display_options}{trim};# || 'stdev2';
     my $transform = $self->current_track->{display_options}{transform};
-    warn "loading wiggle into $path";
     my $wigfile = Bio::Graphics::Wiggle->new(
 					     $path,
 					     1,
