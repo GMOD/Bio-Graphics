@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.7 2009-02-23 22:31:24 lstein Exp $
+# $Id: FeatureFile.pm,v 1.8 2009-03-02 06:02:56 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -221,12 +221,17 @@ The special comment "#include 'filename'" acts like the C preprocessor
 directive and will insert the comments of a named file into the
 position at which it occurs. Relative paths will be treated relative
 to the file in which the #include occurs. Nested #include directives
-are allowed:
+(a #include located in a file that is itself an include file) are
+#allowed. You may also use one of the shell wildcard characters * and
+#? to include all matching files in a directory.
+
+The following are examples of valid #include directives:
 
  #include "/usr/local/share/my_directives.txt"
  #include 'my_directives.txt'
  #include chromosome3_features.gff3
-
+ #include gff.d/*.conf
+ 
 You can enclose the file path in single or double quotes as shown
 above. If there are no spaces in the filename the quotes are optional.
 The #include directive is case insensitive, allowing you to use
@@ -603,12 +608,13 @@ sub parse_file {
     my $self = shift;
     my $file = shift;
 
-    my $fh   = IO::File->new($file) or return;
-
-    my $cwd  = getcwd();
-    chdir(dirname($file));
-    $self->parse_fh($fh);
-    chdir($cwd);
+    for my $f (glob($file)) {
+	my $fh   = IO::File->new($f) or return;
+	my $cwd  = getcwd();
+	chdir(dirname($f));
+	$self->parse_fh($fh);
+	chdir($cwd);
+    }
 }
 
 sub parse_fh {
