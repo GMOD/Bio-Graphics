@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.2 2009-03-10 16:02:14 scottcain Exp $
+# $Id: ideogram.pm,v 1.3 2009-03-10 16:02:58 scottcain Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -452,7 +452,7 @@ into GFF format.  If you have the lynx web-browser installed you can
 call it like this in order to download and convert the data in a
 single operation:
 
-  fetchideogram.pl http://hgdownload.cse.ucsc.edu/goldenPath/hg16/database/cytoBand.txt.gz
+  fetchideogram.pl http://hgdownload.cse.ucsc.edu/goldenPath/hg18/database/cytoBand.txt.gz
 
 Otherwise you will need to download the file first. Note the difference between this script
 and input data from previous versions of ideogram.pm: UCSC annotations are used in place
