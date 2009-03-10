@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: ideogram.pm,v 1.2 2009-03-10 16:02:14 scottcain Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -496,12 +496,14 @@ while(<>)
 	next;
     }
     $chr =~ s/chr//i;
-    print qq/$chr\tUCSC\tcytoband\t$start\t$stop\t.\t.\t.\tParent=$chr_stripped;Name=$chr;Alias=$chr$band;stain=$stain;\n/;
+    print qq/$chr\tUCSC\tcytoband\t$start\t$stop\t.\t.\t.\tParent=$chr;Name=$chr;Alias=$chr$band;stain=$stain;\n/;
 }
 
 foreach my $chr(sort keys %chrom_ends)
 {
-    print qq/$chr\tUCSC\tcentromere\t$centros{$chr}->{p}->{stop}\t$centros{$chr}->{q}->{start}\t.\t+\t.\tParent=$chr;Name=$chr\_cent\n/;
+    my $chr_orig = $chr;
+    $chr =~ s/chr//i;
+    print qq/$chr\tUCSC\tcentromere\t$centros{$chr_orig}->{p}->{stop}\t$centros{$chr_orig}->{q}->{start}\t.\t+\t.\tParent=$chr;Name=$chr\_cent\n/;
 }
 
 
