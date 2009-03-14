@@ -1,4 +1,7 @@
 Revision history for Perl extension Bio::Graphics.
+1.86 Sat Mar 14 12:22:50 EDT 2009
+     -Improved performance of wiggle xyplot drawing about 5-fold
+     -Added minor ticks to xyplots
 1.83 Fri Jan  9 20:44:41 MST 2009
      - Made #include directive case-insensitive.
 1.80 December 2008
