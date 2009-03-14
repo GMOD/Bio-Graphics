@@ -64,7 +64,12 @@ Several extensions to the WIG format "track" declaration are recognized.
 
 Specify a transform to be performed on all numeric data within this
 track prior to loading into the binary wig file. Currently, the
-following two declarations are recognized:
+following three declarations are recognized:
+
+ transform=logtransform y' = 0          for  y == 0
+                        y' = log(y)     for  y >  0
+                        y' = -log(-y)   for  y <  0
+                        
 
  transform=logsquared  y' = log(y**2) for y != 0
                        y' = 0         for y == 0
@@ -559,7 +564,7 @@ sub wigfile {
   my $seqid = shift;
   my $ts    = time();
   my $current_track = $self->{tracknum};
-  my $tname         = $self->{trackname};
+  my $tname         = $self->{trackname} || 'track';
   unless (exists $self->current_track->{seqids}{$seqid}{wig}) {
     my $path    = File::Spec->catfile($self->{base},"$tname\_$current_track.$seqid.$ts.wib");
     my @stats;

@@ -73,16 +73,135 @@ sub _draw_wigfile {
     my $end         = $feature->end   < $panel_end   ? $feature->end   : $panel_end;
 
     $self->wig($wig);
-    $self->create_parts_for_dense_feature($wig,$start,$end);
+    my $parts = $self->create_parts_for_dense_feature($wig,$start,$end);
+    $self->draw_plot($parts,@_);
+}
 
-    $self->SUPER::draw(@_);
+sub draw_plot {
+    my $self            = shift;
+    my $parts           = shift;
+    my ($gd,$dx,$dy)    = @_;
+
+    my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
+    my ($min_score,$max_score)     = $self->minmax($parts);
+    my $side = $self->_determine_side();
+
+    # if a scale is called for, then we adjust the max and min to be even
+    # multiples of a power of 10.
+    if ($side) {
+	$max_score = Bio::Graphics::Glyph::xyplot::max10($max_score);
+	$min_score = Bio::Graphics::Glyph::xyplot::min10($min_score);
+    }
+
+    my $height = $bottom - $top;
+    my $y_scale  = $max_score > $min_score ? $height/($max_score-$min_score)
+	                                   : 1;
+    my $x = $left;
+    my $y = $top + $self->pad_top;
+    
+    my $x_scale = $self->scale;
+    my $f_start = $self->feature->start;
+
+    # position of "0" on the scale
+    my $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $y_scale : $bottom;
+    $y_origin    = $top if $max_score < 0;
+    $y_origin    = int($y_origin+0.5);
+
+    $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
+
+    my $lw       = $self->linewidth;
+    my $positive = $self->pos_color;
+    my $negative = $self->neg_color;
+    my $midpoint = $self->midpoint;
+
+    my @points = map {
+	my ($start,$end,$score) = @$_;
+	my $x1     = $left    + ($start - $f_start)   * $x_scale;
+	my $x2     = $left    + ($end   - $f_start)   * $x_scale;
+	if ($x2 >= $left and $x1 <= $right) {
+	    my $y1     = $bottom  - ($score - $min_score) * $y_scale;
+	    my $y2     = $y_origin;
+	    $y1        = $top    if $y1 < $top;
+	    $y1        = $bottom if $y1 > $bottom;
+	    $x1        = $left   if $x1 < $left;
+	    $x2        = $right  if $x2 > $right;
+ 
+	    my $color = $score > $midpoint ? $positive : $negative;
+	    [int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$color,$lw];
+	} else {
+	    ();
+	}
+    } @$parts;
+
+    my $type           = $self->option('graph_type') || $self->option('graphtype') || 'boxes';
+    if ($type eq 'boxes') {
+	for (@points) {
+	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
+	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$color,$color,$lw);
+	}
+    }
+
+    if ($type eq 'line' or $type eq 'linepoints') {
+	my $current = shift @points;
+	my $lw      = $self->option('linewidth');
+	$gd->setThickness($lw) if $lw > 1;
+	for (@points) {
+	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
+	    $gd->line(@{$current}[0,1],@{$_}[0,1],$color);
+	    $current = $_;
+	}
+	$gd->setThickness(1);
+    }
+
+    if ($type eq 'points' or $type eq 'linepoints') {
+	my $symbol_name = $self->option('point_symbol') || 'point';
+	my $filled      = $symbol_name =~ s/^filled_//;
+	my $symbol_ref  = $self->symbols->{$symbol_name};
+	my $pr          = $self->point_radius;
+	for (@points) {
+	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
+	    $symbol_ref->($gd,$x1,$y1,$pr,$color,$filled);
+	}
+    }
+
+    if ($type eq 'histogram') {
+	my $current = shift @points;
+	for (@points) {
+	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
+	    $self->filled_box($gd,$current->[0],$y_origin,$x2,$y1,$color,$color,1);
+	    $current = $_;
+	}	
+    }
+}
+
+sub minmax {
+    my $self   = shift;
+    my $parts  = shift;
+    
+    my $min_score  = $self->option('min_score');
+    my $max_score  = $self->option('max_score');
+
+    my $do_min = !defined $min_score;
+    my $do_max = !defined $max_score;
+
+    if ($do_min or $do_max) {
+	my $first = $parts->[0];
+	for my $part (@$parts) {
+	    my $s = $part->[2];
+	    next unless defined $s;
+	    $max_score = $s if $do_max && (!defined $max_score or $s > $max_score);
+	    $min_score = $s if $do_min && (!defined $min_score or $s < $min_score);
+	}
+    }
+
+    return ($min_score,$max_score);
 }
 
 sub wig {
-  my $self = shift;
-  my $d = $self->{wig};
-  $self->{wig} = shift if @_;
-  $d;
+    my $self = shift;
+    my $d = $self->{wig};
+    $self->{wig} = shift if @_;
+    $d;
 }
 
 sub series_mean {
@@ -92,55 +211,52 @@ sub series_mean {
 }
 
 sub draw_densefile {
-  my $self = shift;
-  my $feature = shift;
-  my $densefile = shift;
+    my $self = shift;
+    my $feature = shift;
+    my $densefile = shift;
+    
+    my ($denseoffset) = $feature->attributes('denseoffset');
+    my ($densesize)   = $feature->attributes('densesize');
+    $denseoffset ||= 0;
+    $densesize   ||= 1;
+    
+    my $smoothing      = $self->get_smoothing;
+    my $smooth_window  = $self->smooth_window;
+    my $start          = $self->smooth_start;
+    my $end            = $self->smooth_end;
 
-  my ($denseoffset) = $feature->attributes('denseoffset');
-  my ($densesize)   = $feature->attributes('densesize');
-  $denseoffset ||= 0;
-  $densesize   ||= 1;
-
-  my $smoothing      = $self->get_smoothing;
-  my $smooth_window  = $self->smooth_window;
-  my $start          = $self->smooth_start;
-  my $end            = $self->smooth_end;
-
-  my $fh         = IO::File->new($densefile) or die "can't open $densefile: $!";
-  eval "require Bio::Graphics::DenseFeature" unless Bio::Graphics::DenseFeature->can('new');
-  my $dense = Bio::Graphics::DenseFeature->new(-fh=>$fh,
-					       -fh_offset => $denseoffset,
-					       -start     => $feature->start,
-					       -smooth    => $smoothing,
-					       -recsize   => $densesize,
-					       -window    => $smooth_window,
-					      ) or die "Can't initialize DenseFeature: $!";
-  $self->create_parts_for_dense_feature($dense,$start,$end);
-  $self->SUPER::draw(@_);
+    my $fh         = IO::File->new($densefile) or die "can't open $densefile: $!";
+    eval "require Bio::Graphics::DenseFeature" unless Bio::Graphics::DenseFeature->can('new');
+    my $dense = Bio::Graphics::DenseFeature->new(-fh=>$fh,
+						 -fh_offset => $denseoffset,
+						 -start     => $feature->start,
+						 -smooth    => $smoothing,
+						 -recsize   => $densesize,
+						 -window    => $smooth_window,
+	) or die "Can't initialize DenseFeature: $!";
+    my $parts = $self->create_parts_for_dense_feature($dense,$start,$end);
+    $self->draw_plot($parts);
 }
 
 sub create_parts_for_dense_feature {
-  my $self = shift;
-  my ($dense,$start,$end) = @_;
+    my $self = shift;
+    my ($dense,$start,$end) = @_;
 
 
-#  my $span = $self->width;
-  my $span = $self->scale> 1 ? $end - $start : $self->width;
-  my $data = $dense->values($start,$end,$span);
-  my $points_per_span = ($end-$start+1)/$span;
-  my @parts;
+    my $span = $self->scale> 1 ? $end - $start : $self->width;
+    my $data = $dense->values($start,$end,$span);
+    my $points_per_span = ($end-$start+1)/$span;
+    my @parts;
 
-  for (my $i=0; $i<$span;$i++) {
-    my $offset = $i * $points_per_span;
-    my $value  = shift @$data;
-    next unless defined $value;
-    push @parts,
-      Bio::Graphics::Feature->new(-score => $value,
-				  -start => int($start + $i * $points_per_span),
-				  -end   => int($start + $i * $points_per_span));
-  }
-  $self->{parts} = [];
-  $self->add_feature(@parts);
+    for (my $i=0; $i<$span;$i++) {
+	my $offset = $i * $points_per_span;
+	my $value  = shift @$data;
+	next unless defined $value;
+	push @parts,[int($start + $i * $points_per_span),
+		     int($start + $i * $points_per_span),
+		     $value];
+    }
+    return \@parts;
 }
 
 sub minmax {

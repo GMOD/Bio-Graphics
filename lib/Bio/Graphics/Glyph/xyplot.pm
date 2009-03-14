@@ -390,6 +390,18 @@ sub _draw_scale {
     }
     $last_font_pos = $font_pos;
   }
+
+  # minor ticks - multiples of 10
+  my $interval = 1;
+  my $height   = $y2-$y1;
+  while ($height/(($max-$min)/$interval) < 2) { $interval *= 10 }
+  my $y_scale = $height/(($max-$min)/$interval);
+  for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
+      my $yr = int($y+0.5);
+      $gd->line($x1-1,$yr,$x1,$yr,$fg) if $side eq 'left'  || $side eq 'both';
+      $gd->line($x2,$yr,$x2+1,$yr,$fg) if $side eq 'right' || $side eq 'both';
+  }
+  
 }
 
 # we are unbumpable!
@@ -474,6 +486,11 @@ sub keyglyph {
   $factory->set_option(connector  => 'solid');
   my $glyph = $factory->make_glyph(0,$feature);
   return $glyph;
+}
+
+sub symbols {
+    my $self = shift;
+    return \%SYMBOLS;
 }
 
 
