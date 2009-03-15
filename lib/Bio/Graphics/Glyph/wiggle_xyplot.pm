@@ -100,7 +100,9 @@ sub draw_plot {
     my $y = $top + $self->pad_top;
     
     my $x_scale = $self->scale;
-    my $f_start = $self->feature->start;
+    my $panel_start = $self->panel->start;
+    my $feature     = $self->feature;
+    my $f_start = $feature->start > $panel_start ? $feature->start : $panel_start;
 
     # position of "0" on the scale
     my $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $y_scale : $bottom;
@@ -116,8 +118,9 @@ sub draw_plot {
 
     my @points = map {
 	my ($start,$end,$score) = @$_;
-	my $x1     = $left    + ($start - $f_start)   * $x_scale;
-	my $x2     = $left    + ($end   - $f_start)   * $x_scale;
+	my $x1     = $left    + ($start - $f_start) * $x_scale;
+	my $x2     = $left    + ($end   - $f_start) * $x_scale;
+#	warn "($start,$end,$score, x1=$x1, x2=$x2";
 	if ($x2 >= $left and $x1 <= $right) {
 	    my $y1     = $bottom  - ($score - $min_score) * $y_scale;
 	    my $y2     = $y_origin;
@@ -252,8 +255,8 @@ sub create_parts_for_dense_feature {
 	my $offset = $i * $points_per_span;
 	my $value  = shift @$data;
 	next unless defined $value;
-	push @parts,[int($i * $points_per_span),
-		     int($i * $points_per_span),
+	push @parts,[$start + int($i * $points_per_span),
+		     $start + int($i * $points_per_span),
 		     $value];
     }
     return \@parts;
