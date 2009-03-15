@@ -1,6 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.88 Sat Mar 14 23:31:46 EDT 2009
+     -Cleaned up calculation of min and max values for scaling and introduced the "autoscale" option.
 1.87 Sat Mar 14 20:56:47 EDT 2009
-     -Fixed bug in xyplot development.
+     -Fixed bug in xyplot visualization.
 1.86 Sat Mar 14 12:22:50 EDT 2009
      -Improved performance of wiggle xyplot drawing about 5-fold
      -Added minor ticks to xyplots
