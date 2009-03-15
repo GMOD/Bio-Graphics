@@ -180,20 +180,22 @@ sub draw_plot {
 sub minmax {
     my $self   = shift;
     my $parts  = shift;
-    
+
     my $min_score  = $self->option('min_score');
     my $max_score  = $self->option('max_score');
+    my $autoscale  = $self->option('autoscale');
 
-    my $do_min = !defined $min_score;
-    my $do_max = !defined $max_score;
-
-    if ($do_min or $do_max) {
+    if ((my $wig = $self->wig) && $autoscale && ($autoscale eq 'global')) {
+	$min_score = $wig->min;
+	$max_score = $wig->max;
+    }
+    elsif ($autoscale) {
 	my $first = $parts->[0];
 	for my $part (@$parts) {
 	    my $s = $part->[2];
 	    next unless defined $s;
-	    $max_score = $s if $do_max && (!defined $max_score or $s > $max_score);
-	    $min_score = $s if $do_min && (!defined $min_score or $s < $min_score);
+	    $max_score = $s if (!defined $max_score or $s > $max_score);
+	    $min_score = $s if (!defined $min_score or $s < $min_score);
 	}
     }
 
@@ -260,20 +262,6 @@ sub create_parts_for_dense_feature {
 		     $value];
     }
     return \@parts;
-}
-
-sub minmax {
-  my $self  = shift;
-  my $parts = shift;
-  if (my $wig = $self->wig) {
-    my $max = $self->option('max_score');
-    my $min = $self->option('min_score');
-    $max = $wig->max unless defined $max;
-    $min = $wig->min unless defined $min;
-    return ($min,$max);
-  } else {
-    return $self->SUPER::minmax($parts);
-  }
 }
 
 sub subsample {
@@ -371,6 +359,15 @@ recognized:
                                 tags giving relative paths. Default is to use the
                                 current working directory. Absolute wigfile &
                                 densefile paths will not be changed.
+
+   autoscale   "local" or "global"
+                             If this option is present, then the min_score and
+                             max_score options will be ignored and these values
+                             will be calculated automatically. "local" will
+                             scale values according to the minimum and maximum
+                             values present in the window being graphed. "global"   
+                             will use chromosome-wide statistics for the entire
+                             wiggle or dense file to find min and max values.
 
    smoothing   method name  Smoothing method: one of "mean", "max", "min" or "none"
 
