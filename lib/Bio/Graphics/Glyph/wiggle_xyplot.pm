@@ -252,8 +252,8 @@ sub create_parts_for_dense_feature {
 	my $offset = $i * $points_per_span;
 	my $value  = shift @$data;
 	next unless defined $value;
-	push @parts,[int($start + $i * $points_per_span),
-		     int($start + $i * $points_per_span),
+	push @parts,[int($i * $points_per_span),
+		     int($i * $points_per_span),
 		     $value];
     }
     return \@parts;
