@@ -171,7 +171,8 @@ sub draw_plot {
 	my $current = shift @points;
 	for (@points) {
 	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
-	    $self->filled_box($gd,$current->[0],$y_origin,$x2,$y1,$color,$color,1);
+	    my ($y_start,$y_end) = $y1 < $y_origin ? ($y1,$y_origin) : ($y_origin,$y1);
+	    $self->filled_box($gd,$current->[0],$y_start,$x2,$y_end,$color,$color,1);
 	    $current = $_;
 	}	
     }

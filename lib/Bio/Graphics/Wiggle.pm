@@ -533,6 +533,28 @@ sub _retrieve_values {
   my $length = $end-$start+1;
   $samples ||= $length;
 
+  # if the length is grossly greater than the samples, then we won't even
+  # bother fetching all the data, but just sample into the disk file
+  if ($length/$samples > 100) {
+      my @result;
+      my $window   = 20*($span/$step);
+      my $interval = $length/$samples;
+      for (my $i=0;$i<$samples;$i++) {
+	  my $packed_data = $self->_retrieve_packed_range($start+$i*$interval,$window,$step);
+	  my @bases= grep {$_} unpack('C*',$packed_data);
+	  if (@bases) {
+	      my $arry = $self->unscale(\@bases);	  
+	      my $n    = @$arry;
+	      my $total = 0;
+	      $total   += $_ foreach @$arry;
+	      push @result,$total/$n;
+	  } else {
+	      push @result,0;
+	  }
+      }
+      return \@result;
+  }
+
   my $packed_data = $self->_retrieve_packed_range($start,$length,$step);
 
   my @bases;
