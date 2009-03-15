@@ -181,21 +181,27 @@ sub minmax {
     my $self   = shift;
     my $parts  = shift;
 
+    my $autoscale  = $self->option('autoscale') || '';
     my $min_score  = $self->option('min_score');
     my $max_score  = $self->option('max_score');
-    my $autoscale  = $self->option('autoscale');
 
-    if ((my $wig = $self->wig) && $autoscale && ($autoscale eq 'global')) {
-	$min_score = $wig->min;
-	$max_score = $wig->max;
+    my $do_min     = !defined $min_score;
+    my $do_max     = !defined $max_score;
+
+    if ($autoscale eq 'global') {
+	if (my $wig = $self->wig) {	
+	    $min_score = $wig->min if $do_min;
+	    $max_score = $wig->max if $do_max;
+	}
     }
-    elsif ($autoscale) {
+
+    if (($do_min or $do_max) and ($autoscale ne 'global')) {
 	my $first = $parts->[0];
 	for my $part (@$parts) {
 	    my $s = $part->[2];
 	    next unless defined $s;
-	    $max_score = $s if (!defined $max_score or $s > $max_score);
-	    $min_score = $s if (!defined $min_score or $s < $min_score);
+	    $min_score = $s if $do_min && (!defined $min_score or $s < $min_score);
+	    $max_score = $s if $do_max && (!defined $max_score or $s > $max_score);
 	}
     }
 
@@ -361,9 +367,10 @@ recognized:
                                 densefile paths will not be changed.
 
    autoscale   "local" or "global"
-                             If this option is present, then the min_score and
-                             max_score options will be ignored and these values
-                             will be calculated automatically. "local" will
+                             If one or more of min_score and max_score options 
+                             are absent, then these values will be calculated 
+                             automatically. The "autoscale" option controls how
+                             the calculation is done. The "local" value will
                              scale values according to the minimum and maximum
                              values present in the window being graphed. "global"   
                              will use chromosome-wide statistics for the entire
