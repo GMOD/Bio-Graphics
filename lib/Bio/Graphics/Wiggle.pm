@@ -114,11 +114,17 @@ multi-user write access to the databases files, you will need to
 flock() the files yourself.
 
 =item $seqid = $wig->seqid(['new_id'])
+
 =item $max   = $wig->max([$new_max])
+
 =item $min   = $wig->min([$new_min])
+
 =item $step  = $wig->step([$new_step])
+
 =item $span  = $wig->span([$new_span])
+
 =item $mean  = $wig->mean([$new_mean]);
+
 =item $stdev = $wig->stdev([$new_stdev]);
 
 These accessors get or set the corresponding values. Setting is only

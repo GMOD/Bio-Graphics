@@ -176,6 +176,32 @@ sub draw_plot {
 	    $current = $_;
 	}	
     }
+
+    if ($self->option('variance_band') && 
+	(my ($mean,$variance) = $self->global_mean_and_variance())) {
+	my $y1             = $bottom - ($mean+$variance - $min_score) * $y_scale;
+	my $y2             = $bottom - ($mean-$variance - $min_score) * $y_scale;
+	my $y              = $bottom - ($mean - $min_score) * $y_scale;
+	my $mean_color     = $self->panel->translate_color('red:0.25');
+	my $variance_color = $self->panel->translate_color('grey:0.05');
+	$gd->filledRectangle($left,$y1,$right,$y2,$variance_color);
+	$gd->line($left,$y,$right,$y,$mean_color);
+
+	my $fcolor=$self->panel->translate_color('grey:0.50');
+	my $font  = $self->font('gdTinyFont');
+	my $x1    = $left - length('+1sd') * $font->width;
+	my $x2    = $left - length('mn')   * $font->width;
+	$gd->string($font,$x1,$y1-$font->height/2,'+1sd',$fcolor);
+	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor);
+	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor);
+	$gd->string($font,$x2,$y -$font->height/2,'mn',  $fcolor);
+    }
+}
+
+sub global_mean_and_variance {
+    my $self = shift;
+    my $wig = $self->wig or return;
+    return ($wig->mean,$wig->stdev);
 }
 
 sub minmax {
