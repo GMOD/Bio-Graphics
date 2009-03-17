@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.3 2009-03-10 16:02:58 scottcain Exp $
+# $Id: ideogram.pm,v 1.4 2009-03-17 12:45:07 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -74,8 +74,8 @@ sub draw_component {
   # force odd width so telomere arcs are centered
   $y2 ++ if ($y2 - $y1) % 2;
 
-  my ($stain) = $feat->attributes('stain');
-  ($stain)    = $feat->attributes('Stain') unless $stain;
+  my ($stain) = $feat->get_tag_values('stain');
+  ($stain)    = $feat->get_tag_values('Stain') unless $stain;
 
   # Some genome sequences don't contain substantial telomere sequence (i.e. Arabidopsis)
   # We can suggest their presence at the tips of the chromosomes by setting fake_telomeres = 1
@@ -316,7 +316,7 @@ sub parts {
   my $self  = shift;
   my $f     = $self->feature;
   my $level = $self->level + 1;
-  my @subf  = sort {$a->start <=> $b->start} $f->segments;
+  my @subf  = sort {$a->start <=> $b->start} $f->get_SeqFeatures;
   return  $self->factory->make_glyph($level,@subf);
 }
 
