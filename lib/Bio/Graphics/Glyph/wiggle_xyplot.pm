@@ -1,7 +1,7 @@
 package Bio::Graphics::Glyph::wiggle_xyplot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::xyplot Bio::Graphics::Glyph::smoothing);
+use base qw(Bio::Graphics::Glyph::wiggle_minmax Bio::Graphics::Glyph::xyplot Bio::Graphics::Glyph::smoothing);
 use IO::File;
 use File::Spec;
 
@@ -120,7 +120,6 @@ sub draw_plot {
 	my ($start,$end,$score) = @$_;
 	my $x1     = $left    + ($start - $f_start) * $x_scale;
 	my $x2     = $left    + ($end   - $f_start) * $x_scale;
-#	warn "($start,$end,$score, x1=$x1, x2=$x2";
 	if ($x2 >= $left and $x1 <= $right) {
 	    my $y1     = $bottom  - ($score - $min_score) * $y_scale;
 	    my $y2     = $y_origin;
@@ -181,6 +180,15 @@ sub draw_plot {
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
 	my $y1             = $bottom - ($mean+$variance - $min_score) * $y_scale;
 	my $y2             = $bottom - ($mean-$variance - $min_score) * $y_scale;
+	my ($clip_top,$clip_bottom);
+	if ($y1 < $top) {
+	    $y1                = $top;
+	    $clip_top++;
+	}
+	if ($y2 > $bottom) {
+	    $y2                = $bottom;
+	    $clip_bottom++;
+	}
 	my $y              = $bottom - ($mean - $min_score) * $y_scale;
 	my $mean_color     = $self->panel->translate_color('yellow:0.80');
 	my $variance_color = $self->panel->translate_color('grey:0.25');
@@ -191,9 +199,8 @@ sub draw_plot {
 	my $font  = $self->font('gdTinyFont');
 	my $x1    = $left - length('+1sd') * $font->width;
 	my $x2    = $left - length('mn')   * $font->width;
-	$gd->string($font,$x1,$y1-$font->height/2,'+1sd',$fcolor);
-	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor);
-	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor);
+	$gd->string($font,$x1,$y1-$font->height/2,'+1sd',$fcolor) unless $clip_top;
+	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor) unless $clip_bottom;
 	$gd->string($font,$x2,$y -$font->height/2,'mn',  $variance_color);
     }
 }
@@ -202,37 +209,6 @@ sub global_mean_and_variance {
     my $self = shift;
     my $wig = $self->wig or return;
     return ($wig->mean,$wig->stdev);
-}
-
-sub minmax {
-    my $self   = shift;
-    my $parts  = shift;
-
-    my $autoscale  = $self->option('autoscale') || '';
-    my $min_score  = $self->option('min_score');
-    my $max_score  = $self->option('max_score');
-
-    my $do_min     = !defined $min_score;
-    my $do_max     = !defined $max_score;
-
-    if ($autoscale eq 'global') {
-	if (my $wig = $self->wig) {	
-	    $min_score = $wig->min if $do_min;
-	    $max_score = $wig->max if $do_max;
-	}
-    }
-
-    if (($do_min or $do_max) and ($autoscale ne 'global')) {
-	my $first = $parts->[0];
-	for my $part (@$parts) {
-	    my $s = $part->[2];
-	    next unless defined $s;
-	    $min_score = $s if $do_min && (!defined $min_score or $s < $min_score);
-	    $max_score = $s if $do_max && (!defined $max_score or $s > $max_score);
-	}
-    }
-
-    return ($min_score,$max_score);
 }
 
 sub wig {
@@ -403,10 +379,14 @@ recognized:
                              will use chromosome-wide statistics for the entire
                              wiggle or dense file to find min and max values.
 
+
    smoothing   method name  Smoothing method: one of "mean", "max", "min" or "none"
 
    smoothing_window 
                integer      Number of values across which data should be smoothed.
+
+   variance_band boolean    If true, draw a grey band across entire plot showing mean
+                               and +/- 1 standard deviation (for wig files only).
 
    bicolor_pivot
                name         Where to pivot the two colors when drawing bicolor plots.

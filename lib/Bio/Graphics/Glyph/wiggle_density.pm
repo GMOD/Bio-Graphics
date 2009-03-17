@@ -1,8 +1,8 @@
 package Bio::Graphics::Glyph::wiggle_density;
-# $Id: wiggle_density.pm,v 1.2 2009-03-14 16:22:21 lstein Exp $
+# $Id: wiggle_density.pm,v 1.3 2009-03-17 13:24:17 lstein Exp $
 
 use strict;
-use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::minmax);
+use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
 use File::Spec;
 
 sub draw {
@@ -321,17 +321,6 @@ sub calculate_color {
 sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
 sub max { $_[0] > $_[1] ? $_[0] : $_[1] }
 
-sub minmax {
-  my $self = shift;
-  my $data = shift;
-
-  if (my $wig = $self->wig) {
-    return ($wig->min,$wig->max);
-  } else {
-      return $self->SUPER::minmax($data);
-  }
-}
-
 sub rel2abs {
     my $self = shift;
     my $wig  = shift;
@@ -380,6 +369,16 @@ following options are recognized:
                                 tags giving relative paths. Default is to use the
                                 current working directory. Absolute wigfile &
                                 densefile paths will not be changed.
+
+   autoscale   "local" or "global"
+                             If one or more of min_score and max_score options 
+                             are absent, then these values will be calculated 
+                             automatically. The "autoscale" option controls how
+                             the calculation is done. The "local" value will
+                             scale values according to the minimum and maximum
+                             values present in the window being graphed. "global"   
+                             will use chromosome-wide statistics for the entire
+                             wiggle or dense file to find min and max values.
 
    smoothing   method name  Smoothing method: one of "mean", "max", "min" or "none"
 

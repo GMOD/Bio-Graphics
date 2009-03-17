@@ -20,7 +20,7 @@ sub smooth_window {
   my $start = $self->smooth_start;
   my $end   = $self->smooth_end;
 
-  $smooth_window = int (($end - $start)/(2*$self->width));
+  $smooth_window = int (($end - $start)/(10*$self->width));
   $smooth_window = 1 unless $smooth_window > 2;
   return $smooth_window;
 }

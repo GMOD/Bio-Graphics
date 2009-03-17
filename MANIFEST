@@ -88,6 +88,7 @@ lib/Bio/Graphics/Glyph/weighted_arrow.pm
 lib/Bio/Graphics/Glyph/whiskerplot.pm
 lib/Bio/Graphics/Glyph/wiggle_box.pm
 lib/Bio/Graphics/Glyph/wiggle_density.pm
+lib/Bio/Graphics/Glyph/wiggle_minmax.pm
 lib/Bio/Graphics/Glyph/wiggle_xyplot.pm
 lib/Bio/Graphics/Glyph/xyplot.pm
 lib/Bio/Graphics/Panel.pm

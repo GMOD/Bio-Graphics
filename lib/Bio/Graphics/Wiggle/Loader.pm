@@ -82,9 +82,9 @@ Specify a trimming function to be performed on the data prior to
 scaling. Currently, the following trim functions are recognized:
 
  trim=stdev1           trim to plus/minus 1 standard deviation of the mean
- trim=stdev2           trim to plus/minus 2 standard deviations of the mean
+ trim=stdev2           trim to plus/minus 2 standard deviations of the mean (default)
  trim=stdevN           trim to plus/minus N standard deviations of the mean
- trim=none             no trimming (the default)
+ trim=none             no trimming
 
 =back
 
@@ -576,9 +576,9 @@ sub wigfile {
 
     my $step = $self->{track_options}{step} || 1;
     my $span = $self->{track_options}{span} || 
-	$self->{track_options}{step} || 
+	$self->{track_options}{step}        || 
 	1;
-    my $trim      = $self->current_track->{display_options}{trim};# || 'stdev2';
+    my $trim      = $self->current_track->{display_options}{trim} || 'stdev2';
     my $transform = $self->current_track->{display_options}{transform};
     my $wigfile = Bio::Graphics::Wiggle->new(
 					     $path,
