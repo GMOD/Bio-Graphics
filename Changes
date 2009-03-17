@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.91 Tue Mar 17 09:54:02 EDT 2009
+     - wiggle_density now supports local scaling
+     - wiggle loader now defaults to clipping at 2 stdev
+     - adjusted default smoothing parameters to do less smoothing
 1.90 Sun Mar 15 01:11:28 EDT 2009
      - Optimized Bio::Graphics::Wiggle to sample directly from disk when the desired visualization
        size is significantly (less than 100 fold) smaller than the length of the region to
