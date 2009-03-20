@@ -4,6 +4,39 @@ use strict;
 
 use base qw(Bio::Graphics::Glyph::graded_segments);
 
+sub my_description {
+    return <<END;
+This glyph is a synonym for the "graded_segments" glyph, and is used for
+drawing features that consist of discontinuous segments.  The
+color intensity of each segment is proportional to the score.
+END
+}
+sub my_options {
+    return {
+	max_score => [
+	    'integer',
+	    undef,
+	    "Maximum value of the feature's \"score\" attribute."],
+	min_score => [
+	    'integer',
+	    undef,
+	    "Minimum value of the feature's \"score\" attribute."],
+	vary_fg => [
+	    'boolean',
+	    undef,
+	    "Vary the foreground color as well as the background."],
+	merge_parts => [
+	    'boolean',
+	    undef,
+	    "At low magnifications, smooth small gaps to improve the visual display.",
+	    "See this glyph's manual page for the gory details."],
+	max_gap => [
+	    'integer',
+	    undef,
+	    'Do not merge across gaps that exceed this threshold.'],
+    }
+}
+
 1;
 
 __END__

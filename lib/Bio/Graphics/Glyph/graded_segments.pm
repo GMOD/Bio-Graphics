@@ -1,8 +1,40 @@
 package Bio::Graphics::Glyph::graded_segments;
-#$Id: graded_segments.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+#$Id: graded_segments.pm,v 1.2 2009-03-20 13:03:01 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax Bio::Graphics::Glyph::merge_parts);
+
+sub my_description {
+    return
+	'This glyph is used for drawing features that consist of discontinuous segments.',
+	'The color intensity of each subfeature proportional to its score tag.'
+}
+
+sub my_options {
+    return {
+	max_score => [
+	    'integer',
+	    undef,
+	    "Maximum value of the feature's \"score\" attribute."],
+	min_score => [
+	    'integer',
+	    undef,
+	    "Minimum value of the feature's \"score\" attribute."],
+	vary_fg => [
+	    'boolean',
+	    undef,
+	    "Vary the foreground color as well as the background."],
+	merge_parts => [
+	    'boolean',
+	    undef,
+	    "At low magnifications, smooth small gaps to improve the visual display.",
+	    "See this glyph's manual page for the gory details."],
+	max_gap => [
+	    'integer',
+	    undef,
+	    'Do not merge across gaps that exceed this threshold.'],
+    }
+}
 
 # override draw method to calculate the min and max values for the components
 sub draw {

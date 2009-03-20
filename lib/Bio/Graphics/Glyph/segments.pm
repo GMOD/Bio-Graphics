@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::segments;
-#$Id: segments.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+#$Id: segments.pm,v 1.2 2009-03-20 13:03:01 lstein Exp $
 
 use strict;
 use Bio::Location::Simple;
@@ -20,6 +20,61 @@ use base qw(Bio::Graphics::Glyph::segmented_keyglyph Bio::Graphics::Glyph::gener
 
 my %complement = (g=>'c',a=>'t',t=>'a',c=>'g',n=>'n',
 		  G=>'C',A=>'T',T=>'A',C=>'G',N=>'N');
+
+sub my_description {
+    return <<END;
+This glyph draws multipart genomic features as a series of rectangles connected
+by solid lines. If the feature is attached to a DNA sequence, then the glyph will
+draw the sequence when magnification is high enough to show individual base pairs.
+The glyph is also capable of drawing genomic alignments, and performing protein
+translations.
+END
+}
+sub my_options {
+    {
+	draw_target => [
+	    'boolean',
+	    undef,
+	    'If true, draw the dna residues of the TARGET (aligned) sequence when the',
+	    'magnification level allows.',
+	    'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'
+	    ],
+	 draw_protein_target => [
+	     'boolean',
+	     undef,
+	     'If true, draw the protein residues of the TARGET (aligned) sequence when the',
+	     'magnification level allows.',
+	     'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+	  ragged_extra => [
+	      'boolean',
+	      undef,
+	      'When combined with -draw_target, draw extra bases beyond the end',
+	      'of the alignment. The value is the maximum number of extra bases.',
+	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+	  show_mismatch => [
+	      'boolean',
+	      undef,
+	      'When combined with -draw_target, highlights mismatched bases in',
+	      'the mismatch color.',  
+	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+	  mismatch_color => [
+	      'color',
+	      'lightgrey',
+	      'The color to use for mismatched bases when displaying alignments.'],
+	  true_target => [
+	      'boolean',
+	      undef,
+	      'Show the target DNA in its native (plus strand) orientation, even',
+	      'if the alignment is to the minus strand.',
+	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+	  realign => [
+	      'boolean',
+	      undef,
+	      'Attempt to realign sequences at high magnification to account',
+	      'for indels.',
+	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+    }
+}
 
 sub pad_left {
   my $self = shift;

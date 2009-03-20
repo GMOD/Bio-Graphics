@@ -12,6 +12,126 @@ my %complement = (g=>'c',a=>'t',t=>'a',c=>'g',
 # label and description can be flags or coderefs.
 # If a flag, label will be taken from seqname, if it exists or primary_tag().
 #            description will be taken from source_tag().
+sub my_description {
+    return <<END;
+This glyph draws genomic features as rectangles. If the feature contains subfeatures,
+each subfeature is rendered as a separate rectangle. The subfeatures can be connected
+by lines of various sorts using the "connector" option. Features can be named with
+a label at the top, and annotated with a descriptive string at the bottom.
+END
+}
+
+sub my_options {
+    {
+	label => [
+	    'string',
+	    undef,
+	    'Whether to label the feature. A value of 1 will label the feature with',
+	    'the value returned by its display_name() method. Any other true value',
+	    'will label the feature with the provided value. Undef will suppress labeling',
+	    'entirely.'],
+	label_position => [
+	    [qw(top left alignment_left)],
+	    'top',
+	    'Where to place the feature label.',
+	    '"top" will place the label above the glyph aligned with its left side.',
+	    '"left" will place the label to the left of the glyph, vertically centered with it.',
+	    '"alignment_left" will place the label to the left of the glyph in the panel pad-left positon.',
+	    'The last option is used internally for drawing DNA alignments which span the screen.'
+	],
+	part_labels => [
+	    'boolean',
+	    undef,
+	    'If false, do not label subparts of the feature. If equal to a value of 1, subparts',
+	    'are labeled with their display_name(). Any other true value, will be used as the subpart label.',
+	    'A false value suppresses the printing of subpart labels.'],
+	arrowhead => [
+	    [qw(regular filled)],
+	    'regular',
+	    'Set the style of arrowhead used when drawing a stranded feature.',
+	    '"regular" will generate a thin arrowhead that protrudes from the feature.',
+	    '"filled" will taper the feature itself to turn it into an arrowhead.'],
+	description => [
+	    'string',
+	    undef,
+	    'Whether to place a description underneath the feature. ',
+	    'A value of 1 will describe the feature using the values returned',
+	    'by its source_tag() method. Any other true value',
+	    'will label the feature with the provided value. Undef will suppress labeling',
+	    'entirely.'],
+	draw_translation => [
+	    'boolean',
+	    undef,
+	    'Draw the protein translation of the feature (assumes that the feature is attached to a DNA sequence.'
+	    ],
+	draw_dna => [
+	    'boolean',
+	    undef,
+	    'If true, draw the dna residues when magnification level',
+	    'allows (assumes that the feature is attached to a DNA sequence.'],
+	pad_top => [
+	    'integer',
+	    0,
+	    'Additional whitespace (in pixels) to add to the top of this glyph.'],
+	pad_bottom => [
+	    'integer',
+	    0,
+	    'Additional whitespace (in pixels) to add to the bottom of this glyph.'],
+	pad_right=> [
+	    'integer',
+	    0,
+	    'Additional whitespace (in pixels) to add to the right of this glyph.'],
+	pad_left=> [
+	    'integer',
+	    0,
+	    'Additional whitespace (in pixels) to add to the left of this glyph.'],
+        fontcolor => [
+	    'color',
+	    'black',
+	    'The color to use for drawing label text in this glyph.'],
+        font2color => [
+	    'color',
+	    'black',
+	    'The color to use for drawing description text in this glyph.'],
+	font  => [
+	    'font',
+	    'gdSmallFont',
+	    'Font for glyph label and description.'],
+	connector=>[
+	    [qw(hat solid quill dashed crossed undef)],
+	    undef,
+	    'Type of line to use for connecting discontinuous pieces of the feature.',
+	    'Leave this undef to draw no connector at all.'],
+	connector_color => [
+	    'color',
+	    'black',
+	    'Color to use for lines connecting discontinuous pieces of the feature.'],
+    }
+
+}
+
+sub connector {
+  return shift->option('connector',@_);
+}
+sub connector_color {
+  my $self = shift;
+  $self->color('connector_color') || $self->fgcolor;
+}
+sub font {
+  my $self = shift;
+  return $self->getfont('font','gdSmallFont');
+}
+
+sub fontcolor {
+  my $self = shift;
+  my $fontcolor = $self->color('fontcolor');
+  return defined $fontcolor ? $fontcolor : $self->fgcolor;
+}
+sub font2color {
+  my $self = shift;
+  my $font2color = $self->color('font2color');
+  return defined $font2color ? $font2color : $self->fgcolor;
+}
 
 sub height {
   my $self = shift;
@@ -628,8 +748,6 @@ L<Bio::Graphics::Glyph> for a full explanation.
   ------      -----------                      -------
 
   -fgcolor      Foreground color	       black
-
-  -outlinecolor	Synonym for -fgcolor
 
   -bgcolor      Background color               turquoise
 

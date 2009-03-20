@@ -82,6 +82,8 @@ sub draw_plot {
     my $parts           = shift;
     my ($gd,$dx,$dy)    = @_;
 
+    $self->panel->startGroup($gd);
+
     my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
     my ($min_score,$max_score)     = $self->minmax($parts);
     my $side = $self->_determine_side();
@@ -191,7 +193,7 @@ sub draw_plot {
 	}
 	my $y              = $bottom - ($mean - $min_score) * $y_scale;
 	my $mean_color     = $self->panel->translate_color('yellow:0.80');
-	my $variance_color = $self->panel->translate_color('grey:0.25');
+	my $variance_color = $self->panel->translate_color('grey:0.35');
 	$gd->filledRectangle($left,$y1,$right,$y2,$variance_color);
 	$gd->line($left,$y,$right,$y,$mean_color);
 
@@ -203,6 +205,20 @@ sub draw_plot {
 	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor) unless $clip_bottom;
 	$gd->string($font,$x2,$y -$font->height/2,'mn',  $variance_color);
     }
+
+    $self->draw_label(@_)       if $self->option('label');
+    $self->draw_description(@_) if $self->option('description');
+
+  $self->panel->endGroup($gd);
+}
+
+sub draw_label {
+    my $self = shift;
+    my ($gd,$left,$top,$partno,$total_parts) = @_;
+    return $self->SUPER::draw_label(@_) unless $self->option('variance_band');
+    my $font  = $self->font('gdTinyFont');
+    $left -= length('+1sd') * $font->width;
+    return $self->SUPER::draw_label($gd,$left,$top,$partno,$total_parts);
 }
 
 sub global_mean_and_variance {

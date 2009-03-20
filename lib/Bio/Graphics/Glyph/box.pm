@@ -4,6 +4,16 @@ package Bio::Graphics::Glyph::box;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws genomic features as rectangles. If the feature
+contains subfeatures, then the glyph will draw a single solid box that
+spans all the subfeatures.  Features can be named with a label at the
+top, and annotated with a descriptive string at the bottom.
+END
+}
+
+
 # treat like one big component
 sub draw {
   my $self = shift;

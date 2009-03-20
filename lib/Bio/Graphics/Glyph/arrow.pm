@@ -1,7 +1,7 @@
 package Bio::Graphics::Glyph::arrow;
 # package to use for drawing an arrow
 
-# $Id: arrow.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: arrow.pm,v 1.2 2009-03-20 13:03:01 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
 
 =head1 NAME
@@ -14,6 +14,93 @@ use strict;
 use Bio::Coordinate::Pair;
 use Bio::Location::Simple;
 use base qw(Bio::Graphics::Glyph::generic);
+
+sub my_description {
+    return <<END;
+This glyph draws arrows.  Depending on options, the arrows can be
+labeled, be oriented vertically or horizontally, or can contain major
+and minor ticks suitable for use as a scale.
+END
+}
+sub my_options {
+    {
+	tick => [
+	    [0..2],
+	    0,
+	    'Draw a scale with tickmarks on the arrow.',
+	    'A value of 0 suppresses the scale.',
+	    'A value of 1 draws major ticks only.',
+	    'A value of 2 draws major and minor ticks.',],
+	tickcolor => [
+	    'color',
+	    undef,
+	    'Color to use for the tick marks on the scale. If the value is undef,',
+	    'then the fgcolor will be used.'],
+	tickwidth => [
+	    'integer',
+	    0,
+	    'Line width to use for ticks.',
+	    'If the value is undef, then the linewidth will be used.'],
+	parallel => [
+	    'boolean',
+	    1,
+	    'Whether to draw the arrow parallel to the direction of the sequence',
+	    '(left/right) or perpendicular to it (up/down).'],
+	northeast => [
+	    'boolean',
+	    1,
+	    'Force a north or east arrowhead, depending on the arrow\'s orientation.'],
+	east => [
+	    'boolean',
+	    1,
+	    'Synonym for "northeast".'],
+	southwest=> [
+	    'boolean',
+	    1,
+	    'Force a south or west arrowhead, depending on the arrow\'s orientation.'],
+	west=> [
+	    'boolean',
+	    1,
+	    'Synonym for "southwest".'],
+	double => [
+	    'boolean',
+	    undef,
+	    'Force a double-headed arrow.'],
+	base => [
+	    'boolean',
+	    undef,
+	    'Draw a vertical base at the non-arrowhead side of the glyph line.'],
+	scale => [
+	    'integer',
+	    1,
+	    'Deprecated option; do not use.'],
+	arrowstyle => [
+	    [qw(regular filled)],
+	    'regular',
+	    'Control the arrowhead style.',
+	    '"regular" creates a simple thin arrowhead.',
+	    '"filled" creates a thick filled arrowhead.'],
+	relative_coords => [
+	    'boolean',
+	    undef,
+	    "Start numbering the scale at position 1 rather than at the position",
+	    "of the feature in global (e.g. chromosome-relative) coordinates."],
+	relative_coords_offset => [
+	    'integer',
+	    1,
+	    'When using relative coordinates for the arrowhead tick labels,',
+	    'this option sets the starting position.'],
+	units => [
+	    'string',
+	    undef,
+	    'Add units to the tick labels, such as "bp".'],
+	unit_divider => [
+	    'integer',
+	    1,
+	    'Divide the tick label by the indicated amount prior to displaying them.',
+	    'Useful for displaying the scale in a custom unit, such as cM.']
+    };
+}
 
 my %UNITS = (p => 1e-12,
 	     n => 1e-9,

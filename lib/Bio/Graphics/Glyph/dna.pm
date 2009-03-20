@@ -6,6 +6,51 @@ use base qw(Bio::Graphics::Glyph::generic);
 my %complement = (g=>'c',a=>'t',t=>'a',c=>'g',n=>'n',
 		  G=>'C',A=>'T',T=>'A',C=>'G',N=>'N');
 
+sub my_description {
+    return <<END;
+This glyph draws DNA sequences.  At high magnifications, this glyph
+will draw the actual base pairs of the sequence (both strands).  At
+low magnifications, the glyph will plot the GC content.  By default,
+the GC calculation will use non-overlapping bins, but this can be
+changed by specifying the gc_window option, in which case, a 
+sliding window calculation will be used.
+
+For this glyph to work, the attached feature must return 
+a Bio::PrimarySeq DNA in response to the seq() method.
+END
+}
+
+sub my_options {
+    return {
+	do_gc => [
+	    'boolean',
+	    1,
+	    'Whether to draw the GC graph at low magnifications.'],
+	gc_window=> [
+	    'integer',
+	    undef,
+	    'Size of the sliding window to use in the GC content',
+	    'calculation.  If this is not defined, non-overlapping',
+	    'bins will be used. If this is set to "auto", then the',
+	    'glyph will choose a window equal to 1% of the interval.'],
+	gc_bins => [
+	    'integer',
+	    100,
+	    'Fixed number of intervals to sample across the track.'],
+	axis_color => [
+	    'color',
+	    'black',
+	    'Color of the vertical axes in the GC content graph.'],
+	strand => [
+	    [qw(forward reverse both auto)],
+	    'auto',
+	    'Show both forward and reverse strand, one of "forward", "reverse",',
+	    '"both" or "auto". In "auto" mode, +1 strand features will',
+	    'show the plus strand, -1 strand features will',
+	    'show the reverse complement and strandless features will show both.'],
+    };
+}
+
 # turn off description
 sub description { 0 }
 
@@ -300,10 +345,10 @@ the GC calculation will use non-overlapping bins, but this can be
 changed by specifying the gc_window option, in which case, a 
 sliding window calculation will be used.
 
-For this glyph to work, the feature must return a DNA sequence string
-in response to the dna() method. For example, you can use a
-Bio::SeqFeature::Generic object with an attached Bio::PrimarySeq
-like this:
+For this glyph to work, the feature must return a Bio::PrimarySeq DNA
+object in response to the seq() method. For example, you can use a
+Bio::SeqFeature::Generic object with an attached Bio::PrimarySeq like
+this:
 
   my $dna = Bio::PrimarySeq->new( -seq => 'A' x 1000 );
   my $feature = Bio::SeqFeature::Generic->new( -start => 1, -end => 800 );

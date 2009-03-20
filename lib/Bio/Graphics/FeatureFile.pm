@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.10 2009-03-14 16:22:21 lstein Exp $
+# $Id: FeatureFile.pm,v 1.11 2009-03-20 13:03:01 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -615,6 +615,8 @@ sub parse_argv {
 sub parse_file {
     my $self = shift;
     my $file = shift;
+
+    $file =~ s/(\s)/\\$1/; # escape whitespace from glob expansion
 
     for my $f (glob($file)) {
 	my $fh   = IO::File->new($f) or return;

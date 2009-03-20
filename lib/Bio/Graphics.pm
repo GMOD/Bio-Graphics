@@ -83,7 +83,8 @@ Bio::Graphics - Generate GD images of Bio::Seq objects
 
 =head1 DESCRIPTION
 
-Please see L<Bio::Graphics::Panel> for the full interface.
+Please see L<Bio::Graphics::Panel> for the full interface. Also try
+the script glyph_help.pl for quick help on glyphs and their options.
 
 =head1 SEE ALSO
 
@@ -95,6 +96,7 @@ L<Bio::Das>,
 L<Bio::DB::GFF::Feature>,
 L<Ace::Sequence>,
 L<GD>
+L<glyph_help.pl>
 
 =head1 FEEDBACK
 

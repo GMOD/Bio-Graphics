@@ -1504,6 +1504,9 @@ The other style generates a graphical key at the bottom of the image.
 Note that this module depends on GD. The optional SVG output depends
 on GD::SVG and SVG.
 
+The installed script glyph_help.pl provides quick help on glyphs and
+their options.
+
 =head1 METHODS
 
 This section describes the class and object methods for
@@ -2811,6 +2814,7 @@ L<Bio::SeqFeatureI>,
 L<Bio::Das>,
 L<GD>
 L<GD::SVG>
+L<glyph_help.pl>
 
 =head1 AUTHOR
 

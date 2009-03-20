@@ -1,11 +1,14 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.2 2009-02-24 05:36:40 lstein Exp $
+# $Id: Glyph.pm,v 1.3 2009-03-20 13:03:01 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
 use constant BUMP_SPACING => 2; # vertical distance between bumped glyphs
 use Bio::Root::Version;
+
+use Memoize 'memoize';
+memoize('options');
 
 use base qw(Bio::Root::Root);
 
@@ -21,6 +24,137 @@ use constant CM4 => 50;  # small bin, y axis
 use constant DEBUG => 0;
 
 use constant QUILL_INTERVAL => 8;  # number of pixels between Jim Kent style intron "quills"
+
+
+##########################################################
+# glyph-specific options
+#
+# the data structure returned by my_options will be merged
+# with values returned by this method in subclasses to
+# create a merged hash of all options that can be invoked
+#
+# retrieve this merged hash with 
+# Bio::Graphics::Glyph::the_subclass->options
+#
+##########################################################
+sub my_description {
+    return <<END;
+This is the base class for all glyphs. It knows how to draw simple
+filled and empty boxes. You will want to use the "generic" or
+"box" glyphs instead of this one.
+END
+}
+
+sub my_options {
+    return
+    {
+	height => [
+	    'integer',
+	    10,
+	    'Height of the glyph.'],
+	box_subparts=> [
+	    'boolean',
+	    undef,
+	    'If this option is true, then imagemaps constructed from this glyph will contain',
+	    'bounding boxes around each subpart of a feature (e.g. each exon in a gene).'],
+	fgcolor => [
+	    'color',
+	    'black',
+	    'The foreground color of the glyph, used for drawing outlines.'],
+	bgcolor => [
+	    'color',
+	    'turquoise',
+	    'The background color of the glyph, used for filling its contents.'],
+	fillcolor => [
+	    'color',
+	    'turquoise',
+	    'A synonym for -bgcolor.'],
+	tkcolor   => [
+	    'color',
+	    undef,
+	    'Rarely-used option to flood-fill entire glyph with a single color',
+	    'prior to rendering it.'],
+	linewidth    => [
+	    'integer',
+	    1,
+	    'Thickness of line used to draw the glyph\'s outline.'],
+	strand_arrow => [
+	    'boolean',
+	    undef,
+	    "Whether to indicate the feature's strandedness."],
+	stranded => [
+	    'boolean',
+	    undef,
+	    'Synonym for -strand_arrow.'],
+	key => [
+	    'string',
+	    undef,
+	    'The printed label to use to describe this track.'],
+	category => [
+	    'string',
+	    undef,
+	    'A descriptive category that will be added to the track key.'],
+	no_subparts => [
+	    'boolean',
+	    undef,
+	    'Set this option to a true value to suppress drawing of all its subparts.'],
+	ignore_sub_part => [
+	    'string',
+	    undef,
+	    'Pass a space-delimited list of primary_tag() names in order to selectively',
+	    'suppress the drawing of subparts that match those primary tags.'],
+	maxdepth => [
+	    'integer',
+	    undef,
+	    'Specifies how many levels deep the glyph should traverse features looking',
+	    'for subfeatures. A value of undef allows unlimited traversal. A value of',
+	    '0 suppresses traversal entirely for the same effect as -no_subparts.'],
+	sort_order => [
+	    ['left','right','low_score','high_score','longer','shorter','strand','name'],
+	    'left',
+	    'Control how features are layed out so that more "important" features sort',
+	    'towards the top. See the Bio::Graphics::Glyph documentation for a description of how this' ,
+	    'works.'],
+	always_sort => [
+	    'boolean',
+	    undef,
+	    'Sort even when bumping is off.'],
+	bump => [
+	    'integer',
+	    1,
+	    'This option dictates the behavior of the glyph when two features collide horizontally.',
+	    'A value of +1 will bump the colliding feature downward using an algorithm that uses spaces most efficiently.',
+	    'A value of -1 will bump the colliding feature upward using the same algorithm.',
+	    'Values of +2 and -2 will bump using a simple algorithm that is faster but does not use space as efficiently.',
+	    'A value of 0 suppresses collision control entirely.'],
+	bump_limit => [
+	    'integer',
+	    -1,
+	    'This option will cause bumping to stop after the indicated number of features',
+	    'pile up. Subsequent collisions will not be bumped.'],
+	hilite => [
+	    'color',
+	    undef,
+	    'Highlight the glyph in the indicated color. Usually used as a callback to',
+	    'selectively highlight glyphs that meet certain criteria.'],
+	link => [
+	    'string',
+	    undef,
+	    'When generating an imagemap, specify the pattern or callback for formatting',
+	    'the link URL associated with the glyph.'],
+	title => [
+	    'string',
+	    undef,
+	    'When generating an imagemap, specify the pattern or callback for formatting',
+	    'the link title associated with the glyph.'],
+	target => [
+	    'string',
+	    undef,
+	    'When generating an imagemap, specify the pattern or callback for formatting',
+	    'the link target associated with the glyph.'],
+    };
+}
+
 
 # a bumpable graphical object that has bumpable graphical subparts
 
@@ -440,10 +574,6 @@ sub translate_color {
   return $self->factory->translate_color($color);
 }
 
-sub connector {
-  return shift->option('connector',@_);
-}
-
 # return value:
 #              0    no bumping
 #              +1   bump down
@@ -511,31 +641,11 @@ sub getfont {
   return $font;
 }
 
-sub font {
-  my $self = shift;
-  return $self->getfont('font','gdSmallFont');
-}
-
-sub fontcolor {
-  my $self = shift;
-  my $fontcolor = $self->color('fontcolor');
-  return defined $fontcolor ? $fontcolor : $self->fgcolor;
-}
-sub font2color {
-  my $self = shift;
-  my $font2color = $self->color('font2color');
-  return defined $font2color ? $font2color : $self->fgcolor;
-}
 sub tkcolor { # "track color"
   my $self = shift;
   $self->option('tkcolor') or return;
   return $self->color('tkcolor')
 }
-sub connector_color {
-  my $self = shift;
-  $self->color('connector_color') || $self->fgcolor;
-}
-
 sub image_class { shift->{factory}->{panel}->{image_class}; }
 sub polygon_package { shift->{factory}->{panel}->{polygon_package}; }
 
@@ -1352,6 +1462,144 @@ sub finished {
   delete $self->{parts};
 }
 
+
+############################################################
+# autogeneration of options documentation
+############################################################
+
+sub options {
+    my $self      = shift;
+    my $seenit    = shift || {};
+    no strict 'refs';
+    my $class  = ref $self || $self;
+    my $isa    = "$class\:\:ISA";
+
+    $seenit->{$class}++;
+    my $options = $self->my_options
+                 if defined &{"$class\:\:my_options"};
+
+    my @inherited_options;
+
+    for my $base (@$isa) {
+	next if $seenit->{$base}++;
+	$base->can('options') or next;
+	my $o = $base->options($seenit);
+	push @inherited_options,%$o;
+    }
+    return wantarray ? ($options,{@inherited_options})
+	             : {@inherited_options,%$options};
+}
+
+
+sub options_usage {
+    my $self  = shift;
+    my $child = open my $fh,'-|';
+    unless ($child) {
+	print $self->options_pod;
+	exit 0;
+    }
+    eval "use Pod::Usage";
+    pod2usage({-input  =>$fh,
+	       -verbose=>2,
+	      });
+}
+
+sub options_man {
+    my $self         = shift;
+    chomp(my $nroff  = `which nroff`);
+    unless ($nroff) {
+	$self->options_usage;
+	return;
+    }
+    my ($pager)      = grep {`which $_`} ($ENV{PAGER},'less','more');
+    my $class        = ref $self   || $self;
+    open my $fh,"| pod2man -n $class | $nroff -man | $pager" or die;
+    print $fh $self->options_pod;
+    close $fh;
+    # exit 0 ??
+}
+
+sub options_pod {
+    my $self         = shift;
+    my ($new_options,$old_options)      = $self->options;
+
+    my $class        = ref $self || $self;
+    my ($glyph_name) = $class =~ /([^:]+)$/;
+
+    my $description  = join "\n",$self->my_description;
+
+    my $pod  = '';
+    $pod    .= "=head1 NAME\n\n";
+    $pod    .= <<END;
+
+The B<$glyph_name> glyph.
+
+END
+;
+    $pod  .=  "=head1 SYNOPSIS\n\n";
+    $pod  .=  <<"END";
+$description
+See the L<Bio\:\:Graphics\:\:Glyph\:\:$glyph_name> manual page
+for full details.
+
+ \$panel->add_track(\$features,
+                   -glyph    => $glyph_name,
+		   -option1  => \$value1,
+		   -option2  => \$value2...);
+
+
+
+END
+    ;
+    $pod  .=  "=head1 OPTIONS DEFINED IN THIS GLYPH\n\n";
+    $pod  .=  "Glyph-specific options for the I<$glyph_name> glyph:\n\n";
+    $pod  .=  "=over 4\n\n";
+    $pod  .=  $self->_pod_options($new_options || {});
+    $pod  .=  "=back\n\n";
+
+    $pod  .=  "=head1 INHERITED OPTIONS\n\n";
+    $pod  .=  "Options inherited from more general glyph classes:\n\n";
+    $pod  .=  "=over 4\n\n";
+    $pod  .=  $self->_pod_options($old_options || {});
+    $pod  .=  "=back\n\n";
+
+    $pod  .= "=head1 COLOR OPTIONS\n\n";
+    $pod  .= "The following list of named colors can be used as an argument to any option ";
+    $pod  .= "that takes a color:\n\n";
+    eval "require Bio::Graphics::Panel" unless Bio::Graphics::Panel->can('color_names');
+    for my $c (sort Bio::Graphics::Panel->color_names) {
+	$pod .= " $c\n";
+    }
+    $pod;
+}
+
+sub _pod_options {
+    my $self    = shift;
+    my $options = shift;
+
+    my $pod     = %$options ? ''  : "B<(none)>\n\n";
+    for my $option (sort keys %$options) {
+	my ($range,$default,@description) = @{$options->{$option}};
+	$default = $range eq 'boolean' ? "'undef' (false)" 
+	                               : "'undef'"
+                   unless defined $default;
+	$default = "1 (true)" if $range eq 'boolean' && $default == 1;
+	$range =  join ', ',map {"'$_'"} @$range if ref $range eq 'ARRAY';
+	$pod  .=  "=item B<-$option> <$range>  [default $default]\n\n";
+	$pod  .=  join "\n",@description;
+	if ($range eq 'font') {
+	    $pod  .=  "\nValid choices: 'gdTinyFont', 'gdSmallFont', 'gdMediumBoldFont', 'gdLargeFont', 'gdGiantFont'";
+	} elsif ($range eq 'color') {
+	    $pod  .= "\nSee next section for color choices.\n";
+	}
+
+	$pod  .= "\n\n";
+    }
+    return $pod;
+}
+
+
+
 1;
 
 __END__
@@ -1723,8 +1971,6 @@ glyph pages for more options.
 
   -fgcolor      Foreground color	       black
 
-  -outlinecolor	Synonym for -fgcolor
-
   -bgcolor      Background color               turquoise
 
   -fillcolor    Synonym for -bgcolor
@@ -1794,12 +2040,12 @@ any.
 
 The label is printed above the glyph.  You may pass an anonymous
 subroutine to B<-label>, in which case the subroutine will be invoked
-with the feature as its single argument.  and is expected to return
-the string to use as the description.  If you provide the numeric
-value "1" to B<-description>, the description will be read off the
-feature's seqname(), info() and primary_tag() methods will be called
-until a suitable name is found.  To create a label with the
-text "1", pass the string "1 ".  (A 1 followed by a space).
+with the feature as its single argument and is expected to return the
+string to use as the label.  If you provide the numeric value "1" to
+B<-label>, the label will be read off the feature's seqname(), info()
+and primary_tag() methods will be called until a suitable name is
+found.  To create a label with the text "1", pass the string "1 ".  (A
+1 followed by a space).
 
 The description is printed below the glyph.  You may pass an anonymous
 subroutine to B<-description>, in which case the subroutine will be

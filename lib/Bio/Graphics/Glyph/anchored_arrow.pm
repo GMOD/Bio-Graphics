@@ -4,6 +4,41 @@ package Bio::Graphics::Glyph::anchored_arrow;
 use strict;
 use base qw(Bio::Graphics::Glyph::arrow);
 
+sub my_description {
+    return <<END;
+This glyph draws an arrowhead which is anchored at one or both ends
+(has a vertical base) or has one or more arrowheads.  The arrowheads
+indicate that the feature does not end at the edge of the picture, but
+continues.
+END
+}
+
+sub my_options {
+    return {
+	tick => [
+	    [0..2],
+	    0,
+	    'Draw a scale with tickmarks on the arrow.',
+	    'A value of 0 suppresses the scale.',
+	    'A value of 1 draws major ticks only.',
+	    'A value of 2 draws major and minor ticks.',],
+        relative_coords=> [
+	    'boolean',
+	    undef,
+	    'When drawing the scale, start numbering at position 1 instead of at',
+	    'the start of the feature in global (e.g. chromosomal) coordinates.'],
+	relative_coords_offset=> [
+	    'integer',
+	    1,
+	    'When drawing a scale with relative_coords set to true, begin numbering',
+	    'the scale at this starting value.'],
+	no_arrows => [
+	    'boolean',
+	    undef,
+	    "Do not draw an arrow when the glyph is partially offscreen."],
+    };
+}
+
 sub draw_label {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
