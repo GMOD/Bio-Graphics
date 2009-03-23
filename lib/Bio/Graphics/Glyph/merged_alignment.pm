@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::merged_alignment;
 
-# $Id: merged_alignment.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: merged_alignment.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 
 # this glyph acts like graded_segments but the bgcolor of each segment is
 # more configurable.  Supply a list of colors and corresponding
@@ -23,6 +23,45 @@ use strict;
 use base qw(Bio::Graphics::Glyph::graded_segments);
 
 use constant COLORS => "lightgrey powderblue cornflowerblue blue";
+
+sub my_description {
+    return <<END;
+Like graded_segments, this glyph draws each subpart of a feature with a different color 
+dependingon its score attribute. It accepts a series of colors in the option 'bincolors',
+and then assigns each color to a bin based on the score of the feature\'s subparts.
+
+This glyph also supports
+semantic zooming to optimize glyph drawing for larger sequence
+displays.
+END
+}
+sub my_options {
+    {
+	max_score => [
+	    'integer',
+	    undef,
+	    "Maximum value of the feature's \"score\" attribute.",
+	    "If undef, the value will be calculated automatically."],
+	min_score => [
+	    'integer',
+	    undef,
+	    "Minimum value of the feature's \"score\" attribute.",
+	    "If undef, the value will be calculated automatically."],
+	bincolors => [
+	    'string',
+	    'lightgrey powderblue cornflowerblue blue',
+	    'A space-delimited string of colors to be assigned to score bins.'],
+	bins => [
+	    'integer',
+	    undef,
+	    'Size of the score bins. If undefined, the range of scores will be divided',
+	    'into the number of bins indicated by the size of the list of bincolors.'],
+	merge_parts => [
+	    'boolean',
+	    undef,
+	    'Whether to merge small subfeatures to simplify the display at low magnifications.'],
+    }
+}
 
 # override draw method
 sub draw {
@@ -47,15 +86,15 @@ sub draw {
   # figure out the colors
   for my $part (@parts) {
       my ($bin) = grep { $part->in_range($_) } @bins;
-    
-      my $idx   = $bin ? $self->panel->translate_color($color{$bin}) 
+      my $idx   = $bin 
+          ? $self->panel->translate_color($color{$bin}) 
 	  : $self->panel->translate_color('white');
       $part->{partcolor} = $idx;
   }
   
   $self->{parts} = \@parts;
 
-  $self->SUPER::draw(@_);
+  $self->Bio::Graphics::Glyph::merge_parts::draw(@_);
 }
 
 sub in_range {
@@ -63,7 +102,7 @@ sub in_range {
     my $range = shift;
     my ($low,$high) = split '-', $range;
     my $s = $self->score || shift;
-    return 1 if $s > $low && $s <= $high;
+    return 1 if $s >= $low && $s <= $high;
     return 0;    
 }
 
@@ -84,16 +123,15 @@ sub get_bins {
     my ($min,$max) = $self->minmax($parts);
     my $range = $max - $min;
     return ($max) if $range == 0;
-    my $increment = $range/$cols;
+    my $increment = $range/$cols+1;
     
     my ($score,@bins) = $min;
-    until ($score >= $max) {
+    until ($score > $max) {
 	my $range = "$score-";
 	$score += $increment;
-	$range .= $score;
+	$range .= $score-1;
 	push @bins, $range;
     }
-    
     return @bins;
 }
 

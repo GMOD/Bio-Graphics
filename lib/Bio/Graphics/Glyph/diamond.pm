@@ -4,6 +4,27 @@ package Bio::Graphics::Glyph::diamond;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws a diamond of fixed size, positioned in the center of
+the feature.  The height and width of the diamond are set by the
+"height" option.
+END
+}
+sub my_options {
+    {
+	point => [
+	    'boolean',
+	    undef,
+	    'Draw the glyph at a fixed point at the center of the feature.'],
+	fallback_to_rectangle => [
+	    'boolean',
+	    undef,
+	    'Draw a diamond if the feature is 1 base long.',
+	    'Draw a standard box if the feature is >1 base long.'],
+    }
+}
+
 sub draw_component {
   my $self = shift;
   my $gd = shift;

@@ -4,6 +4,21 @@ package Bio::Graphics::Glyph::dot;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 use constant PI => 3.14159;
+sub my_description {
+    return <<END;
+This glyph draws an ellipse the width of the scaled feature passed,
+and height a possibly configured height (See Bio::Graphics::Glyph).
+END
+}
+sub my_options {
+    {
+	point => [
+	    'boolean',
+	    undef,
+	    'If true, draws a fixed-radius ellipse at the center of the feature,',
+	    'regardless of the feature\'s length.'],
+    }
+}
 
 sub draw {
   my $self = shift;

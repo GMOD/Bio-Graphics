@@ -7,10 +7,28 @@ package Bio::Graphics::Glyph::heterogeneous_segments;
 # -waba_weak_color   => 'red'
 # -waba_coding_color => 'green' 
 
-# $Id: heterogeneous_segments.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: heterogeneous_segments.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::graded_segments);
+
+sub my_description {
+    return <<END;
+This glyph acts like graded_segments but the bgcolor of each segment (sub-feature)
+can be individually set using the source field of the feature.
+
+Each segment type color is specified using the following nomenclature:
+
+ -{source}_color => \$color
+
+For example, if the feature consists of a gene containing both
+confirmed and unconfirmed exons, you can make the confirmed exons
+green and the unconfirmed ones red this way:
+
+  -confirmed_color   => 'green',
+  -unconfirmed_color => 'red'
+END
+}
 
 # override draw method to calculate the min and max values for the components
 sub draw {

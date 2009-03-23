@@ -1,15 +1,47 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.4 2009-03-17 12:45:07 lstein Exp $
+# $Id: ideogram.pm,v 1.5 2009-03-23 17:24:14 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
 use vars '@ISA';
 use GD;
 
-use Data::Dumper;
-
 use base qw(Bio::Graphics::Glyph::generic Bio::Graphics::Glyph::heat_map);
+
+sub my_description {
+    return <<END;
+This glyph draws a section of a chromosome ideogram. It relies
+on certain data from the feature to determine which color should
+be used (stain) and whether the segment is a telomere or 
+centromere or a regular cytoband. See the full manual page for this
+glyph for instructions on formatting the ideogram.
+END
+}
+sub my_options {
+    {
+	bgcolor => [
+	    'string',
+	    undef,
+	    'This option is redefined to map each chromosome band\'s "stain" attribute',
+	    "into a color or pattern. It is a string that looks like this:\n",
+	    ' gneg:white gpos25:silver gpos50:gray ',
+	    ' gpos:gray  gpos75:darkgray gpos100:black acen:cen gvar:var',
+	    '',
+	    'This is saying to use "white" for features whose stain attribute is',
+	    '"gneg", "silver" for those whose stain attribute is "gpos25", and so',
+	    'on. Several special values are recognized: "B<stalk>" draws a narrower',
+	    'gray region and is usually used to indicate an acrocentric',
+	    'stalk. "B<var>" creates a diagonal black-on-white pattern. "B<cen>"',
+	    'draws a centromere.',
+	    'If -bgcolor is just a color name, like "yellow", the glyph will ignore',
+	    'all bands and just draw a filled in chromosome.'],
+	 bgfallback => [
+		'color',
+		'yellow',
+		'Color to use when no bands are present.'],
+    }
+}
 
 sub draw {
   my $self = shift;

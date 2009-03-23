@@ -3,6 +3,15 @@ package Bio::Graphics::Glyph::ellipse;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws an oval instead of a box; otherwise it is similar to
+the "generic" or "box" glyphs.  The width of the oval is determined by
+the feature width, and the height by the -height option.
+END
+}
+
+
 # override draw_component to draw an oval rather than a rectangle (weird)
 sub draw_component {
   my $self = shift;

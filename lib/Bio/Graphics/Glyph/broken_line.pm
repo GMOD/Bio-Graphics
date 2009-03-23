@@ -3,6 +3,52 @@ package Bio::Graphics::Glyph::broken_line;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws a straight line whose segment is shifted ("sheared")
+up or down. There can be an optional "break" (two diagonal lines
+passing between the main line and its segment).
+Either the left or the right side of the main line can be absent.
+The line can be of fixed size or extend to take up all available space.
+END
+}
+sub my_options {
+    return {
+	draw_break => [
+	    'boolean',
+	    1,
+	    'If true, draw the "break."'],
+	shear => [
+	    'integer',
+	    5,
+	    'Vertical distance between the main line and the segment.'],
+        shear_up => [
+	    'boolean',
+	    1,
+	    'Whether to shift the segment up (true) or down (false).'],
+	break => [
+	    'integer',
+	    8,
+	    'Width of the break in the line.'],
+        extend => [
+	    'boolean',
+	    1,
+	    'Whether to extend the line or to keep the length fixed.'],
+	size => [
+	    'integer',
+	    30,
+	    'Total length of the line and its break, if extend is false.'],
+	omit_left => [
+	    'boolean',
+	    undef,
+	    'If true, omit the left half of the main line.'],
+	omit_right => [
+	    'boolean',
+	    undef,
+	    'If true, omit the right half of the main line.'],
+    }
+}
+
 sub default_draw_beak
 {
   return 1;  
@@ -144,8 +190,8 @@ Bio::Graphics::Glyph::broken_line - The "broken line" glyph
 
 =head1 DESCRIPTION
 
-This glyph draws a straight line whose segment is shifted ('sheared')
-up or down. There can be an optional "beak' (two diagonal lines
+This glyph draws a straight line whose segment is shifted ("sheared")
+up or down. There can be an optional "break" (two diagonal lines
 passing between the main line and its segment).
 Either the left or the right side of the main line can be absent.
 The line can be of fixed size or extend to take up all available space.
@@ -158,7 +204,7 @@ options are recognized:
   Option      Description                  Default
   ------      -----------                  -------
 
-  -draw_beak Whether to draw the 'beak'.        1
+  -draw_beak Whether to draw the 'break'.       1
 
   -shear    Vertical distance between     	5
 			the main line and the segment

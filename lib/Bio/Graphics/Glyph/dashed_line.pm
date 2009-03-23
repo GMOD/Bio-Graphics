@@ -3,6 +3,36 @@ package Bio::Graphics::Glyph::dashed_line;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws a dashed line. The lengths of the dash and the space are configurable.
+The space can be filled with a different color, thus making a two-colored line.
+The junction of the two colors can be "sheared" creating an interlocking effect.
+END
+}
+
+sub my_options {
+    {
+	dash_size => [
+	    'integer',
+	    6,
+	    'Width of the dash.'],
+	space_size => [
+	    'integer',
+	    3,
+	    'Width of the space between dashes.'],
+	space_color => [
+	    'color',
+	    undef,
+	    'Color of the interval between dashes.',
+	    'Nothing will be drawn between dashes if undef.'],
+	shear => [
+	    'boolean',
+	    undef,
+	    'Whether to offset the dash and space to create an interlocking effect.'],
+    }
+}
+
 sub default_linewidth
 {
   return 1;  

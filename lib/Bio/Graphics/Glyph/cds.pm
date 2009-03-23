@@ -6,6 +6,86 @@ use Bio::Graphics::Util qw(frame_and_offset);
 use Bio::Tools::CodonTable;
 use base qw(Bio::Graphics::Glyph::segmented_keyglyph Bio::Graphics::Glyph::translation);
 
+sub my_description {
+    return <<END;
+This glyph draws features that are associated with a protein coding
+region.  At high magnifications, draws a series of boxes that are
+color-coded to indicate the frame in which the translation occurs.  At
+low magnifications, draws the amino acid sequence of the resulting
+protein.  Amino acids that are created by a splice are optionally
+shown in a distinctive color.
+END
+}
+sub my_options {
+    return {
+	frame0f => [
+	    'color',
+	    undef,
+	    'Color for the first (+) frame. If undefined, uses the bgcolor.'],
+	frame1f => [
+	    'color',
+	    undef,
+	    'Color for the second (+) frame. If undefined, uses the bgcolor.'],
+	frame2f => [
+	    'color',
+	    undef,
+	    'Color for the third (+) frame. If undefined, uses the bgcolor.'],
+	frame0r => [
+	    'color',
+	    undef,
+	    'Color for the first (-) frame. If undefined, uses the bgcolor.'],
+	frame1r => [
+	    'color',
+	    undef,
+	    'Color for the first (-) frame. If undefined, uses the bgcolor.'],
+	frame2r => [
+	    'color',
+	    undef,
+	    'Color for the third (-) frame. If undefined, uses the bgcolor.'],
+	gridcolor => [
+	    'color',
+	    'lightslategray',
+	    'Color for the "staff".'],
+	translation => [
+	    ['3frame','6frame'],
+	    '3frame',
+	    'Number of lines of reading frames to show.',
+	    'For best results, specify a height of at least 30 pixels for "6frame",',
+	    'and at least 15 pixels for 3frame.'],
+	sixframe => [
+	    'boolean',
+	    undef,
+	    'Draw a six-frame staff. This option overrides -translation,',
+	    'which essentially does the same thing.'],
+	require_subparts => [
+	    'boolean',
+	    undef,
+	    "Don't try to draw reading frames unless the feature has subparts."],
+	sub_part => [
+	    'string',
+	    undef,
+	    'For features with multiple subpart types, define which one is the CDS',
+	    'part that contains phase information.'],
+	codontable => [
+	    'integer',
+	    1,
+	    'Which codon table to use for translations, see L<Bio::Tools::CodonTable>.'],
+	phase_style => [
+	    ['012','021'],
+	    '012',
+	    'The way the phase method is to be interpreted. See the manual page of this',
+	    'glyph for an explanation.'],
+	ignore_empty_phase => [
+	    'boolean',
+	    undef,
+	    'Only draw features that have a phase defined.'],
+	cds_only => [
+	    'boolean',
+	    undef,
+	    'Only draw features of type "CDS".'],
+    }
+}
+
 my %default_colors = qw(
 			frame0f  cornflowerblue
 			frame1f  blue

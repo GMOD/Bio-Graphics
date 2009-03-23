@@ -1,7 +1,26 @@
 package Bio::Graphics::Glyph::flag;
 
-# $Id: flag.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: flag.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
+
+sub my_description {
+    return <<END;
+This glyph draws a flag with text next to it.
+END
+}
+
+sub my_options {
+    {
+	text => [
+	    'string',
+	    'ori',
+	    'Text to draw next to the flag.'],
+	width => [
+	    'integer',
+	    20,
+	    'Width of the flag.'],
+    }
+}
 
 =head1 NAME
 

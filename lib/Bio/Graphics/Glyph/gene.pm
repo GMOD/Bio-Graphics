@@ -1,9 +1,63 @@
 package Bio::Graphics::Glyph::gene;
 
-# $Id: gene.pm,v 1.2 2009-01-23 16:27:59 lstein Exp $
+# $Id: gene.pm,v 1.3 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use base 'Bio::Graphics::Glyph::processed_transcript';
+
+sub my_descripton {
+    return <<END;
+This glyph is used for drawing genes that may have
+alternatively-spliced transcripts. The various isoforms are stacked on
+top of each other and given a single label and description that apply
+to the entire stack. Each individual transcript\'s name is optionally
+printed to the left of the transcript glyph.
+
+Transcripts (splice isoforms) are drawn using the processed_transcript
+glyph.  CDS features are drawn in the background color, and the UTRs
+are drawn in an alternate color selected by the utr_color option.  In
+addition, you can make the UTRs thinner than the CDS by setting the
+"thin_utr" option.
+
+This glyph is designed to work properly with GFF3-style three-tier
+genes, in which the top level feature has the Sequence Ontology type
+of "gene", the second level feature(s) have the SO type "mRNA", and
+the third level feature(s) have the SO type "CDS", "five_prime_utr"
+and "three_prime_utr."  Subparts named "UTR" are also honored.  The
+feature can contain other subparts as well (e.g. exon, intron,
+translation), but they are currently ignored unless the option
+sub_part is supplied.  If the sub_part option is used that feature 
+type will be used and CDS and UTR features will be excluded.
+This could be used for specifying that exons be used instead,
+for example.
+
+This glyph is a subclass of processed_transcript, and recognizes the
+same options.
+END
+}
+
+sub my_options {
+    {
+	label_transcripts => [
+	    'boolean',
+	    undef,
+	    'If true, then the display_name of each transcript',
+	    'will be drawn to the left of the transcript glyph.'],
+	thin_utr => [
+	    'boolean',
+	    undef,
+	    'If true, UTRs will be drawn at 2/3 of the height of CDS segments.'],
+	utr_color => [
+	    'color',
+	    'grey',
+	    'Color of UTR segments.'],
+	decorate_introns => [
+	    'boolean',
+	    undef,
+	    'Draw chevrons on the introns to indicate direction of transcription.'
+	],
+    }
+}
 
 sub extra_arrow_length {
   my $self = shift;
@@ -103,13 +157,13 @@ sub _subfeat {
     for my $t (qw/mRNA tRNA snRNA snoRNA miRNA ncRNA pseudogene/) {
       push @transcripts, $feature->get_SeqFeatures($t);
     }
-    return @transcripts 
-           ? @transcripts 
-           : $feature->get_SeqFeatures;  # no transcripts?! Return whatever's there.
-  } elsif ($feature->primary_tag =~ /^CDS/i) {
-    my @parts = $feature->get_SeqFeatures();
-    return ($feature) if $class->{level} == 0 and !@parts;
-    return @parts;
+    return @transcripts if @transcripts;
+    return $feature->get_SeqFeatures;  # no transcripts?! return whatever's there
+  }
+  elsif ($feature->primary_tag =~ /^CDS/i) {
+      my @parts = $feature->get_SeqFeatures();
+      return ($feature) if $class->{level} == 0 and !@parts;
+      return @parts;
   }
 
   my @subparts;
@@ -134,6 +188,9 @@ sub _subfeat {
       push @result,$_;
     }
   }
+  # fall back to drawing a solid box if no subparts and level 0
+  return ($feature) if $class->{level} == 0 && !@result;
+
   return @result;
 }
 

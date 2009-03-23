@@ -194,6 +194,25 @@ method selected (default to "mean"), then selected at even intervals
 from the range $start to $end. The return value is an arrayref of
 exactly $samples values.
 
+=item $string = $wig->export_to_wif($start,$end)
+
+=item $string = $wig->export_to_wif64($start,$end)
+
+Export the region from start to end in the "wif" format. This data can
+later be imported into another Bio::Graphics::Wiggle object. The first
+version returns a binary string. The second version returns a base64
+encoded version that is safe for ascii-oriented formata such as GFF3
+and XML.
+
+=item $wig->import_from_wif($string)
+
+=item $wig->import_from_wif64($string)
+
+Import a wif format data string into the Bio::Graphics::Wiggle
+object. The first version expects a binary string. The second version
+expects a base64 encoded version that is safe for ascii-oriented
+formata such as GFF3 and XML.
+
 =back
 
 
@@ -216,6 +235,7 @@ use constant VERSION => 0;
 sub new {
   my $class          = shift;
   my ($path,$write,$options) = @_;
+  $path ||= ''; # to avoid uninit warning
   my $mode = $write ? -e $path   # if file already exists...
                          ? '+<'    # ...open for read/write
                          : '+>'    # ...else clobber and open a new one
@@ -484,6 +504,22 @@ sub values {
   }
 }
 
+sub export_to_wif64 {
+    my $self = shift;
+    my $data = $self->export_to_wif(@_);
+    eval "require MIME::Base64" 
+	unless MIME::Base64->can('encode_base64');
+    return MIME::Base64::encode_base64($data);
+}
+sub import_from_wif64 {
+    my $self = shift;
+    my $data = shift;
+
+    eval "require MIME::Base64" 
+	unless MIME::Base64->can('decode_base64');
+    return $self->import_from_wif(MIME::Base64::decode_base64($data));
+}
+
 # subregion in "wiggle interchange format" (wif)
 sub export_to_wif {
     my $self = shift;
@@ -505,7 +541,7 @@ sub import_from_wif {
     my $self    = shift;
     my $wifdata = shift;
 
-    # POSSIBLE BUG: should we check that header is compatible?
+    # BUG: should check that header is compatible
     my $header  = substr($wifdata,0,HEADER_LEN);
     my $start   = unpack('L',substr($wifdata,HEADER_LEN,  4));
     my $end     = unpack('L',substr($wifdata,HEADER_LEN+4,4));

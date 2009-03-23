@@ -30,7 +30,9 @@ sub draw_wigfile {
   my $wigfile = shift;
 
   eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = eval { Bio::Graphics::Wiggle->new($wigfile) };
+  my $wig = $wigfile->isa('Bio::Graphics::Wiggle') 
+      ? $wigfile
+      : eval { Bio::Graphics::Wiggle->new($wigfile) };
   unless ($wig) {
       warn $@;
       return $self->SUPER::draw(@_);
@@ -42,21 +44,23 @@ sub draw_wigdata {
     my $self    = shift;
     my $feature = shift;
     my $data    = shift;
-    
 
-    eval "require MIME::Base64" 
-	unless MIME::Base64->can('decode_base64');
-    my $unencoded_data = MIME::Base64::decode_base64($data);
-
-    my $wig = eval { Bio::Graphics::Wiggle->new() };
-    unless ($wig) {
-	warn $@;
-	return $self->SUPER::draw(@_);
+    if (ref $data eq 'ARRAY') {
+	my ($start,$end) = $self->effective_bounds($feature);
+	my $parts = $self->subsample($data,$start,$end);
+	$self->draw_plot($parts,@_);
     }
 
-    $wig->import_from_wif($unencoded_data);
+    else {
+	my $wig = eval { Bio::Graphics::Wiggle->new() };
+	unless ($wig) {
+	    warn $@;
+	    return $self->SUPER::draw(@_);
+	}
 
-    $self->_draw_wigfile($feature,$wig,@_);
+	$wig->import_from_wif64($data);
+	$self->_draw_wigfile($feature,$wig,@_);
+    }
 }
 
 sub _draw_wigfile {
@@ -67,14 +71,21 @@ sub _draw_wigfile {
     $wig->smoothing($self->get_smoothing);
     $wig->window($self->smooth_window);
 
-    my $panel_start = $self->panel->start;
-    my $panel_end   = $self->panel->end;
-    my $start       = $feature->start > $panel_start ? $feature->start : $panel_start;
-    my $end         = $feature->end   < $panel_end   ? $feature->end   : $panel_end;
+    my ($start,$end) = $self->effective_bounds($feature);
 
     $self->wig($wig);
     my $parts = $self->create_parts_for_dense_feature($wig,$start,$end);
     $self->draw_plot($parts,@_);
+}
+
+sub effective_bounds {
+    my $self    = shift;
+    my $feature = shift;
+    my $panel_start = $self->panel->start;
+    my $panel_end   = $self->panel->end;
+    my $start       = $feature->start > $panel_start ? $feature->start : $panel_start;
+    my $end         = $feature->end   < $panel_end   ? $feature->end   : $panel_end;
+    return ($start,$end);
 }
 
 sub draw_plot {
@@ -193,7 +204,7 @@ sub draw_plot {
 	}
 	my $y              = $bottom - ($mean - $min_score) * $y_scale;
 	my $mean_color     = $self->panel->translate_color('yellow:0.80');
-	my $variance_color = $self->panel->translate_color('grey:0.35');
+	my $variance_color = $self->panel->translate_color('grey:0.30');
 	$gd->filledRectangle($left,$y1,$right,$y2,$variance_color);
 	$gd->line($left,$y,$right,$y,$mean_color);
 
@@ -268,10 +279,10 @@ sub draw_densefile {
     $self->draw_plot($parts);
 }
 
+# BUG: the next two subroutines should be merged
 sub create_parts_for_dense_feature {
     my $self = shift;
     my ($dense,$start,$end) = @_;
-
 
     my $span = $self->scale> 1 ? $end - $start : $self->width;
     my $data = $dense->values($start,$end,$span);
@@ -291,51 +302,25 @@ sub create_parts_for_dense_feature {
 
 sub subsample {
   my $self = shift;
-  my ($data,$start,$span) = @_;
-  my $points_per_span = @$data/$span;
+  my ($data,$start,$end) = @_;
+  my $span = $self->scale > 1 ? $end - $start 
+                              : $self->width;
+  my $points_per_span = ($end-$start+1)/$span;
   my @parts;
   for (my $i=0; $i<$span;$i++) {
     my $offset = $i * $points_per_span;
     my $value  = $data->[$offset + $points_per_span/2];
-    push @parts,Bio::Graphics::Feature->new(-score => $value,
-					    -start => int($start + $i * $points_per_span),
-					    -end   => int($start + $i * $points_per_span));
+    push @parts,[$start + int($i*$points_per_span),
+		 $start + int($i*$points_per_span),
+		 $value];
   }
-  return @parts;
-}
-
-sub create_parts_for_segment {
-  my $self = shift;
-  my ($seg,$start,$end) = @_;
-  my $seg_start = $seg->start;
-  my $seg_end   = $seg->end;
-  my $step      = $seg->step;
-  my $span      = $seg->span;
-
-  # clip, because wig files do no clipping
-  $seg_start = $start      if $seg_start < $start;
-  $seg_end   = $end        if $seg_end   > $end;
-
-  return unless $start < $end;
-
-  # get data values across the area
-  my @data = $seg->values($start,$end);
-
-  # create a series of parts
-  my @parts;
-  for (my $i = $start; $i <= $end ; $i += $step) {
-    my $data_point = shift @data;
-    push @parts,Bio::Graphics::Feature->new(-score => $data_point,
-					   -start => $i,
-					   -end   => $i + $step - 1);
-  }
-  $self->{parts} = [];
-  $self->add_feature(@parts);
+  return \@parts;
 }
 
 sub rel2abs {
     my $self = shift;
     my $wig  = shift;
+    return $wig if ref $wig;
     my $path = $self->option('basedir');
     return File::Spec->rel2abs($wig,$path);
 }
@@ -358,8 +343,6 @@ Bio::Graphics::Glyph::wiggle_xyplot - An xyplot plot compatible with dense "wig"
 This glyph works like the regular xyplot but takes value data in
 Bio::Graphics::Wiggle file format:
 
-TODO! UPDATE DOCUMENTATION FOR DENSE FILES
-
  reference = chr1
  ChipCHIP Feature1 1..10000 wigfile=./test.wig
  ChipCHIP Feature2 10001..20000 wigfile=./test.wig
@@ -371,6 +354,11 @@ representation of the values in the feature, using a constant step
 such as present in tiling array data. Wigfiles are created using the
 Bio::Graphics::Wiggle module or the wiggle2gff3.pl script, currently
 both part of the gbrowse package.
+
+Alternatively, you can place an array of quantitative data directly in
+the "wigdata" attribute. This can be an arrayref of quantitative data
+starting at feature start and ending at feature end, or the
+data string returned by Bio::Graphics::Wiggle->export_to_wif64($start,$end).
 
 =head2 OPTIONS
 
@@ -423,8 +411,11 @@ feature it renders:
    Name        Value        Description
    ----        -----        -----------
 
-   wigfile     path name    Path to the Bio::Graphics::Wiggle file for vales.
-                            (required)
+   wigfile     path name    Path to the Bio::Graphics::Wiggle file or object
+                            for quantitative values.
+
+   wigdata     string       Data exported from a Bio::Graphics::Wiggle in WIF
+                            format using its export_to_wif64() method.
 
    densefile   path name    Path to a Bio::Graphics::DenseFeature object
                                (deprecated)

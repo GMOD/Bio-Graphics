@@ -3,6 +3,10 @@ package Bio::Graphics::Glyph::crossbox;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    "This is a box with an 'X' inside the glyph."
+}
+
 # override draw_component to draw a crossed box rather than empty
 sub draw_component {
   my $self = shift;

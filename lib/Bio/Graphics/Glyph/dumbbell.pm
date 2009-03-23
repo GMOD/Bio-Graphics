@@ -6,6 +6,39 @@ use base qw(Bio::Graphics::Glyph::generic);
 
 use Math::Trig;
 
+sub my_description {
+    return <<END;
+This glyph draws a "dumbbell" with the same shapes on both ends. 
+END
+}
+sub my_options {
+    {
+	shape_size => [
+	    'integer',
+	    10,
+	    'The size of the shape on both ends.'],
+	end_shape => [
+	    ['square','diamond','tree','clover',
+	     'star','bubble','arrow','wave'],
+	    'square',
+	    'The type of shape to place at the ends of the dumbbell.'],
+	bubble_text => [
+	    'string',
+	    undef,
+	    'The text to show in the bubble if the bubble option is',
+	    'chosen (the -shape_size option is ignored in this case).'],
+	antiparallel => [
+	    'boolean',
+	    undef,
+	    'Whether the right arrow is reversed.'],
+	arc => [
+	    'boolean',
+	    undef,
+	    'If true, the end shapes will be connected by a curved',
+	    'arc rather than a straight line.'],
+    }
+}
+
 sub default_shape_size
 {
   return 10;  

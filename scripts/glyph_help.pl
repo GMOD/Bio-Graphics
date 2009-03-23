@@ -7,6 +7,7 @@ use IO::Dir;
 use Bio::Graphics::Panel;
 use Bio::Graphics::Feature;
 use File::Temp 'tempfile';
+use Bio::Graphics::Wiggle;
 
 my $MANUAL = 0;
 my $LIST   = 0;
@@ -29,6 +30,14 @@ Give usage information about Bio::Graphics glyphs.
 
 If neither -m nor -l are specified, the default is to print a summary
 of the glyph\'s options.
+
+To experiment with glyph options, invoke $0 this way:
+
+   $0 -v glyph_name -- -option1 value1 -option2 value2
+
+example:
+
+   $0 -v christmas_arrow -- -radius 5 -fgcolor green
 USAGE
 
 GetOptions ('manual'   => \$MANUAL,
@@ -46,8 +55,14 @@ if ($LIST) {
 }
 
 my $class = "Bio::Graphics::Glyph::$glyph";
-eval "require $class;1" 
-    or die "Unknown glyph $class. Please run $0 -l for a list of valid glyphs.\n";
+unless (eval "require $class;1") {
+    my $mesg = $@;
+    $mesg    =~ s/\(.+$//;
+    $mesg    =~ s/at \(eval.+$//;
+    $mesg    =~ s/\s+$//s;
+    warn $mesg,".\n";
+    die "Please run $0 -l for a list of valid glyphs.\n";
+}
 
 if ($PICT || $VIEW) {
     print_picture($glyph,$VIEW);
@@ -67,6 +82,9 @@ sub print_list {
 	my $d = IO::Dir->new($dir) or die "Couldn't open $dir for reading: $!";
 	while (defined(my $entry = $d->read)) {
 	    next unless $entry =~ /\.pm$/;
+	    (my $base = $entry) =~ s/\.pm$//;
+	    eval "use Bio::Graphics::Glyph::$base";
+	    next unless "Bio::Graphics::Glyph::$base"->isa('Bio::Graphics::Glyph');
 	    my $f  = File::Spec->catfile($dir,$entry);
 	    my $io = IO::File->new($f) or next;
 	    while (<$io>) {
@@ -92,32 +110,126 @@ sub print_picture {
     my $viewit = shift;
     my $ex_image = 
 	'http://www.catch-fly.com/sites/awhittington/_files/Image/Drosophila-melanogaster.jpg';
-    my $f1   = Bio::Graphics::Feature->new(-start => 1,
+
+    # the next bit of code is here to manufacture some wiggle data for demo purposes
+    my $wig = Bio::Graphics::Wiggle->new(undef,
+					 1,
+					 {seqid=>'chr1',
+					  start=>1,
+					  end  =>500}
+	);
+    my @values = map {
+	(sin($_/60)+sin($_/12))*100+rand(100)
+    } 1..500;
+    if (eval "require Statistics::Descriptive; 1") {
+	my $stat = Statistics::Descriptive::Sparse->new;
+	$stat->add_data(@values);
+	$wig->min($stat->min);
+	$wig->max($stat->max);
+	$wig->mean($stat->mean);
+	$wig->stdev($stat->standard_deviation);
+    } else {
+	my $min = $values[0];
+	my $max = $values[0];
+	my $tot = 0;
+	for (@values) {$min = $_ if $min > $_;
+		       $max = $_ if $max < $_;
+		       $tot += $_;
+	}
+	$wig->min($min);
+	$wig->max($max);
+	$wig->stdev(120); # just make it up
+	$wig->mean($tot/@values);
+    }
+    $wig->set_value($_=>$values[$_-1]) for(1..500);
+    
+    my $f0   = Bio::Graphics::Feature->new(-start => 1,
+					   -end   => 30,
+					   -score => 10,
+					   -strand=> +1,
+					   -source => 'confirmed',
+					   -type  => 'UTR',
+	);
+    my $f1   = Bio::Graphics::Feature->new(-start => 31,
 					   -end   => 100,
-					   -score => 100,
-					   -strand=> +1);
+					   -score => 20,
+					   -strand=> +1,
+					   -source => 'confirmed',
+					   -type  => 'CDS',
+	);
     my $f2   = Bio::Graphics::Feature->new(-start => 200,
 					   -end   => 300,
-					   -score => -50,
-					   -strand=> +1);
+					   -score => 30,
+					   -strand=> +1,
+					   -source=> 'unconfirmed',
+					   -type  => 'CDS',
+	);
     my $f3   = Bio::Graphics::Feature->new(-start => 400,
+					   -end   => 450,
+					   -score => 40,
+					   -strand=> +1,
+					   -source=> 'unconfirmed',
+					   -type  => 'CDS',
+	);
+    my $f4   = Bio::Graphics::Feature->new(-start => 451,
 					   -end   => 500,
-					   -score => 75,
-					   -strand=> +1);
-    my $feature = Bio::Graphics::Feature->new(-type=>'test',
-					      -name=>"$glyph",
-					      -desc=>'test description',
-					      -strand=>+1,
-					      -start=>1,
-					      -end=>500,
-					      -attributes=>{
-						  image=>$ex_image
-					      }
+					   -score => 50,
+					   -strand=> +1,
+					   -source=>'confirmed',
+					   -type  => 'UTR',
 	);
 
-    unless ($glyph eq 'image') { # cheat a little
-	$feature->add_SeqFeature($_) foreach ($f1,$f2,$f3);
-    }
+    my $feature1 = Bio::Graphics::Feature->new(-type=>'mRNA',
+					       -name=>'f1',
+					       -desc=>'This is a one-level feature',
+					       -strand=>+1,
+					       -start=>1,
+					       -end=>500,
+					       -attributes=>{
+						   image=>$ex_image,
+						   wigfile=>$wig,
+						   wigfileA=>$wig,
+						   wigfileB=>$wig,
+					       }
+	);
+    my $feature2 = Bio::Graphics::Feature->new(-type=>'mRNA',
+					      -name=>'f2',
+					      -desc=>'This is a two-level feature',
+					      -strand=>+1,
+					      -attributes=>{
+						  image=>$ex_image,
+						  wigfile=>$wig,
+						  wigfileA=>$wig,
+						  wigfileB=>$wig,
+					      }
+	);
+    my $feature3 = Bio::Graphics::Feature->new(-type=>'mRNA',
+					       -name=>'f3',
+					       -desc=>'This is a two-level feature',
+					       -strand=>+1,
+					       -attributes=>{
+						   image=>$ex_image,
+						   wigfile=>$wig,
+						   wigfileA=>$wig,
+						   wigfileB=>$wig,
+					       }
+	);
+					       
+    $feature2->add_SeqFeature($_) foreach ($f0,$f1,$f2,$f3,$f4);
+    $feature3->add_SeqFeature($_) foreach ($f0,$f1,$f3,$f4);
+
+    my $feature4 = Bio::Graphics::Feature->new(-type=>'gene',
+					       -name=>'f4',
+					       -desc=>'This is a three-level feature',
+					       -attributes=>{
+						   image=>$ex_image,
+						   wigfile=>$wig,
+						   wigfileA=>$wig,
+						   wigfileB=>$wig,
+					       }
+	);
+    $feature4->add_SeqFeature($feature2,$feature3);
+    
     my $panel = Bio::Graphics::Panel->new(-length => 500,
 					  -width  => 250,
 					  -pad_left => 20,
@@ -127,37 +239,35 @@ sub print_picture {
 					  -key_style  => 'between',
 					  -truecolor  => 1,
 	);
-    $panel->add_track($feature,
+
+
+    my @additional_args = @ARGV;
+
+    my $sort_order = sub ($$) {
+	my ($g1,$g2) = @_;
+	return $g1->feature->display_name cmp $g2->feature->display_name;
+    };
+
+    $panel->add_track([$feature1,$feature2,$feature4],
 		      -glyph       => $glyph,
 		      -label       => 1,
 		      -description => 1,
-		      -height      => 30,
-		      -bgcolor     => 'blue',
-		      -autoscale   => 'local',
-		      -key         => 'no connector',
-	);
-    $panel->add_track($feature,
-		      -glyph       => $glyph,
-		      -label       => 1,
-		      -description => 1,
-		      -height      => 30,
-		      -bgcolor     => 'blue',
-		      -connector   => 'solid',
-		      -autoscale   => 'local',
-		      -key         => 'solid connector',
+		      -height      => 16,
+		      -key         => 'No connector',
+		      -sort_order  => $sort_order,
+		      @additional_args,
 	);
 
-    $panel->add_track($feature,
+    $panel->add_track([$feature1,$feature2,$feature4],
 		      -glyph       => $glyph,
 		      -label       => 1,
 		      -description => 1,
-		      -height      => 30,
-		      -bgcolor     => 'blue',
-		      -connector   => 'hat',
-		      -autoscale   => 'local',
-		      -key         => 'hat connector',
+		      -height      => 16,
+		      -connector   => 'dashed',
+		      -key         => 'Dashed connector',
+		      -sort_order  => $sort_order,
+		      @additional_args,
 	);
-
 
     my $png = $panel->png;
     unless ($viewit) {

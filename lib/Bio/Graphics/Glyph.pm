@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.3 2009-03-20 13:03:01 lstein Exp $
+# $Id: Glyph.pm,v 1.4 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -132,6 +132,13 @@ sub my_options {
 	    -1,
 	    'This option will cause bumping to stop after the indicated number of features',
 	    'pile up. Subsequent collisions will not be bumped.'],
+	hbumppad => [
+	    'integer',
+	    0,
+	    'Ordinarily collison control prevents two features from overlapping if they physically touch.',
+	    'This option places a "bumper zone" around the feature such that collision control',
+	    'will kick in if any other feature enters within hbumppad pixels of the feature.'
+	    ],
 	hilite => [
 	    'color',
 	    undef,
@@ -606,7 +613,7 @@ sub fillcolor {
     return $self->bgcolor;
 }
 
-# we also look for the "background-color" option for Ace::Graphics compatibility
+# we also look for the "fillcolor" option for Ace::Graphics compatibility
 sub bgcolor {
   my $self = shift;
   my $bgcolor = $self->option('bgcolor');
@@ -811,7 +818,7 @@ sub collides {
     next unless exists $occupied->{$k};
     for my $bounds (@{$occupied->{$k}}) {
       my ($l,$t,$r,$b) = @$bounds;
-      next unless $right+$hspacing >= $l and $left-$hspacing <= $r 
+      next unless $right+$hspacing > $l and $left-$hspacing < $r 
 	and $bottom >= $t and $top <= $b;
       $collides = $bounds;
       last;
@@ -823,7 +830,8 @@ sub collides {
 sub add_collision {
   my $self = shift;
   my ($occupied,$cm1,$cm2,$left,$top,$right,$bottom) = @_;
-  my $value = [$left,$top,$right+2,$bottom];
+#  my $value = [$left,$top,$right+2,$bottom];
+  my $value = [$left,$top,$right,$bottom];
   my @keys = $self->_collision_keys($cm1,$cm2,@$value);
   push @{$occupied->{$_}},$value foreach @keys;
 }
@@ -888,6 +896,8 @@ sub draw {
 
 }
 
+sub connector { return }
+
 # the "level" is the level of testing of the glyph
 # groups are level -1, top level glyphs are level 0, subcomponents are level 1 and so forth.
 sub level {
@@ -924,11 +934,12 @@ sub draw_connectors {
     my($x1,$y1,$x2,$y2) = $self->bounds(0,0);
     my($xl,$xt,$xr,$xb) = $parts[0]->bounds;
     $self->_connector($gd,$dx,$dy,$x1,$xt,$x1,$xb,$xl,$xt,$xr,$xb)      if $x1 < $xl;
-    my ($xl2,$xt2,$xr2,$xb2) = $parts[-1]->bounds;
 
-    my $feature = $self->feature;
-    my @p       = map {$_->feature} @parts;
-    $self->_connector($gd,$dx,$dy,$parts[-1]->bounds,$x2,$xt2,$x2,$xb2) if $x2 > $xr2;
+    @parts = sort {$a->right<=>$b->right} @parts;
+    my ($xl2,$xt2,$xr2,$xb2) = $parts[-1]->bounds;
+    if ($x2 > $xr2) {
+	$self->_connector($gd,$dx,$dy,$parts[-1]->bounds,$x2,$xt2,$x2,$xb2);
+    }
   } else {
       # I don't understand what this code is for... LS
       #    my ($x1,$y1,$x2,$y2) = $self->bounds($dx,$dy);
@@ -1219,7 +1230,7 @@ sub filled_arrow {
 
   my $panel        = $self->panel;
   my $offend_left  = $x1 < $panel->pad_left;
-  my $offend_right = $x2 > $panel->width + $panel->pad_right;
+  my $offend_right = $x2 > $panel->width + $panel->pad_left;
 
   return $self->filled_box($gd,@_)
     if ($orientation == 0)
@@ -1511,9 +1522,14 @@ sub options_man {
 	$self->options_usage;
 	return;
     }
-    my ($pager)      = grep {`which $_`} ($ENV{PAGER},'less','more');
     my $class        = ref $self   || $self;
-    open my $fh,"| pod2man -n $class | $nroff -man | $pager" or die;
+    my $extra        = '';
+
+    if ($ENV{TERM} && $ENV{TERM}=~/^(xterm|vt10)/) {
+	my ($pager)      = grep {`which $_`} ($ENV{PAGER},'less','more');
+	$extra           = "|$pager";
+    }
+    open my $fh,"| pod2man -n $class | $nroff -man $extra" or die;
     print $fh $self->options_pod;
     close $fh;
     # exit 0 ??
@@ -1547,7 +1563,8 @@ for full details.
 		   -option1  => \$value1,
 		   -option2  => \$value2...);
 
-
+To experiment with this glyph\'s options, use the glyph_help.pl
+script with either the -v or -p switch. Run "glyph_help -help" for details.
 
 END
     ;
@@ -1803,7 +1820,6 @@ the -maxdepth option.
 
 =back
 
-
 Setting an option:
 
 =over 4
@@ -1965,6 +1981,10 @@ exceed the value returned by maxdepth().
 
 The following options are standard among all Glyphs.  See individual
 glyph pages for more options.
+
+Also try out the glyph_help.pl script, which attempts to document each
+glyph's shared and specific options and provides an interface for
+graphically inspecting the effect of different options.
 
   Option      Description                      Default
   ------      -----------                      -------

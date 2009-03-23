@@ -3,6 +3,14 @@ package Bio::Graphics::Glyph::group;
 use strict;
 use base qw(Bio::Graphics::Glyph::segmented_keyglyph);
 
+sub my_description {
+    return <<END;
+This glyph is used internally by Bio::Graphics::Panel for laying out
+groups of glyphs that are linked together.  It should not be used
+explicitly.
+END
+}
+
 # group sets connector to 'dashed'
 sub connector {
   my $self = shift;

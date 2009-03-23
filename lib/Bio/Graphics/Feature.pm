@@ -110,17 +110,39 @@ Add one or more segments (a subfeature).  Segments can either be
 Feature objects, or [start,stop] arrays, as in the -segments argument
 to new().  The feature endpoints are automatically adjusted.
 
+=item my @features = get_SeqFeatures('type1','type2','type3'...)
+
+Get the subfeatures of this feature. If an optional list of types is
+provided, then only returns subfeatures with the indicated
+primary_tag. (This is an extension of the Bio::SeqFeatureI interface).
+
+=cut
+
+sub get_SeqFeatures {
+    my $self   = shift;
+    my %filter = map {$_=>1} @_;
+    my @pieces = %filter ? grep {$filter{$_->primary_tag}} 
+                                $self->SUPER::get_SeqFeatures()
+			 : $self->SUPER::get_SeqFeatures;
+    return @pieces;
+}
+
+sub each_tag_value {
+  my $self = shift;
+  my $tag  = shift;
+  my $value = $self->{attributes}{$tag} or return;
+  my $ref = CORE::ref $value;
+  return $ref && $ref eq 'ARRAY' ? @{$self->{attributes}{$tag}}
+                                 : $self->{attributes}{$tag};
+}
+
 =item segments()
 
-An alias for sub_SeqFeature().
-
-=item get_SeqFeatures()
-
-Alias for sub_SeqFeature()
+An alias for get_SeqFeatures().
 
 =item get_all_SeqFeatures()
 
-Alias for sub_SeqFeature()
+Alias for get_SeqFeatures()
 
 =item merged_segments()
 
@@ -351,6 +373,8 @@ sub make_link {
     return;
   }
 }
+
+
 
 1;
 

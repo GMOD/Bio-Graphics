@@ -5,6 +5,19 @@ use base qw(Bio::Graphics::Glyph::generic);
 
 use Math::Trig;
 
+sub my_description {
+    return <<END;
+This glyph draws an arrow which has a circle ("christmas ball")
+dangling at one end.
+END
+}
+sub my_options {
+    return {
+	radius => ['integer',4, 'Radius of the circle glyph.'],
+	length => ['integer',20,'Length of the arrow.'],
+    }
+}
+
 sub default_radius
 {
   return 4;  

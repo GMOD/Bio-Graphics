@@ -3,6 +3,28 @@ package Bio::Graphics::Glyph::merge_parts;
 use strict;
 use base qw(Bio::Graphics::Glyph);
 
+sub my_description {
+    return <<END;
+This is a base class for graded_segments, heterogeneous_segments,
+and merged_alignment.
+
+It adds internal methods to support semantic zooming of scored
+alignment features. It is not intended for end users.
+END
+}
+
+sub my_options {
+    {
+	max_gap => [
+	    'integer',
+	    undef,
+	    'This is the maximum gap, measured in bp, across which the glyph will',
+	    'attempt to merge subfeatures in an attempt to simplify the appearance',
+	    'at low magnifications. If undef, the max_gap will be calculated using',
+	    'a simple exponential heuristic.'],
+    }
+}
+
 sub merge_parts {
     my ($self,@parts)  = @_;
     

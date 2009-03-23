@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::image;
 
-# $Id: image.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: image.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use GD;
@@ -22,6 +22,48 @@ our @ISA;
 #    +--------------------------+
 
 use constant VERTICAL_SPACING => 20;
+
+sub my_description {
+    return <<END;
+This glyph inserts an image into the track at the indicated feature
+coordinates. The image can be in PNG, JPEG, GIF or GD format, and can
+be either 8-bit or 24-bit ("truecolor"). The image can be located on
+the local filesystem or located at a remote URL (provided that you
+have the LWP module installed).
+
+When working with photographic images, you may wish to have
+Bio::Graphics::Panel create 24-bit (truecolor) images in order to
+avoid running out of colors. The symptom of this is that images appear
+posterized. To turn on truecolor images, pass the -truecolor option to
+Bio::Graphics::Panel.
+END
+}
+sub my_options {
+    {
+    image => [
+	'string',
+	undef,
+	'Specify the image path or URL to use for the feature.',
+	'If no image option is specified, then the glyph will look',
+	'inside the feature itself for an image path or URL in a tag named "image"',
+	],
+    image_prefix => [
+	    'string',
+	    undef,
+	    'A string to prepend to each image path.',
+	    'You may use this to prepend a directory path or a partial URL.'],
+    vertical_spacing => [
+	    'integer',
+	    20,
+	    'Vertical distance from the box that shows the physical span of the',
+	    'feature to the top of the picture, in pixels.'],
+    glyph_delegate => [
+	'string',
+	'generic',
+	'The glyph to use for the part of the glyph that shows the physical',
+	'span of features.']
+    }
+}
 
 sub new {
   my $self  = shift->SUPER::new(@_);

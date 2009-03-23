@@ -1,12 +1,30 @@
 package Bio::Graphics::Glyph::heat_map_ideogram;
 
-# $Id: heat_map_ideogram.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: heat_map_ideogram.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 # Glyph to draw chromosome heat_map ideograms
 
 use strict qw/vars refs/;
 use GD;
 
 use base qw(Bio::Graphics::Glyph::ideogram Bio::Graphics::Glyph::heat_map);
+
+sub my_description {
+    return <<END;
+This glyph draws a chromosome ideogram using scored features instead
+of cytobands.  It is a hybrid of the heat_map and ideograms glyphs
+and accepts options for both.  A typical usage would be to pair this
+glyph with an aggregator that groups scored features such as blast hits
+or gene_density bins, etc with a centromere.  The result is a chromosome
+ideogram that has bands whose colors vary porportionate to the feature
+score.
+
+See L<Bio::Graphics::Glyph> for a full explanation of standard options.
+
+See L<Bio::Graphics::Glyph::heat_map> for an explanation of heat_map options.
+
+See L<Bio::Graphics::Glyph::ideogram> for an explanation of ideogram options.
+END
+}
 
 sub draw {
   my $self = shift;

@@ -1,12 +1,99 @@
 package Bio::Graphics::Glyph::hybrid_plot;
 
+#$Id: hybrid_plot.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 use strict;
-use base qw(Bio::Graphics::Glyph::xyplot Bio::Graphics::Glyph::minmax Bio::Graphics::Glyph::smoothing);
+use base qw(Bio::Graphics::Glyph::xyplot 
+            Bio::Graphics::Glyph::minmax 
+            Bio::Graphics::Glyph::smoothing
+            Bio::Graphics::Glyph::wiggle_xyplot
+);
 use constant DEFAULT_POINT_RADIUS=>4;
 use Bio::Root::Version;
 our $VERSION = ${Bio::Root::Version::VERSION};
 
 use constant DEBUG=>0;
+
+# IMPORTANT NOTE:
+# This implementation is very slow and needs to subclass from wiggle_xyplot
+# in order to have adequate performance.
+
+sub my_description {
+    return <<END;
+This is an xyplot glyph specialized for drawing two overlapping graphs drawn from two
+different sources of quantitative data.
+
+Note that for full functionality this glyph requires
+Bio::Graphics::Glyph::box (box glyph is used for drawing individual
+matches for small RNA alignments at a high zoom level, specified by
+semantic zooming in GBrowse conf file) Unlike the regular xyplot, this
+glyph draws two overlapping graphs using value data in
+Bio::Graphics::Wiggle file format:
+
+track type=wiggle_0 name="Experiment" description="snRNA seq data" visibility=pack viewLimits=-2:2 color=255,0,0 altColor=0,0,255 windowingFunction=mean smoothingWindow=16
+ 
+ 2L 400 500 0.5
+ 2L 501 600 0.5
+ 2L 601 700 0.4
+ 2L 701 800 0.1
+ 2L 800 900 0.1
+  
+##gff-version 3
+
+2L      Sample_rnaseq  rnaseq_wiggle 41   3009 . . . ID=Samlpe_2L;Name=Sample;Note=YourNoteHere;wigfileA=/datadir/track_001.2L.wig;wigfileB=/datadir/track_002.2L.wig
+
+The "wigfileA" and "wigfileB" attributes give a relative or absolute
+pathname to Bio::Graphics::Wiggle format files for two concurrent sets
+of data. Basically, these wigfiles contain the data on signal
+intensity (counts) for sequences aligned with genomic regions. In
+wigfileA these data are additive, so for each sequence region the
+signal is calculated as a sum of signals from overlapping matches. In
+wigfileB the signal represents the maximum value among all sequences
+aligned with the current region so the user can see the difference
+between accumulated signal from overlapping multiple matches (which
+may likely be just noise from products of degradation) and signal from
+unique sequences.
+
+It is essential that wigfile entries in gff file do not have a score,
+because the score used to differentiate between data for dual graph
+and data for matches (individual features visible at higher
+magnification).
+END
+}
+sub my_options {
+    {
+	wigfileA => [
+	    'string',
+	    undef,
+	    'Path to a Bio::Graphics::Wiggle file for accumulated vales.'],
+	wigfileB => [
+	    'string',
+	    undef,
+	    'Path to a Bio::Graphics::Wiggle file for max values.'],
+	pos_color => [
+	    'color',
+	    undef,
+	    'When drawing bicolor plots, the fill color to use for max values.'],
+	neg_color => [
+	    'color',
+	    undef,
+	    'When drawing bicolor plots, the fill color to use for total',
+	    '(accumulated) values.'],
+	alpha  => [
+	    'integer',
+	    0,
+	    'Specify the opacity for blending in the overlay, from 0 (opaque) to 127 (transparent0.',
+	    'For this to work properly, "-truecolor" must be enabled in the panel.'],
+	u_method => [
+	    'string',
+	    'match',
+	    'Use this primary tag (GFF method) to identify individual features',
+	    '(like alignment matches) to show at high zoom level.'],
+	clip => [
+	    'boolean',
+	    undef,
+	    'If true, values that exceed max and min scores will be clipped.'],
+    }
+}
 
 sub _check_uni {
  return shift->option('u_method') || 'match';
@@ -68,7 +155,7 @@ sub draw {
  $self->panel->startGroup($gd);
 
  for(my $w = 0; $w < @wiggles; $w++){
-  $self->draw_wigfile($feature,$wiggles[$w],@_) if $wiggles[$w];
+  $self->draw_wigfile($feature,$self->rel2abs($wiggles[$w]),@_) if $wiggles[$w];
   my @parts = $self->parts;
   ($min_score,$max_score) = $self->minmax(\@parts);
   $scale  = $max_score > $min_score ? $height/($max_score-$min_score) : 1;
@@ -116,7 +203,7 @@ sub draw_wigfile {
   my $wigfile = shift;
 
   eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = eval { Bio::Graphics::Wiggle->new($wigfile) };
+  my $wig = ref $wigfile ? $wigfile : eval { Bio::Graphics::Wiggle->new($wigfile) };
   unless ($wig) {
       warn $@;
       return $self->SUPER::draw(@_);
@@ -170,7 +257,7 @@ sub add_alpha {
  return $im->colorAllocateAlpha($r,$g,$b,$alpha);
 }
 
-# OVERRIDEN:
+# OVERRIDDEN:
 sub score2position {
   my($self,$score) = @_;
 
@@ -316,11 +403,12 @@ See <Bio::Graphics::Panel> <Bio::Graphics::Glyph> and <Bio::Graphics::Glyph::xyp
 
 =head1 DESCRIPTION
 
-
-Note that for full functionality this glyph requires Bio::Graphics::Glyph::box (box glyph is used for drawing individual
-matches for small RNA alignments at a high zoom level, specified by semantic zooming in GBrowse conf file)
-Unlike the regular xyplot, this glyph draws two overlapping graphs
-using value data in Bio::Graphics::Wiggle file format:
+Note that for full functionality this glyph requires
+Bio::Graphics::Glyph::box (box glyph is used for drawing individual
+matches for small RNA alignments at a high zoom level, specified by
+semantic zooming in GBrowse conf file) Unlike the regular xyplot, this
+glyph draws two overlapping graphs using value data in
+Bio::Graphics::Wiggle file format:
 
 track type=wiggle_0 name="Experiment" description="snRNA seq data" visibility=pack viewLimits=-2:2 color=255,0,0 altColor=0,0,255 windowingFunction=mean smoothingWindow=16
  

@@ -4,6 +4,12 @@ package Bio::Graphics::Glyph::line;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws a horizontal line spanning the feature.
+END
+}
+
 sub bottom {
   my $self = shift;
   my $val = $self->SUPER::bottom(@_);

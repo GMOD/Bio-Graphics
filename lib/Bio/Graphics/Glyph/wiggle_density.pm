@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::wiggle_density;
-# $Id: wiggle_density.pm,v 1.3 2009-03-17 13:24:17 lstein Exp $
+# $Id: wiggle_density.pm,v 1.4 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
@@ -53,7 +53,9 @@ sub draw_wigfile {
   my $wigfile = shift;
 
   eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = eval { Bio::Graphics::Wiggle->new($wigfile)};
+  my $wig = $wigfile->isa('Bio::Graphics::Wiggle') 
+      ? $wigfile
+      : eval { Bio::Graphics::Wiggle->new($wigfile) };
 
   unless ($wig) {
       warn $@;
@@ -68,17 +70,13 @@ sub draw_wigdata {
     my $self = shift;
     my $data = shift;
 
-    eval "require MIME::Base64" 
-	unless MIME::Base64->can('decode_base64');
-    my $unencoded_data = MIME::Base64::decode_base64($data);
-
     my $wig = eval { Bio::Graphics::Wiggle->new() };
     unless ($wig) {
 	warn $@;
 	return $self->SUPER::draw(@_);
     }
 
-    $wig->import_from_wif($unencoded_data);
+    $wig->import_from_wif64($data);
 
     $self->wig($wig);
     $self->_draw_wigfile(@_);
@@ -211,7 +209,7 @@ sub draw_segment {
   my $poscolor       = $self->pos_color;
   my $negcolor       = $self->neg_color;
 
-  my $data_midpoint  =   $self->bicolor_pivot;
+  my $data_midpoint  =   $self->midpoint;
   my $bicolor   = $poscolor != $negcolor
                        && $min_value < $data_midpoint
 		       && $max_value > $data_midpoint;
@@ -321,9 +319,11 @@ sub calculate_color {
 sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
 sub max { $_[0] > $_[1] ? $_[0] : $_[1] }
 
+# repeated in wiggle_xyplot.pm!
 sub rel2abs {
     my $self = shift;
     my $wig  = shift;
+    return $wig if ref $wig;
     my $path = $self->option('basedir');
     return File::Spec->rel2abs($wig,$path);
 }

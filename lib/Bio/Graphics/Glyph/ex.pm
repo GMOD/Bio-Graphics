@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ex;
 
-# $Id: ex.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: ex.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
 
 =head1 NAME
@@ -11,6 +11,12 @@ Bio::Graphics::Glyph::ex - the "ex", or "crossed box" glyph
 
 use strict;
 use base 'Bio::Graphics::Glyph::generic';
+
+sub my_description {
+    return <<END;
+This is a box with an 'X' inside glyph.
+END
+}
 
 # override draw_component to draw a crossed box rather than empty
 sub draw_component {

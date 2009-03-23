@@ -5,6 +5,39 @@ use base 'Bio::Graphics::Glyph::box';
 use Carp 'cluck';
 use constant TOP_SPACING => 8;
 
+sub my_description {
+    return <<END;
+This glyph is a base class for glyphs that wish to draw a fixed width
+content, such as an icon, image, scatterplot, and it would be
+inappropriate for the content to be stretched to match the start and
+end point of the associated feature. Instead the glyph draws a simple
+box spanning the feature\'s start:end region, two diagonal connecting
+lines, and then a fixed width rectangle beneath the box.
+
+See the "stackedplot" glyph for an example of a glyph that uses this base
+class.
+END
+}
+
+sub my_options {
+    {
+	fixed_width => [
+	    'integer',
+	    0,
+	    'Width of the content.'],
+	fixed_height => [
+	    'integer',
+	    undef,
+	    'Height of the content. If undef, then the glyph -height is used.'],
+	fixed_gap => [
+	    'integer',
+	    8,
+	    'Vertical gap between the box that shows the extent of the',
+	    'feature and the fixed-width content. If -fixed_gap is less',
+	    'than 8 then the diagonal connecting lines are not drawn.'],
+    }
+}
+
 sub pad_left {
   my $self   = shift;
   my $pl     = $self->SUPER::pad_left;

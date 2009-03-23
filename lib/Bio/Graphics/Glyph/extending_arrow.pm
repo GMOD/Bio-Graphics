@@ -3,6 +3,14 @@ package Bio::Graphics::Glyph::extending_arrow;
 use strict;
 use base qw(Bio::Graphics::Glyph::anchored_arrow);
 
+# this is solely so that the documentation system shows
+# glyph-specific options.
+*my_options = \&Bio::Graphics::Glyph::anchored_arrow::my_options;
+sub my_description {
+    my $desc = shift->SUPER::my_description;
+    return 'This glyph is identical to "anchored_arrow".',$desc;
+}
+
 =head1 NAME
 
 Bio::Graphics::Glyph::extending_arrow -- The "extending arrow" glyph

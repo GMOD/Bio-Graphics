@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::heat_map;
-#$Id: heat_map.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+#$Id: heat_map.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use Bio::Graphics::Glyph::minmax;
@@ -9,6 +9,54 @@ use Bio::Graphics::Glyph::minmax;
 
 use vars '@ISA';
 @ISA = qw/Bio::Graphics::Glyph::minmax/;
+
+sub my_description {
+    return <<END;
+This glyph draws "scored" features using a continuous
+color gradient is the HSV color space. The color of 
+each segment is proportional to the score.
+END
+}
+sub my_options {
+    {
+	start_color =>  [
+	    'color',
+	    'white',
+	    'Beginning of the color gradient, expressed as a named color or',
+	    'RGB hex string.'],
+	end_color   => [
+	    'color',
+	    'red',
+	    'End of the color gradient.'],
+	brightness  => [
+	    'integer',
+	    undef,
+	    'Color brilliance: an integer between 0 and 100. This will override',
+	    'the value calculated from the name color.'],
+	saturation => [
+	    'integer',
+	    undef,
+	    'Color saturation: an integer between 0 and 100. This will override',
+	    'the value calculated from the named color.'],
+	pure_hue => [
+	    'boolean',
+	    undef,
+	    'Use the pure hue (brightness and saturation both at 100)',
+	    'for the named color.'],
+	min_score => [
+	    'integer',
+	    undef,
+	    "Minimum value of the feature's \"score\" attribute."],
+	max_score => [
+	    'integer',
+	    undef,
+	    "Maximum value of the feature's \"score\" attribute."],
+	vary_fg => [
+	    'boolean',
+	    1,
+	    'Vary both the foreground and background colors.'],
+    };
+}
 
 # set up getter/setter methods
 BEGIN {
@@ -400,7 +448,7 @@ glyph-specific options:
 
   -pure_hue    Use the pure hue (bright-    0 (false)
                ness and saturation both
-               at 100) for the named coloe
+               at 100) for the named color
                
   -max_score   Maximum value of the	    Calculated
                feature's "score" attribute

@@ -5,6 +5,25 @@ package Bio::Graphics::Glyph::lightning;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This glyph draws a lightning bolt of specified height with relative
+width, with the point of the lightning bolt centered on the
+feature. The height of the bolt is specified by the "height"
+option. Due to the complexity of this glyph, it doesn\'t resolve well
+with heights less than 11 pixels.
+END
+}
+sub my_options {
+    {
+	orient => [
+	    [qw(N S)],
+	    'N',
+	    'Control the direction of the lightning bolt. One of',
+	    '<N>orth, or <S>outh'],
+    }
+}
+
 sub draw_component {
   my $self = shift;
   my $gd   = shift;
