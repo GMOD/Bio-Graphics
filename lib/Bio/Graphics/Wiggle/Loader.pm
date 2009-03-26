@@ -351,7 +351,7 @@ sub minmax {
   my $chrom  = $self->{track_options}{chrom};
 
   if ((my $size = stat($infh)->size) > BIG_FILE) {
-      warn "wiggle file is very large; resorting to genome-wide sample statistics";
+      warn "Wiggle file is very large; resorting to genome-wide sample statistics for $chrom.\n";
       $self->{FILEWIDE_STATS} ||= $self->sample_file($infh,BIG_FILE_SAMPLES);
       for (keys %{$self->{FILEWIDE_STATS}}) {
 	$seqids->{$chrom}{$_} = $self->{FILEWIDE_STATS}{$_};

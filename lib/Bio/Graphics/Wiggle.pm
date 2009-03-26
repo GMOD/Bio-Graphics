@@ -228,7 +228,7 @@ use constant HEADER_LEN => 256;
     # seqid, step, min, max, span, mean, stdev, version, start
 use constant HEADER => '(Z50LFFLFFSL)@'.HEADER_LEN; 
 use constant BODY   => 'C';
-use constant DEBUG  => 1;
+use constant DEBUG  => 0;
 use constant DEFAULT_SMOOTHING => 'mean';
 use constant VERSION => 0;
 

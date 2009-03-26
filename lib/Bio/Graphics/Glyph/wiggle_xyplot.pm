@@ -30,7 +30,7 @@ sub draw_wigfile {
   my $wigfile = shift;
 
   eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = $wigfile->isa('Bio::Graphics::Wiggle') 
+  my $wig = ref $wigfile && $wigfile->isa('Bio::Graphics::Wiggle') 
       ? $wigfile
       : eval { Bio::Graphics::Wiggle->new($wigfile) };
   unless ($wig) {
