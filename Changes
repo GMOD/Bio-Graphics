@@ -1,4 +1,7 @@
 Revision history for Perl extension Bio::Graphics.
+1.92 Tue Mar 31 00:38:16 EDT 2009
+     - Added documentation system for glyphs, but only half the glyphs are documented this way so far.
+     - Bug fixes for GBrowse on Windows.
 1.91 Tue Mar 17 09:54:02 EDT 2009
      - wiggle_density now supports local scaling
      - wiggle loader now defaults to clipping at 2 stdev
