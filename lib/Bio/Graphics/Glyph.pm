@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.4 2009-03-23 17:24:14 lstein Exp $
+# $Id: Glyph.pm,v 1.5 2009-03-31 04:37:59 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -8,7 +8,7 @@ use constant BUMP_SPACING => 2; # vertical distance between bumped glyphs
 use Bio::Root::Version;
 
 use Memoize 'memoize';
-memoize('options');
+memoize('options') unless $^O =~ /mswin/i;
 
 use base qw(Bio::Root::Root);
 
@@ -1504,20 +1504,25 @@ sub options {
 
 sub options_usage {
     my $self  = shift;
-    my $child = open my $fh,'-|';
+    my ($read,$write);
+    pipe($read,$write);
+    my $child = fork();
     unless ($child) {
-	print $self->options_pod;
+	close $read;
+	print $write $self->options_pod;
 	exit 0;
     }
+    close $write;
     eval "use Pod::Usage";
-    pod2usage({-input  =>$fh,
+    pod2usage({-input  =>$read,
 	       -verbose=>2,
 	      });
 }
 
 sub options_man {
     my $self         = shift;
-    chomp(my $nroff  = `which nroff`);
+    my $nroff;
+    chomp($nroff  = `which nroff`) if $ENV{SHELL};
     unless ($nroff) {
 	$self->options_usage;
 	return;

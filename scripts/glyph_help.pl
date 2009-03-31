@@ -277,7 +277,7 @@ sub print_picture {
     
     # special stuff for displaying on linux systems
     for my $viewer (qw(xv display)) { # can read from stdin
-	`which $viewer` or next;
+	$ENV{SHELL} && `which $viewer` or next;
 	my $child = open my $fh,"|-";
 	if ($child) {
 	    print $fh $png;

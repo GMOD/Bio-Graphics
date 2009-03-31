@@ -102,6 +102,7 @@ README
 scripts/contig_draw.pl
 scripts/feature_draw.pl
 scripts/frend.pl
+scripts/glyph_help.pl
 scripts/render_msa.pl
 scripts/search_overview.pl
 t/BioGraphics.t

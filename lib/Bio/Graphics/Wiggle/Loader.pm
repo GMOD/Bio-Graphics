@@ -111,12 +111,14 @@ use vars '%color_name';
 # If a WIG file is very large (> 5 Mb)
 use constant BIG_FILE         => 5_000_000;
 use constant BIG_FILE_SAMPLES => 5_000;     # number of probes to make 
+use constant DEFAULT_METHOD   => 'microarray_oligo';
+use constant DEFAULT_SOURCE   => '.';
 
 sub new {
   my $class = shift;
   my $base      = shift 
                  or croak "Usage: Bio::Graphics::Wiggle::Loader->new('/base/path','trackname')";
-  my $trackname = shift or 'track';
+  my $trackname = shift || 'track';
   -d $base && -w _  or croak "$base is not a writeable directory";
   return bless {
 		base            => $base,
@@ -129,31 +131,19 @@ sub new {
 
 sub basedir  { shift->{base}     }
 sub wigfiles { shift->{wigfiles} }
-sub featurefile {
-  my $self    = shift;
-  my $type    = shift;
-  my ($method,$source) = @_;
-  $method ||= 'microarray_oligo';
-  $source ||= '.';
+sub conf_stanzas {
+    my $self = shift;
+    my ($method,$source) = @_;
+    $method ||= DEFAULT_METHOD;
+    $source ||= DEFAULT_SOURCE;
 
-  $type ||= 'featurefile';
-  $type =~ /^(gff3|featurefile)$/i 
-    or croak "featurefile type must be one of 'gff3' or 'featurefile'";
+    my $tracks = $self->{tracks};
+    my @lines = ();
+    for my $track (sort keys %$tracks) {
 
-  my @lines;
-  my $tracks = $self->{tracks};
+	my $options    = $tracks->{$track}{display_options};
+	my $name       = $options->{name} ||= $track;
 
-  my $gff3_header;
-
-  for my $track (sort keys %$tracks) {
-    my $options    = $tracks->{$track}{display_options};
-    my $name       = $options->{name} ||= $track;
-
-    if ($type eq 'gff3') {
-      push @lines,"##gff-version 3","" unless $gff3_header++;
-    }
-
-    else {
 	$options->{visibility} ||= 'dense';
 	$options->{color}      ||= $options->{visibility} =~ /pack/i ? '255,0,0' : '0,0,0';
 	$options->{altColor}   ||= $options->{visibility} =~ /pack/i ? '0,0,255' : '0,0,0';
@@ -197,23 +187,40 @@ sub featurefile {
 	    if $options->{windowingFunction};
 	
 	my $smoothing_window = $options->{smoothingWindow} || 0;
-# smoothing window max value = 16px -- WARNING! BUG! Deviation from UCSC here -- we smooth in base pairs
-# rather than in pixels -- oops. They do it right.
-#	if ($smoothing_window > 16) {
-#	    croak("The smoothing window is set to $smoothing_window px.  Allowed values are 0-16\n");
-#	}
-
+	
 	push @lines,"smoothing window = $options->{smoothingWindow}"
 	    if $options->{smoothingWindow};
 	push @lines,'';
     }
+    return join "\n",@lines;
+}
+
+sub featurefile {
+  my $self             = shift;
+  my $type             = shift;
+  my ($method,$source) = @_;
+
+  $method ||= DEFAULT_METHOD;
+  $source ||= DEFAULT_SOURCE;
+
+  $type ||= 'featurefile';
+  $type =~ /^(gff3|featurefile)$/i 
+    or croak "featurefile type must be one of 'gff3' or 'featurefile'";
+
+  my @lines;
+  my $tracks = $self->{tracks};
+
+  if ($type eq 'gff3') {
+      push @lines,"##gff-version 3","";
+  }
+  else {
+      push @lines,$self->conf_stanzas($method,$source),"";
   }
 
-
   for my $track (sort keys %$tracks) {
-    my $seqids     = $tracks->{$track}{seqids};
     my $options    = $tracks->{$track}{display_options};
-    my $name       = escape($options->{name});
+    my $name       = $options->{name} ||= $track;
+    my $seqids     = $tracks->{$track}{seqids};
     my $note       = escape($options->{description});
     my @attributes;
     push @attributes,qq(Name=$name)        if defined $name;
@@ -226,16 +233,16 @@ sub featurefile {
       $seqid or next;
       my $attributes = join ';',(@attributes,"wigfile=$seqids->{$seqid}{wigpath}");
       if ($type eq 'gff3') {
-	push @lines,join "\t",($seqid,$source,$method,
-			       $seqids->{$seqid}{start},
-			       $seqids->{$seqid}{end},
-			       '.','.','.',
-			       $attributes
-			      );
+	  push @lines,join "\t",($seqid,$source,$method,
+				 $seqids->{$seqid}{start},
+				 $seqids->{$seqid}{end},
+				 '.','.','.',
+				 $attributes
+	  );
       } else {
-	push @lines,'';
-	push @lines,"reference=$seqid";
-	push @lines,"$track $seqid.data $seqids->{$seqid}{start}..$seqids->{$seqid}{end} $attributes";
+	  push @lines,'';
+	  push @lines,"reference=$seqid";
+	  push @lines,"$track $seqid.data $seqids->{$seqid}{start}..$seqids->{$seqid}{end} $attributes";
       }
 
     }
@@ -244,6 +251,7 @@ sub featurefile {
 
   return join("\n",@lines)."\n";
 }
+
 
 sub load {
   my $self  = shift;
