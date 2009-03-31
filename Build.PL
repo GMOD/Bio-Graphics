@@ -24,6 +24,7 @@ my $build = Module::Build->new(
 		     'scripts/frend.pl',
 		     'scripts/search_overview.pl',
 		     'scripts/render_msa.pl',
+		     'scripts/glyph_help.pl',
     ],
     create_makefile_pl => 'passthrough',
     build_class        => 'Module::Build',
