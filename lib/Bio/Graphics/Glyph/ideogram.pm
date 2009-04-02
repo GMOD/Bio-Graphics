@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.5 2009-03-23 17:24:14 lstein Exp $
+# $Id: ideogram.pm,v 1.6 2009-04-02 02:16:31 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -86,7 +86,7 @@ sub draw {
     }
 
     else {
-      $tile = $part->create_tile('left'); 
+      $tile = $part->create_tile('left');
     }
     $part->draw_component($gd,$x,$y);
   }
@@ -102,6 +102,9 @@ sub draw_component {
 
   my $arcradius = $self->option('arcradius') || 7;
   my ($x1, $y1, $x2, $y2 ) = $self->bounds(@_);
+
+  return if $x1 >= $self->panel->right;
+  $x2 = $self->panel->right if $x2 > $self->panel->right;
 
   # force odd width so telomere arcs are centered
   $y2 ++ if ($y2 - $y1) % 2;
@@ -136,6 +139,7 @@ sub draw_component {
   }
   elsif ( $bgcolor_index =~ /var/ ) {
     $bgcolor = gdTiled;
+    $bgcolor = $self->{cm_color};
   }
 
   if ( $feat->method !~ /centromere/i && $stain ne 'acen') {
@@ -189,8 +193,7 @@ sub draw_cytoband {
   my ( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor) = @_;
 
   # draw the filled box
-  $self->filled_box($gd, $x1, $y1, $x2, $y2, $bgcolor, $bgcolor);
-
+  $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);   
   # outer border
   $gd->line($x1,$y1,$x2,$y1,$fgcolor);
   $gd->line($x1,$y2,$x2,$y2,$fgcolor);
@@ -199,7 +202,6 @@ sub draw_cytoband {
 sub draw_centromere {
   my $self = shift;
   my ( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor ) = @_;
-
   # blank slate
   $self->wipe(@_);
 
@@ -219,9 +221,7 @@ sub draw_telomere {
   my $self = shift;
   my ($gd, $x1, $y1, $x2, $y2,
       $bgcolor, $fgcolor, $arcradius, $state ) = @_;
-  
-  # warn "telomere($x1,$y1,$x2,$y2)\n";
-
+    
   # blank slate 
   $self->wipe(@_);
 
@@ -248,7 +248,6 @@ sub draw_telomere {
   my $bg     = $self->panel->bgcolor;
 
   $self->draw_cytoband( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
-
   if ( $state ) {    # left telomere
     my $x = $new_x1;
     my $y = $new_y;
@@ -261,10 +260,9 @@ sub draw_telomere {
     $gd->line($x1-3,$y1,$x1-3,$y2,$orange);
     $gd->line($x1-3,$y2,$x-1,$y2,$orange);
 
-    # carve away anything that does not look like a telomere
-    $gd->fillToBorder($x1+1,$y1+1,$orange,$bg);
-    $gd->fillToBorder($x1+1,$y2-1,$orange,$bg);
-
+  # carve away anything that does not look like a telomere
+   $gd->fillToBorder($x1+1,$y1+1,$orange,$bg);
+   $gd->fillToBorder($x1+1,$y2-1,$orange,$bg);
     # remove the border
     $gd->line($x-1,$y1,$x1-3,$y1,$bg);
     $gd->line($x1-3,$y1,$x1-3,$y2,$bg);
@@ -288,7 +286,7 @@ sub draw_telomere {
      $gd->line($x2+3,$y2,$x+1,$y2,$orange);
      $gd->fillToBorder($x2-1,$y1+1,$orange,$bg);
      $gd->fillToBorder($x2-1,$y2-1,$orange,$bg);
-     $gd->line($x+1,$y1,$x2+3,$y1,$bg);
+   $gd->line($x+1,$y1,$x2+3,$y1,$bg);
      $gd->line($x2+3,$y1,$x2+3,$y2,$bg);
      $gd->line($x2+3,$y2,$x+1,$y2,$bg);
      $gd->arc( $x, $y, $arcradius * 2,
@@ -324,18 +322,22 @@ sub draw_stalk {
 sub create_tile {
   my $self      = shift;
   my $direction = shift;
-
   # Prepare tile to use for filling an area
   my $tile;
+  $direction = 'right';
   if ( $direction eq 'right' ) {
-    $tile = GD::Image->new( 3, 3 );
-    $tile->fill( 1, 1, $tile->colorAllocate( 255, 255, 255 ) );
-    $tile->line( 0, 0, 3, 3, $tile->colorAllocate( 0, 0, 0 ) );
+    $tile     = GD::Image->new(3,3);
+    my $black = $tile->colorAllocate(0,0,0);
+    my $white = $tile->colorAllocate(255,255,255);
+    $tile->filledRectangle(0, 0, 3, 3, $white);
+    $tile->line( 0, 0, 3, 3, $black);
   }
   elsif ( $direction eq 'left' ) {
-    $tile = GD::Image->new( 4, 4 );
-    $tile->fill( 1, 1, $tile->colorAllocate( 255, 255, 255 ) );
-    $tile->line( 4, 0, 0, 4, $tile->colorAllocate( 0, 0, 0 ) );
+    $tile = GD::Image->new(4,4);
+    my $black = $tile->colorAllocate(0,0,0);
+    my $white = $tile->colorAllocate(255,255,255);
+    $tile->filledRectangle(0,0,4,4, $white);
+    $tile->line( 4, 0, 0, 4, $black);
   }
 
   $self->panel->gd->setTile($tile);
