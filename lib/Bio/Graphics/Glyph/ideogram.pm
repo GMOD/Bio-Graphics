@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.6 2009-04-02 02:16:31 lstein Exp $
+# $Id: ideogram.pm,v 1.7 2009-04-02 19:25:46 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -22,25 +22,35 @@ sub my_options {
     {
 	bgcolor => [
 	    'string',
-	    undef,
+
+	    ' gneg:white gpos25:silver gpos50:gray gpos:gray  gpos75:darkgray gpos100:black acen:cen gvar:var',
+
 	    'This option is redefined to map each chromosome band\'s "stain" attribute',
-	    "into a color or pattern. It is a string that looks like this:\n",
-	    ' gneg:white gpos25:silver gpos50:gray ',
-	    ' gpos:gray  gpos75:darkgray gpos100:black acen:cen gvar:var',
-	    '',
-	    'This is saying to use "white" for features whose stain attribute is',
+	    'into a color or pattern. The default value is saying to use ',
+	    '"white" for features whose stain attribute is',
 	    '"gneg", "silver" for those whose stain attribute is "gpos25", and so',
 	    'on. Several special values are recognized: "B<stalk>" draws a narrower',
 	    'gray region and is usually used to indicate an acrocentric',
-	    'stalk. "B<var>" creates a diagonal black-on-white pattern. "B<cen>"',
-	    'draws a centromere.',
+	    'stalk. "B<var>" creates a diagonal black-on-white pattern if B<-pattern> is enabled.',
+	    '"B<cen>" draws a centromere.',
 	    'If -bgcolor is just a color name, like "yellow", the glyph will ignore',
 	    'all bands and just draw a filled in chromosome.'],
 	 bgfallback => [
 		'color',
 		'yellow',
 		'Color to use when no bands are present.'],
+         pattern => [
+	     'boolean',
+	     undef,
+	     'Enable drawing a vertical line pattern for centromeres and "var" regions.',
+	     'This is off by default due to an intermittent gd2 library crash on certain 64-bit platforms.'],
     }
+}
+
+sub can_pattern {
+    my $self = shift;
+    return unless $self->option('pattern');
+    return  $self->panel->image_class !~ /svg/i;
 }
 
 sub draw {
@@ -128,18 +138,15 @@ sub draw_component {
   }
 
   my $black = $gd->colorAllocate( 0, 0, 0 );
-  my $cm_color = $self->{cm_color} = $gd->colorAllocate( 102, 102, 153 );
+  my $cm_color  = $self->{cm_color}  ||= $self->translate_color('lightgrey');
+  my $var_color = $self->{var_color} ||= $self->translate_color('#805080' );
+
   my $bgcolor = $self->factory->translate_color($bgcolor_index);
   my $fgcolor = $self->fgcolor;
 
   # special color for gvar bands
-  my $svg = $self->panel->image_class =~ /SVG/;
-  if ( $bgcolor_index =~ /var/ && $svg ) {
-    $bgcolor = $self->{cm_color};
-  }
-  elsif ( $bgcolor_index =~ /var/ ) {
-    $bgcolor = gdTiled;
-    $bgcolor = $self->{cm_color};
+  if ( $bgcolor_index =~ /var/) {
+      $bgcolor = $self->can_pattern ? gdTiled : $var_color;
   }
 
   if ( $feat->method !~ /centromere/i && $stain ne 'acen') {
@@ -158,7 +165,7 @@ sub draw_component {
     elsif ( $feat->stop >= $self->panel->end - 1000 && $stain ne 'tip') {
       # right telomere
       my $status = $self->panel->flip ? 1 : 0;
-      $bgcolor = $black if $fake_telomeres;
+      $bgcolor   = $black if $fake_telomeres;
       $self->draw_telomere( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor,
         $arcradius, $status );
     }
@@ -171,18 +178,18 @@ sub draw_component {
     # or a regular band?
     else {
       $self->draw_cytoband( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
+      $self->draw_outline( $gd,$x1,$y1,$x2,$y2,$bgcolor,$fgcolor) if $bgcolor_index =~ /var/i;
     }
   }
 
   # or a centromere?
   else {
-    # patterns not yet supported in GD::SVG
-    if ( $svg ) {
-      $self->draw_centromere( $gd, $x1, $y1, $x2, $y2, $cm_color, $fgcolor );
-    }
-    else {
+    if ( $self->can_pattern ) {
       my $tile = $self->create_tile('right');
       $self->draw_centromere( $gd, $x1, $y1, $x2, $y2, gdTiled, $fgcolor );
+    }
+    else {
+      $self->draw_centromere( $gd, $x1, $y1, $x2, $y2, $cm_color, $fgcolor );
     }
   }
 
@@ -197,6 +204,15 @@ sub draw_cytoband {
   # outer border
   $gd->line($x1,$y1,$x2,$y1,$fgcolor);
   $gd->line($x1,$y2,$x2,$y2,$fgcolor);
+}
+
+sub draw_outline {
+  my $self = shift;
+  my ( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor) = @_;
+
+  # side borders
+  $gd->line($x1,$y1,$x1,$y2,$fgcolor);
+  $gd->line($x2,$y1,$x2,$y2,$fgcolor);
 }
 
 sub draw_centromere {
@@ -248,6 +264,7 @@ sub draw_telomere {
   my $bg     = $self->panel->bgcolor;
 
   $self->draw_cytoband( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
+  $self->draw_outline( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
   if ( $state ) {    # left telomere
     my $x = $new_x1;
     my $y = $new_y;
@@ -294,10 +311,10 @@ sub draw_telomere {
      $gd->line($x2,$y-1,$x2,$y+1,$bg);
   }
 
-  # GD::SVG hack :(
-  if ( $self->panel->image_class =~ /SVG/ ) {
-    $self->draw_cytoband( $gd, $new_x1 - 1, $y1 + 2, $new_x1 + 1, $y2 - 2, $bgcolor,
-      $bgcolor );
+  unless ( $self->can_pattern ) {
+    $self->draw_cytoband( $gd, $new_x1 - 1, $y1 + 2, 
+			       $new_x1 + 1, $y2 - 2, 
+			       $bgcolor, $bgcolor );
   }
 }
 
@@ -324,7 +341,6 @@ sub create_tile {
   my $direction = shift;
   # Prepare tile to use for filling an area
   my $tile;
-  $direction = 'right';
   if ( $direction eq 'right' ) {
     $tile     = GD::Image->new(3,3);
     my $black = $tile->colorAllocate(0,0,0);
@@ -379,14 +395,14 @@ Bio::Graphics::Glyph::ideogram - The "ideogram" glyph
 
 =head1 DESCRIPTION
 
-This glyph draws a section of a chromosome ideogram. It relies
-on certain data from the feature to determine which color should
-be used (stain) and whether the segment is a telomere or 
-centromere or a regular cytoband. The centromeres and 'var'-marked
-bands get the usual diagonal black-on-white pattern which is 
-hardwired in the glyph, the colors of others is configurable.
-For GD::SVG images, a solid color is substituted for the diagonal
-black-on-white pattern.
+This glyph draws a section of a chromosome ideogram. It relies on
+certain data from the feature to determine which color should be used
+(stain) and whether the segment is a telomere or centromere or a
+regular cytoband. The centromeres and 'var'-marked bands are rendered
+with diagonal black-on-white patterns if the "-patterns" option is
+true, otherwise they are rendered in dark gray. This is to prevent a
+libgd2 crash on certain 64-bit platforms when rendering patterned
+images.
 
 The cytobandband features would typically be formatted like this in GFF3:
 
