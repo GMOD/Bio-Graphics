@@ -3,6 +3,12 @@ package Bio::Graphics::Glyph::pentagram;
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
 
+sub my_description {
+    return <<END;
+This
+END
+}
+
 sub pad_top
 {
   my ($self) = @_;

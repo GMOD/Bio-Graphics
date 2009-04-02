@@ -7,7 +7,7 @@ package Bio::Graphics::Glyph::heterogeneous_segments;
 # -waba_weak_color   => 'red'
 # -waba_coding_color => 'green' 
 
-# $Id: heterogeneous_segments.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
+# $Id: heterogeneous_segments.pm,v 1.3 2009-04-02 22:22:07 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::graded_segments);
@@ -47,10 +47,6 @@ sub draw {
   $self->{source2color} ||= {};
   my $fill = $self->bgcolor;
   for my $part (@parts) {
-#    if ($self->option('merge_parts')) {
-#      $part->{partcolor} = $fill;
-#      next;
-#    }  
     my $s = eval { $part->feature->source_tag } or next;
     $self->{source2color}{$s} ||= $self->color(lc($s)."_color") || $fill;
     $part->{partcolor} = $self->{source2color}{$s};

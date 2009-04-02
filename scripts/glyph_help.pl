@@ -13,6 +13,7 @@ my $MANUAL = 0;
 my $LIST   = 0;
 my $PICT   = 0;
 my $VIEW   = 0;
+my $BOXES  = 0;
 
 my $usage = <<USAGE;
 Usage: $0 [options] glyph_type 
@@ -27,6 +28,8 @@ Give usage information about Bio::Graphics glyphs.
                     The PNG will be written to stdout
     -v --view     Launch a viewer ("xv", "display" or "firefox") to show the
                     glyph.
+
+    -b --boxes    Outline the boxes around each glyph
 
 If neither -m nor -l are specified, the default is to print a summary
 of the glyph\'s options.
@@ -44,6 +47,7 @@ GetOptions ('manual'   => \$MANUAL,
 	    'list'     => \$LIST,
 	    'picture'  => \$PICT,
 	    'view'     => \$VIEW,
+	    'boxes'    => \$BOXES,
 	   ) or die $usage;
 
 my $glyph = shift;
@@ -108,8 +112,93 @@ sub print_list {
 sub print_picture {
     my $glyph  = shift;
     my $viewit = shift;
-    my $ex_image = 
-	'http://www.catch-fly.com/sites/awhittington/_files/Image/Drosophila-melanogaster.jpg';
+
+    my $panel = Bio::Graphics::Panel->new(-length => 500,
+					  -width  => 250,
+					  -pad_left => 20,
+					  -pad_right => 20,
+					  -pad_top   => 10,
+					  -pad_bottom => 10,
+					  -key_style  => 'between',
+					  -truecolor  => 1,
+	);
+
+
+    my @additional_args = @ARGV;
+
+    my $sort_order = sub ($$) {
+	my ($g1,$g2) = @_;
+	return $g1->feature->display_name cmp $g2->feature->display_name;
+    };
+
+    my @track_args = (
+	-glyph => $glyph,
+	-label       => 1,
+	-description => 1,
+	-height      => 16,
+	-sort_order  => $sort_order,
+	@additional_args
+	);
+
+    my $class = "Bio::Graphics::Glyph::$glyph";
+    eval "require $class";
+    warn $@ if $@;
+
+    my @example_features = eval{$class->demo_feature};
+    warn $@ if $@;
+
+    if (@example_features) {
+	$panel->add_track(
+	    \@example_features,
+	    @track_args,
+	    -key         => 'Demo feature provided by glyph',
+	    );
+    } else {
+	create_tracks($panel,$glyph,\@track_args);
+    }
+
+    if ($BOXES) {
+	my $gd    = $panel->gd;
+	my $boxes = $panel->boxes;
+	for my $box (@$boxes) {
+	    my ($f,$x1,$y1,$x2,$y2) = @$box;
+	    my $red = $panel->translate_color('red');
+	    $gd->rectangle($x1,$y1,$x2,$y2,$red);
+	}
+    }
+
+    my $png = $panel->png;
+    unless ($viewit) {
+	print $png;
+	return;
+    }
+    
+    # special stuff for displaying on linux systems
+    for my $viewer (qw(xv display)) { # can read from stdin
+	$ENV{SHELL} && `which $viewer` or next;
+	my $child = open my $fh,"|-";
+	if ($child) {
+	    print $fh $png;
+	    close $fh;
+	    return;
+	} else {
+	    fork() && exit 0;
+	    exec $viewer,'-';
+	}
+    }
+
+    # if we get here, then launch firefox
+    my ($fh,$filename) = tempfile(SUFFIX=>'.png',
+				  UNLINK=>1,
+	);
+    print $fh $png;
+    close $fh;
+    my $child = fork() && sleep 2 && exit 0;
+    exec 'firefox',$filename;
+}
+
+sub create_tracks {
+    my ($panel,$glyph,$args) = @_;
 
     # the next bit of code is here to manufacture some wiggle data for demo purposes
     my $wig = Bio::Graphics::Wiggle->new(undef,
@@ -186,7 +275,6 @@ sub print_picture {
 					       -start=>1,
 					       -end=>500,
 					       -attributes=>{
-						   image=>$ex_image,
 						   wigfile=>$wig,
 						   wigfileA=>$wig,
 						   wigfileB=>$wig,
@@ -197,7 +285,6 @@ sub print_picture {
 					      -desc=>'This is a two-level feature',
 					      -strand=>+1,
 					      -attributes=>{
-						  image=>$ex_image,
 						  wigfile=>$wig,
 						  wigfileA=>$wig,
 						  wigfileB=>$wig,
@@ -208,7 +295,6 @@ sub print_picture {
 					       -desc=>'This is a two-level feature',
 					       -strand=>+1,
 					       -attributes=>{
-						   image=>$ex_image,
 						   wigfile=>$wig,
 						   wigfileA=>$wig,
 						   wigfileB=>$wig,
@@ -222,7 +308,6 @@ sub print_picture {
 					       -name=>'f4',
 					       -desc=>'This is a three-level feature',
 					       -attributes=>{
-						   image=>$ex_image,
 						   wigfile=>$wig,
 						   wigfileA=>$wig,
 						   wigfileB=>$wig,
@@ -230,73 +315,16 @@ sub print_picture {
 	);
     $feature4->add_SeqFeature($feature2,$feature3);
     
-    my $panel = Bio::Graphics::Panel->new(-length => 500,
-					  -width  => 250,
-					  -pad_left => 20,
-					  -pad_right => 20,
-					  -pad_top   => 10,
-					  -pad_bottom => 10,
-					  -key_style  => 'between',
-					  -truecolor  => 1,
-	);
-
-
-    my @additional_args = @ARGV;
-
-    my $sort_order = sub ($$) {
-	my ($g1,$g2) = @_;
-	return $g1->feature->display_name cmp $g2->feature->display_name;
-    };
-
     $panel->add_track([$feature1,$feature2,$feature4],
-		      -glyph       => $glyph,
-		      -label       => 1,
-		      -description => 1,
-		      -height      => 16,
+		      @$args,
 		      -key         => 'No connector',
-		      -sort_order  => $sort_order,
-		      @additional_args,
 	);
 
     $panel->add_track([$feature1,$feature2,$feature4],
-		      -glyph       => $glyph,
-		      -label       => 1,
-		      -description => 1,
-		      -height      => 16,
+		      @$args,
 		      -connector   => 'dashed',
 		      -key         => 'Dashed connector',
-		      -sort_order  => $sort_order,
-		      @additional_args,
 	);
-
-    my $png = $panel->png;
-    unless ($viewit) {
-	print $png;
-	return;
-    }
-    
-    # special stuff for displaying on linux systems
-    for my $viewer (qw(xv display)) { # can read from stdin
-	$ENV{SHELL} && `which $viewer` or next;
-	my $child = open my $fh,"|-";
-	if ($child) {
-	    print $fh $png;
-	    close $fh;
-	    return;
-	} else {
-	    fork() && exit 0;
-	    exec $viewer,'-';
-	}
-    }
-
-    # if we get here, then launch firefox
-    my ($fh,$filename) = tempfile(SUFFIX=>'.png',
-				  UNLINK=>1,
-	);
-    print $fh $png;
-    close $fh;
-    my $child = fork() && sleep 2 && exit 0;
-    exec 'firefox',$filename;
 }
 
 

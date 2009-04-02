@@ -155,5 +155,11 @@ t/data/t3/version8.png
 t/data/t3/version9.png
 t/data/t3/version10.gif
 t/data/t3/version10.png
+t/data/t1/version11.gif
+t/data/t1/version11.png
+t/data/t2/version16.gif
+t/data/t2/version16.png
+t/data/t3/version11.gif
+t/data/t3/version11.png
 Makefile.PL
 META.yml

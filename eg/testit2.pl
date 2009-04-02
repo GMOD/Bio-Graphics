@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use lib '.','..','./blib/lib','../blib/lib';
+use lib './lib','../lib','./blib/lib','../blib/lib';
 use strict;
 
 use Bio::Graphics::Panel;
@@ -58,9 +58,9 @@ my $panel = Bio::Graphics::Panel->new(
 $panel->add_track(
 		  [$abc3,$zed_27,$partial_gene],
 		  -bgcolor   => sub { shift->source_tag eq 'predicted' ? 'green' : 'blue'},
-		  -map   => sub { my $feature = shift; 
-				  return $feature->source_tag eq 'predicted'
-				    ? 'ellipse' : 'transcript'},
+ 		  -glyph   => sub { my $feature = shift; 
+ 				  return $feature->source_tag eq 'predicted'
+ 				    ? 'ellipse' : 'transcript'},
 		  -label => 1,
 		  -bump => 1,
 		  -key => 'portents',

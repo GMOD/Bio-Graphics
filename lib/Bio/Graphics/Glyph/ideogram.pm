@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.7 2009-04-02 19:25:46 lstein Exp $
+# $Id: ideogram.pm,v 1.8 2009-04-02 22:22:07 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -46,6 +46,45 @@ sub my_options {
 	     'This is off by default due to an intermittent gd2 library crash on certain 64-bit platforms.'],
     }
 }
+sub demo_feature {
+    my $self     = shift;
+    my $data     = <<END;
+##gff-version 3
+22	ensembl	chromosome	1	500	.	.	.	ID=22;Name=Chr22
+22	ensembl	chromosome_band	1	30	.	.	.	Parent=22;Name=p13;Alias=22p13;Stain=gvar
+22	ensembl	chromosome_band	31	66	.	.	.	Parent=22;Name=p12;Alias=22p12;Stain=stalk
+22	ensembl	chromosome_band	67	97	.	.	.	Parent=22;Name=p11.2;Alias=22p11.2;Stain=gvar
+22	ensembl	centromere	98	164	.	.	.	Parent=22;Name=22_cent;Alias=2222_cent
+22	ensembl	chromosome_band	165	206	.	.	.	Parent=22;Name=q11.21;Alias=22q11.21;Stain=gneg
+22	ensembl	chromosome_band	207	220	.	.	.	Parent=22;Name=q11.22;Alias=22q11.22;Stain=gpos25
+22	ensembl	chromosome_band	221	245	.	.	.	Parent=22;Name=q11.23;Alias=22q11.23;Stain=gneg
+22	ensembl	chromosome_band	246	281	.	.	.	Parent=22;Name=q12.1;Alias=22q12.1;Stain=gpos50
+22	ensembl	chromosome_band	282	307	.	.	.	Parent=22;Name=q12.2;Alias=22q12.2;Stain=gneg
+22	ensembl	chromosome_band	308	361	.	.	.	Parent=22;Name=q12.3;Alias=22q12.3;Stain=gpos50
+22	ensembl	chromosome_band	362	396	.	.	.	Parent=22;Name=q13.1;Alias=22q13.1;Stain=gneg
+22	ensembl	chromosome_band	397	430	.	.	.	Parent=22;Name=q13.2;Alias=22q13.2;Stain=gpos50
+22	ensembl	chromosome_band	431	472	.	.	.	Parent=22;Name=q13.31;Alias=22q13.31;Stain=gneg
+22	ensembl	chromosome_band	473	482	.	.	.	Parent=22;Name=q13.32;Alias=22q13.32;Stain=gpos50
+22	ensembl	chromosome_band	483	500	.	.	.	Parent=22;Name=q13.33;Alias=22q13.33;Stain=gneg
+END
+;
+    eval "require Bio::Graphics::FeatureFile"
+	unless Bio::Graphics::FeatureFile->can('new');
+    my $db = Bio::Graphics::FeatureFile->new(-text=>$data) or die;
+    return $db->get_features_by_name('Chr22');
+}
+
+sub bgfallback {
+    my $self = shift;
+    return $self->option('bgfallback') || 'yellow';
+}
+
+sub bgcolor {
+    my $self    = shift;
+    my $bgcolor = $self->factory->{options}{'bgcolor'};
+    return $bgcolor if defined $bgcolor;
+    return 'gneg:white gpos25:silver gpos50:gray gpos:gray  gpos75:darkgray gpos100:black acen:cen gvar:var';
+}
 
 sub can_pattern {
     my $self = shift;
@@ -55,14 +94,23 @@ sub can_pattern {
 
 sub draw {
   my $self = shift;
+  my ($gd,$left,$top,$partno,$total_parts) = @_;
+
+  my $fstart = $self->feature->start;
+  my $fstop  = $self->feature->end;
 
   my @parts = $self->parts;
-  @parts    = $self if !@parts && $self->level == 0;
-  return $self->SUPER::draw(@_) unless @parts;
 
   # Draw the sides for the whole chromosome (in case
   # there are missing data).
   $self->draw_component(@_) if $self->level == 0;
+
+  if (@parts) {
+      $left += $self->left + $self->pad_left;
+      $top  += $self->top  + $self->pad_top;
+  } else {
+      @parts    = ($self);
+  }
 
   # Make unaggregated bands invisible if requested.
   # This is for making image maps for individual
@@ -75,18 +123,15 @@ sub draw {
   # if the bands are subfeatures of an aggregate chromosome,
   # we can draw the centomere and telomeres last to improve
   # the appearance
-  my ($gd,$x,$y) = @_;
-  $x += $self->left + $self->pad_left;
-  $y += $self->top  + $self->pad_top;
 
   my @last;
   for my $part (@parts) {
     push @last, $part and next if
         $part->feature->method =~ /centromere/i ||
-        $part->feature->start <= 1 ||
-        $part->feature->stop  >= $self->panel->end - 1000;
+	$part->feature->start <= $fstart ||
+	$part->feature->end   >= $fstop;
     my $tile = $part->create_tile('left');
-    $part->draw_component($gd,$x,$y);
+    $part->draw_component($gd,$left,$top);
   }
 
   for my $part (@last) {
@@ -98,7 +143,12 @@ sub draw {
     else {
       $tile = $part->create_tile('left');
     }
-    $part->draw_component($gd,$x,$y);
+    my $status =  $part->{single}                        ? 'single'
+	        : $part->feature->method =~ /centromere/ ? 'centromere'
+                : $part->feature->start <= $fstart       ? 'left telomere'
+		: $part->feature->end   >= $fstop        ? 'right telomere'
+                : undef;
+    $part->draw_component($gd,$left,$top,$status);
   }
 
   $self->draw_label(@_)       if $self->option('label');
@@ -108,12 +158,15 @@ sub draw {
 sub draw_component {
   my $self = shift;
   my $gd   = shift;
+  my ($x,$y,$status) = @_;
   my $feat = $self->feature;
 
   my $arcradius = $self->option('arcradius') || 7;
   my ($x1, $y1, $x2, $y2 ) = $self->bounds(@_);
 
+  return if $x2 <= $self->panel->left;
   return if $x1 >= $self->panel->right;
+
   $x2 = $self->panel->right if $x2 > $self->panel->right;
 
   # force odd width so telomere arcs are centered
@@ -127,13 +180,13 @@ sub draw_component {
   # in the configuration file, resulting in the tips of the chromosome being painted black.
   my $fake_telomeres = $self->option('fake_telomeres') || 0;
 
-  my $bgcolor_index = $self->option('bgcolor');
+  my $bgcolor_index = $self->bgcolor;
 
-  if ((my $fallback = $self->option('bgfallback')) && !$stain) {
+  if ((my $fallback = $self->bgfallback) && !$stain) {
       $bgcolor_index = $fallback;
   }
   elsif ($bgcolor_index =~ /\w+:/) {
-      ($bgcolor_index) = $self->option('bgcolor') =~ /$stain:(\S+)/ if $stain;
+      ($bgcolor_index) = $self->bgcolor =~ /$stain:(\S+)/ if $stain;
       ($bgcolor_index,$stain) = qw/white none/ if !$stain;
   }
 
@@ -152,22 +205,23 @@ sub draw_component {
   if ( $feat->method !~ /centromere/i && $stain ne 'acen') {
 
     # are we at the end of the chromosome?
-    if ( $feat->start <= 1 && $stain ne 'tip') {
-      # left telomere
-      my $status = 1 unless $self->panel->flip;
-      # Is this is a full-length chromosome?
-      $status = -1 if $feat->stop >= $self->panel->end - 1000;
+    if (($status eq 'single' || $status eq 'left telomere') && $stain ne 'tip') {
 
-      $bgcolor = $black if $fake_telomeres && $status != -1;
-      $self->draw_telomere( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor,
-        $arcradius, $status );
+      # left telomere
+      my $state = $status eq 'single' ? -1 
+                 : $self->panel->flip ? 0 : 1;
+
+      $bgcolor = $black if $fake_telomeres;
+      $self->draw_telomere( $gd, $x1, $y1, $x2, $y2, 
+			    $bgcolor, $fgcolor,
+			    $arcradius, $state );
     }
-    elsif ( $feat->stop >= $self->panel->end - 1000 && $stain ne 'tip') {
+    elsif ($status eq 'right telomere' && $stain ne 'tip') {
       # right telomere
-      my $status = $self->panel->flip ? 1 : 0;
+      my $state = $self->panel->flip ? 1 : 0;
       $bgcolor   = $black if $fake_telomeres;
       $self->draw_telomere( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor,
-        $arcradius, $status );
+        $arcradius, $state );
     }
 
     # or a stalk?
@@ -237,7 +291,7 @@ sub draw_telomere {
   my $self = shift;
   my ($gd, $x1, $y1, $x2, $y2,
       $bgcolor, $fgcolor, $arcradius, $state ) = @_;
-    
+
   # blank slate 
   $self->wipe(@_);
 
@@ -264,7 +318,7 @@ sub draw_telomere {
   my $bg     = $self->panel->bgcolor;
 
   $self->draw_cytoband( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
-  $self->draw_outline( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
+  $self->draw_outline(  $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor );
   if ( $state ) {    # left telomere
     my $x = $new_x1;
     my $y = $new_y;
@@ -277,9 +331,10 @@ sub draw_telomere {
     $gd->line($x1-3,$y1,$x1-3,$y2,$orange);
     $gd->line($x1-3,$y2,$x-1,$y2,$orange);
 
-  # carve away anything that does not look like a telomere
-   $gd->fillToBorder($x1+1,$y1+1,$orange,$bg);
-   $gd->fillToBorder($x1+1,$y2-1,$orange,$bg);
+    # carve away anything that does not look like a telomere
+    $gd->fillToBorder($x1+1,$y1+1,$orange,$bg);
+    $gd->fillToBorder($x1+1,$y2-1,$orange,$bg);
+
     # remove the border
     $gd->line($x-1,$y1,$x1-3,$y1,$bg);
     $gd->line($x1-3,$y1,$x1-3,$y2,$bg);
@@ -303,7 +358,7 @@ sub draw_telomere {
      $gd->line($x2+3,$y2,$x+1,$y2,$orange);
      $gd->fillToBorder($x2-1,$y1+1,$orange,$bg);
      $gd->fillToBorder($x2-1,$y2-1,$orange,$bg);
-   $gd->line($x+1,$y1,$x2+3,$y1,$bg);
+    $gd->line($x+1,$y1,$x2+3,$y1,$bg);
      $gd->line($x2+3,$y1,$x2+3,$y2,$bg);
      $gd->line($x2+3,$y2,$x+1,$y2,$bg);
      $gd->arc( $x, $y, $arcradius * 2,

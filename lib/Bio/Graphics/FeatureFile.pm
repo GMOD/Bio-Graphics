@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.12 2009-03-31 04:37:59 lstein Exp $
+# $Id: FeatureFile.pm,v 1.13 2009-04-02 22:22:07 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -1445,6 +1445,8 @@ sub get_feature_by_name {
    push @args,(-end    => $end)  if defined $end;
    return $self->db->features(@args);
 }
+
+sub get_features_by_name { shift->get_feature_by_name(@_) }
 
 =head2 search_notes
 

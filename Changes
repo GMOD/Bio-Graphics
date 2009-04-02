@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.93 Thu Apr  2 18:20:35 EDT 2009
+     - Many fixes to ideograph glyph to be more stable.
+     - Fixed minor display issues involving bumping and directional arrows.
+     - Continued documenting glyphs. About 75% done.
 1.92 Tue Mar 31 00:38:16 EDT 2009
      - Added documentation system for glyphs, but only half the glyphs are documented this way so far.
      - Bug fixes for GBrowse on Windows.

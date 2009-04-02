@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::image;
 
-# $Id: image.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
+# $Id: image.pm,v 1.3 2009-04-02 22:22:07 lstein Exp $
 
 use strict;
 use GD;
@@ -63,6 +63,19 @@ sub my_options {
 	'The glyph to use for the part of the glyph that shows the physical',
 	'span of features.']
     }
+}
+
+sub demo_feature {
+    my $self = shift;
+    my $ex_image = 
+	'http://www.catch-fly.com/sites/awhittington/_files/Image/Drosophila-melanogaster.jpg';
+    return Bio::Graphics::Feature->new(-start=>1,
+				       -end=>500,
+				       -name=>$ex_image,
+				       -attributes => {
+					   image=>$ex_image,
+				       },
+	);
 }
 
 sub new {

@@ -1,8 +1,42 @@
 package Bio::Graphics::Glyph::minmax;
-# $Id: minmax.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: minmax.pm,v 1.2 2009-04-02 22:22:07 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::segments);
+
+sub my_description {
+    return <<END;
+This is an internal glyph that defines options standard to those glyphs that
+use colors or xyplots to display a range of quantitative values. Do not use it directly.
+END
+}
+sub my_options {
+    return {
+	min_score => [
+	    'float',
+	    undef,
+	    'The minimum score of the quantitative range.'],
+	max_score => [
+	    'float',
+	    undef,
+	    'The maximum score of the quantitative range.'],
+	bicolor_pivot => [
+	    ['mean','zero','float'],
+	    undef,
+	    'A value to pivot the display on. Typically this involves changing the color of the',
+	    'glyph depending on whether the feature is above or below the pivot value.',
+	    'Provide "mean" to pivot on the mean of the data series, "zero" to pivot on the',
+	    'zero value, or any arbitrary integer or floating point number to pivot at that value.'],
+	pos_color => [
+	    'color',
+	    undef,
+	    'The color to use for values that exceed the bicolor_pivot value.'],
+	neg_color => [
+	    'color',
+	    undef,
+	    'The color to use for values that are below the bicolor_pivot value.'],
+    };
+}
 
 sub min_score {
   shift->option('min_score');

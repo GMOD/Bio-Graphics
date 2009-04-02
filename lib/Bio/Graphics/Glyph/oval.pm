@@ -3,6 +3,16 @@ package Bio::Graphics::Glyph::oval;
 use strict;
 use base qw(Bio::Graphics::Glyph::ellipse);
 
+sub my_description {
+    return <<END;
+This glyph draws an oval instead of a box; otherwise it is similar to
+the "generic" or "box" glyphs.  The width of the oval is determined by
+the feature width, and the height by the -height option.
+
+This glyph is exactly the same as the "ellipse" glyph.
+END
+}
+
 1;
 
 __END__

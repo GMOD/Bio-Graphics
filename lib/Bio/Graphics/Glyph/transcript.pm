@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
+# $Id: transcript.pm,v 1.2 2009-04-02 22:22:07 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::segments);
@@ -39,7 +39,6 @@ sub draw_connectors {
   my $self = shift;
   my $gd = shift;
   my ($left,$top) = @_;
-
   $self->SUPER::draw_connectors($gd,$left,$top);
   my @parts = $self->parts; # or return;
 
@@ -59,7 +58,7 @@ sub draw_connectors {
 
   ($first,$last) = ($last,$first) if exists $self->{flip};
 
-  if ($strand > 0) {
+  if ($strand >= 0) {
     my($x1,$y1,$x2,$y2) = $last->bounds(@_);
     my $center = ($y2+$y1)/2;
     $self->{flip} ?

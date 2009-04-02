@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.5 2009-03-31 04:37:59 lstein Exp $
+# $Id: Glyph.pm,v 1.6 2009-04-02 22:22:07 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -160,6 +160,13 @@ sub my_options {
 	    'When generating an imagemap, specify the pattern or callback for formatting',
 	    'the link target associated with the glyph.'],
     };
+}
+
+# return a demo feature for the user to play with
+# The feature must not be longer than 500 bp for this to work.
+# Default is to return nothing.
+sub demo_feature {
+    return;
 }
 
 
@@ -803,8 +810,8 @@ sub layout {
   foreach (@parts) {
     $bottom = $_->bottom if $_->bottom > $bottom;
   }
-  # return $self->{layout_height} = $self->pad_bottom + $self->pad_top + $bottom - $self->top  + 1;
-  return $self->{layout_height} = $bottom + $self->pad_top + $self->pad_bottom;
+ return $self->{layout_height} = $self->pad_bottom + $self->pad_top + $bottom - $self->top  + 1;
+#  return $self->{layout_height}   = $bottom + $self->pad_top + $self->pad_bottom;
 }
 
 # the $%occupied structure is a hash of {left,top} = [left,top,right,bottom]
@@ -854,7 +861,7 @@ sub _collision_keys {
 
 sub draw {
   my $self = shift;
-  my $gd = shift;
+  my $gd   = shift;
   my ($left,$top,$partno,$total_parts) = @_;
 
   push @FEATURE_STACK,$self->feature;
@@ -1142,15 +1149,6 @@ sub filled_box {
   # if the left end is off the end, then cover over
   # the leftmost line
   $self->blunt($gd,$x1,$y1,$x2,$y2,$bg,$fg,$lw);
-#   my ($width) = $gd->getBounds;
-
-#   $bg = $self->set_pen($lw,$bg) if $lw > 1;
-
-#   $gd->line($x1,$y1+$lw,$x1,$y2-$lw,$bg)
-#     if $x1 < $self->panel->pad_left;
-
-#   $gd->line($x2,$y1+$lw,$x2,$y2-$lw,$bg)
-#     if $x2 > $width - $self->panel->pad_right;
 }
 
 sub blunt {
