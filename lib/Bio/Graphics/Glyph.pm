@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.6 2009-04-02 22:22:07 lstein Exp $
+# $Id: Glyph.pm,v 1.7 2009-04-21 05:39:47 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -9,6 +9,7 @@ use Bio::Root::Version;
 
 use Memoize 'memoize';
 memoize('options') unless $^O =~ /mswin/i;
+# memoize('option'); # helps ??
 
 use base qw(Bio::Root::Root);
 
@@ -17,8 +18,8 @@ my @FEATURE_STACK;
 
 # the CM1 and CM2 constants control the size of the hash used to
 # detect collisions.
-use constant CM1 => 200; # big bin, x axis
-use constant CM2 => 50;  # big bin, y axis
+use constant CM1 => 20; # big bin, x axis
+use constant CM2 => 20; # big bin, y axis
 use constant CM3 => 50;  # small bin, x axis
 use constant CM4 => 50;  # small bin, y axis
 use constant DEBUG => 0;
@@ -399,7 +400,7 @@ sub width {
   my $self = shift;
   my $g = $self->{width};
   $self->{width} = shift if @_;
-  $g;
+  return $g;
 }
 sub layout_height {
   my $self = shift;
@@ -726,7 +727,8 @@ sub layout {
   return $self->{layout_height} if exists $self->{layout_height};
 
   my @parts = $self->parts;
-  return $self->{layout_height} = $self->height + $self->pad_top + $self->pad_bottom unless @parts;
+  return $self->{layout_height} = 
+      $self->height + $self->pad_top + $self->pad_bottom unless @parts;
 
   my $bump_direction = $self->bump;
   my $bump_limit = $self->option('bump_limit') || -1;
@@ -777,8 +779,8 @@ sub layout {
 
       # look for collisions
       my $bottom = $pos + $height;
-      $self->collides(\%bin1,CM1,CM2,$left,$pos,$right,$bottom) or last;
-      my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
+      my $collision = $self->collides(\%bin1,CM1,CM2,$left,$pos,$right,$bottom) or last;
+#      my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
 
       if ($bump_direction > 0) {
 	$pos += $collision->[3]-$collision->[1] + BUMP_SPACING;    # collision, so bump
@@ -791,7 +793,7 @@ sub layout {
 
     $g->move(0,$pos);
     $self->add_collision(\%bin1,CM1,CM2,$left,$g->top,$right,$g->bottom);
-    $self->add_collision(\%bin2,CM3,CM4,$left,$g->top,$right,$g->bottom);
+#    $self->add_collision(\%bin2,CM3,CM4,$left,$g->top,$right,$g->bottom);
   }
 
   # If -1 bumping was allowed, then normalize so that the top glyph is at zero
@@ -810,8 +812,8 @@ sub layout {
   foreach (@parts) {
     $bottom = $_->bottom if $_->bottom > $bottom;
   }
- return $self->{layout_height} = $self->pad_bottom + $self->pad_top + $bottom - $self->top  + 1;
-#  return $self->{layout_height}   = $bottom + $self->pad_top + $self->pad_bottom;
+  return $self->{layout_height} = 
+      $self->pad_bottom + $self->pad_top + $bottom - $self->top  + 1;
 }
 
 # the $%occupied structure is a hash of {left,top} = [left,top,right,bottom]
@@ -837,7 +839,6 @@ sub collides {
 sub add_collision {
   my $self = shift;
   my ($occupied,$cm1,$cm2,$left,$top,$right,$bottom) = @_;
-#  my $value = [$left,$top,$right+2,$bottom];
   my $value = [$left,$top,$right,$bottom];
   my @keys = $self->_collision_keys($cm1,$cm2,@$value);
   push @{$occupied->{$_}},$value foreach @keys;
