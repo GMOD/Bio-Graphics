@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.7 2009-04-21 05:39:47 lstein Exp $
+# $Id: Glyph.pm,v 1.8 2009-04-23 05:20:57 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -127,6 +127,8 @@ sub my_options {
 	    'A value of +1 will bump the colliding feature downward using an algorithm that uses spaces most efficiently.',
 	    'A value of -1 will bump the colliding feature upward using the same algorithm.',
 	    'Values of +2 and -2 will bump using a simple algorithm that is faster but does not use space as efficiently.',
+	    'A value of 3 or "fast" will turn on a faster collision detection algorithm which',
+	    'only works correctly when all features have the same height.',
 	    'A value of 0 suppresses collision control entirely.'],
 	bump_limit => [
 	    'integer',
@@ -135,10 +137,10 @@ sub my_options {
 	    'pile up. Subsequent collisions will not be bumped.'],
 	hbumppad => [
 	    'integer',
-	    0,
-	    'Ordinarily collison control prevents two features from overlapping if they physically touch.',
-	    'This option places a "bumper zone" around the feature such that collision control',
-	    'will kick in if any other feature enters within hbumppad pixels of the feature.'
+	    2,
+	    'Ordinarily collison control prevents two features from overlapping if they come within',
+	    '2 pixels of each other. This option allows you to change this value to give glyphs',
+	    'more or less breathing space on the left and right.'
 	    ],
 	hilite => [
 	    'color',
@@ -604,7 +606,9 @@ sub bump {
 sub hbumppad {
   my $self = shift;
   return $self->{_hbumppad} if exists $self->{_hbumppad};
-  return $self->{_hbumppad}= $self->option('hbumppad');
+  my $hbumppad = $self->option('hbumppad');
+  $hbumppad    = 2 unless defined $hbumppad;
+  return $self->{_hbumppad}= $hbumppad;
 }
 
 # we also look for the "color" option for Ace::Graphics compatibility
@@ -671,7 +675,7 @@ sub layout_sort {
     my $opt = $self->code_option("sort_order");
 
     if (!$opt) {
-       $sortfunc = sub { $a->left <=> $b->left };
+       $sortfunc = sub { $a->start <=> $b->start };
     } elsif (ref $opt eq 'CODE') {
       $self->throw('sort_order subroutines must use the $$ prototype') 
 	  unless prototype($opt) eq '$$';
@@ -687,10 +691,10 @@ sub layout_sort {
        # not sure I can make this schwartzian transformed
        for my $sortby (@sortbys) {
 	 if ($sortby eq "left" || $sortby eq "default") {
-	   $sortfunc .= '($a->left <=> $b->left) || ';
+	   $sortfunc .= '($a->start <=> $b->start) || ';
 	   $sawleft++;
 	 } elsif ($sortby eq "right") {
-	   $sortfunc .= '($a->right <=> $b->right) || ';
+	   $sortfunc .= '($a->end <=> $b->end) || ';
 	 } elsif ($sortby eq "low_score") {
 	   $sortfunc .= '($a->score <=> $b->score) || ';
 	 } elsif ($sortby eq "high_score") {
@@ -745,8 +749,15 @@ sub layout {
     return $self->{layout_height} = $highest + $self->pad_top + $self->pad_bottom;
   }
 
+  # fast layout requested
+  if ($bump_direction eq 'fast' or $bump_direction == 3) {
+      return $self->{layout_height} = $self->faster_layout(\@parts);
+  }
+
   my (%bin1,%bin2);
-  my $limit = 0;
+  my $limit          = 0;
+  my $recent_pos     = 0;
+  my $max_pos        = 0;
 
   for my $g ($self->layout_sort(@parts)) {
 
@@ -761,39 +772,44 @@ sub layout {
     }
 
     # we get here for +/- 1 bumping
-    my $pos = 0;
+    my $pos       = 0;
     my $bumplevel = 0;
     my $left   = $g->left;
     my $right  = $g->right;
 
+    my $search_mode = 'down';
+
     while (1) {
 
-      # stop bumping if we've gone too far down
-      if ($bump_limit > 0 && $bumplevel++ >= $bump_limit) {
-	$g->{overbumped}++;  # this flag can be used to suppress label and description
-	foreach ($g->parts) {
-	  $_->{overbumped}++;
+	# stop bumping if we've gone too far down
+	if ($bump_limit > 0 && $bumplevel++ >= $bump_limit) {
+	    $g->{overbumped}++;  # this flag can be used to suppress label and description
+	    foreach ($g->parts) {
+		$_->{overbumped}++;
+	    }
+	    last;
 	}
-	last;
-      }
 
-      # look for collisions
-      my $bottom = $pos + $height;
-      my $collision = $self->collides(\%bin1,CM1,CM2,$left,$pos,$right,$bottom) or last;
-#      my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
-
-      if ($bump_direction > 0) {
-	$pos += $collision->[3]-$collision->[1] + BUMP_SPACING;    # collision, so bump
-      } else {
-	$pos -= BUMP_SPACING;
-      }
-
-      $pos++ if $pos % 2; # correct for GD rounding errors
+	# look for collisions
+	my $bottom      = $pos + $height;
+	my $collision   = $self->collides(\%bin1,CM1,CM2,$left,$pos,$right,$bottom) or last;
+	# my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
+	
+	if ($bump_direction > 0) {
+	    $pos += $collision->[3]-$collision->[1] + BUMP_SPACING;    # collision, so bump
+	} else {
+	    $pos -= BUMP_SPACING;
+	}
+	
+	$pos++ if $pos % 2; # correct for GD rounding errors
     }
-
+    
     $g->move(0,$pos);
     $self->add_collision(\%bin1,CM1,CM2,$left,$g->top,$right,$g->bottom);
-#    $self->add_collision(\%bin2,CM3,CM4,$left,$g->top,$right,$g->bottom);
+    #$self->add_collision(\%bin2,CM3,CM4,$left,$g->top,$right,$g->bottom);
+    
+    $recent_pos = $pos;
+    $max_pos    = $pos if $pos > $max_pos;
   }
 
   # If -1 bumping was allowed, then normalize so that the top glyph is at zero
@@ -821,7 +837,7 @@ sub collides {
   my $self = shift;
   my ($occupied,$cm1,$cm2,$left,$top,$right,$bottom) = @_;
   my @keys = $self->_collision_keys($cm1,$cm2,$left,$top,$right,$bottom);
-  my $hspacing = $self->hbumppad || 0;
+  my $hspacing = $self->hbumppad;
   my $collides = 0;
   for my $k (@keys) {
     next unless exists $occupied->{$k};
@@ -858,6 +874,31 @@ sub _collision_keys {
     }
   }
   @keys;
+}
+
+# a faster layout that only works if all parts have the same height
+sub faster_layout {
+    my $self   = shift;
+    my $parts  = shift;
+    my $height   = $parts->[0]{layout_height}+BUMP_SPACING-1;
+    my $hspacing = $self->hbumppad;
+
+    my @rows;  # each slot is the rightmost position in that row
+    for my $part ($self->layout_sort(@$parts)) {
+	my $placed;
+	my $left = $part->left;
+	for (my $row=0;!$placed;$row++) {
+	    if (!$rows[$row]
+		||
+		$rows[$row] < $left) {
+		$part->move(0,$row*$height);
+		$rows[$row]=$part->right+$hspacing;
+		$placed++;
+	    }
+	}
+    }
+
+    return (@rows-1)*$height+$self->pad_top+$self->pad_bottom-BUMP_SPACING();
 }
 
 sub draw {

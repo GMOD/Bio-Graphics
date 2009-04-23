@@ -2254,9 +2254,12 @@ glyphs collide.  By default, they will simply overlap (value 0).  A
 until there is room for them.  A -bump value of -1 will cause
 overlapping glyphs to bump upwards.  You may also provide a -bump
 value of +2 or -2 to activate a very simple type of collision control
-in which each feature occupies its own line.  This is useful for
+in which each feature occupies its own line. This is useful for
 showing dense, nearly-full length features such as similarity hits.
-The bump argument can also be a code reference; see below.
+Finally, a bump of 3 or the string "fast" will turn on a faster
+collision-detection algorithm that works well when all features have
+identical height.  The bump argument can also be a code reference; see
+below.
 
 If you would like to see more horizontal whitespace between features
 that occupy the same line, you can specify it with the B<-hbumppad>
