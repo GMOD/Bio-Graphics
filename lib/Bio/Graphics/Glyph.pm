@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.8 2009-04-23 05:20:57 lstein Exp $
+# $Id: Glyph.pm,v 1.9 2009-04-23 05:36:08 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -898,7 +898,7 @@ sub faster_layout {
 	}
     }
 
-    return (@rows-1)*$height+$self->pad_top+$self->pad_bottom-BUMP_SPACING();
+    return @rows*$height; #+$self->pad_top+$self->pad_bottom;
 }
 
 sub draw {
