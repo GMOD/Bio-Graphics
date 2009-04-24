@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::wiggle_xyplot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_minmax Bio::Graphics::Glyph::xyplot Bio::Graphics::Glyph::smoothing);
+use base qw(Bio::Graphics::Glyph::wiggle_minmax 
+            Bio::Graphics::Glyph::xyplot 
+            Bio::Graphics::Glyph::smoothing);
 use IO::File;
 use File::Spec;
 
@@ -20,6 +22,9 @@ sub draw {
 
   my ($densefile) = $feature->attributes('densefile');
   return $self->draw_densefile($feature,$self->rel2abs($densefile),@_) if $densefile;
+
+  my ($coverage)  = $feature->attributes('coverage');
+  return $self->draw_coverage($feature,$coverage,@_) if $coverage;
 
   return $self->SUPER::draw(@_);
 }
@@ -63,6 +68,25 @@ sub draw_wigdata {
     }
 }
 
+sub draw_coverage {
+    my $self    = shift;
+    my $feature = shift;
+    my $array   = shift;
+
+    my ($start,$end)    = $self->effective_bounds($feature);
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my $pixels_per_base = $self->scale;
+    my @parts;
+    for (my $pixel=0;$pixel<$self->width;$pixel++) {
+	my $offset = $pixel/$pixels_per_base;
+	my $s      = $start + $offset;
+	my $e      = $s+1;  # fill in gaps
+	my $v      = $array->[$offset/$bases_per_bin];
+	push @parts,[$s,$s,$v];
+    }
+    $self->draw_plot(\@parts,@_);
+}
+
 sub _draw_wigfile {
     my $self    = shift;
     my $feature = shift;
@@ -83,8 +107,12 @@ sub effective_bounds {
     my $feature = shift;
     my $panel_start = $self->panel->start;
     my $panel_end   = $self->panel->end;
-    my $start       = $feature->start > $panel_start ? $feature->start : $panel_start;
-    my $end         = $feature->end   < $panel_end   ? $feature->end   : $panel_end;
+    my $start       = $feature->start>$panel_start 
+                         ? $feature->start 
+                         : $panel_start;
+    my $end         = $feature->end<$panel_end   
+                         ? $feature->end   
+                         : $panel_end;
     return ($start,$end);
 }
 

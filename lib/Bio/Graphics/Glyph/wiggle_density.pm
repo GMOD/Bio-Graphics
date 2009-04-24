@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::wiggle_density;
-# $Id: wiggle_density.pm,v 1.5 2009-03-26 03:13:08 lstein Exp $
+# $Id: wiggle_density.pm,v 1.6 2009-04-24 18:08:21 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
@@ -10,33 +10,39 @@ sub draw {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   my $feature   = $self->feature;
 
+  my $drawnit;
   $self->panel->startGroup($gd);
-
   my ($wigfile) = $feature->attributes('wigfile');
   if ($wigfile) {
     $self->draw_wigfile($self->rel2abs($wigfile),@_);
-    $self->draw_label(@_)       if $self->option('label');
-    $self->draw_description(@_) if $self->option('description');
-    return;
+    $drawnit++;
   }
 
   my ($wigdata) = $feature->attributes('wigdata');
   if ($wigdata) {
-    $self->draw_wigdata($wigdata,@_);
-    $self->draw_label(@_)       if $self->option('label');
-    $self->draw_description(@_) if $self->option('description');
-    return;
+      $self->draw_wigdata($wigdata,@_);
+      $drawnit++;
   }
-
   my ($densefile) = $feature->attributes('densefile');
   if ($densefile) {
     $self->draw_densefile($self->rel2abs($feature),$densefile,@_);
+    $drawnit++;
+  }
+  my ($coverage)  = $feature->attributes('coverage');
+  if ($coverage) {
+      $self->draw_coverage($feature,$coverage,@_);
+      $drawnit++;
+  }
+  if ($drawnit) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
+    $self->panel->endGroup($gd);
     return;
   }
 
-  $self->panel->endGroup($gd);
+  else {
+      $self->panel->endGroup($gd);
+  }
 
   return $self->SUPER::draw(@_);
 }
@@ -80,6 +86,48 @@ sub draw_wigdata {
 
     $self->wig($wig);
     $self->_draw_wigfile(@_);
+}
+
+sub draw_coverage {
+    my $self    = shift;
+    my $feature = shift;
+    my $array   = shift;
+    my ($gd,$left,$top) = @_;
+
+    my ($start,$end)    = $self->effective_bounds($feature);
+    my $length          = $end - $start + 1;
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my @parts;
+    my $samples = $length < $self->panel->width ? $length 
+                                                : $self->panel->width;
+    my $samples_per_base = $samples/$length;
+
+    for (my $i=0;$i<$samples;$i++) {
+	my $offset = $i/$samples_per_base;
+	my $v      = $array->[$offset/$bases_per_bin];
+	push @parts,$v;
+    }
+    my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
+    $self->draw_segment($gd,
+			$start,$end,
+			\@parts,
+			$start,$end,
+			1,1,
+			$x1,$y1,$x2,$y2);
+}
+
+sub effective_bounds { # copied from wiggle_xyplot -- ouch!
+    my $self    = shift;
+    my $feature = shift;
+    my $panel_start = $self->panel->start;
+    my $panel_end   = $self->panel->end;
+    my $start       = $feature->start>$panel_start 
+                         ? $feature->start 
+                         : $panel_start;
+    my $end         = $feature->end<$panel_end   
+                         ? $feature->end   
+                         : $panel_end;
+    return ($start,$end);
 }
 
 sub _draw_wigfile {
@@ -176,8 +224,10 @@ sub draw_segment {
   return unless $start < $end;
 
   # get data values across the area
-  my $samples = $length < $self->panel->width ? $length : $self->panel->width;
-  my $data    = $seg_data->values($start,$end,$samples);
+  my $samples = $length < $self->panel->width ? $length 
+                                              : $self->panel->width;
+  my $data    = ref $seg_data eq 'ARRAY' ? $seg_data
+                                         : $seg_data->values($start,$end,$samples);
 
   # scale the glyph if the data end before the panel does
   my $data_width = $end - $start;

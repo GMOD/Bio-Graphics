@@ -1032,7 +1032,7 @@ sub colorClosest {
 sub bgcolor {
    my $self = shift;
    return unless $self->{bgcolor};
-   $self->translate_color($self->{bgcolor});
+   return $self->translate_color($self->{bgcolor});
 }
 
 sub set_pen {
