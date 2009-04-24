@@ -507,6 +507,12 @@ sub gd {
   my $gd  = $existing_gd || $pkg->new($width,$height,
 				      ($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
 				     );
+
+  if ($self->{truecolor} 
+      && $pkg->can('saveAlpha')) {
+      $gd->saveAlpha(1);
+  }
+
   my %translation_table;
   for my $name (keys %COLORS) {
     my $idx = $gd->colorAllocate(@{$COLORS{$name}});
@@ -515,11 +521,15 @@ sub gd {
 
   $self->{translations} = \%translation_table;
   $self->{gd}           = $gd;
+
+  
+  eval {$gd->alphaBlending(0)};
   if ($self->bgcolor) {
     $gd->fill(0,0,$self->bgcolor);
   } elsif (eval {$gd->isTrueColor}) {
     $gd->fill(0,0,$translation_table{'white'});
   }
+  eval {$gd->alphaBlending(1)};
 
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
