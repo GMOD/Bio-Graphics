@@ -1,8 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
-1.94
+1.94 Wed Apr 29 05:59:02 EDT 2009
      - Added a "fast" bumping option suitable for very dense tracks in which
        all features have identical height. Activate it using -bump=>3 or
        -bump=>'fast'.
+     - Fixed division by zero error in xyplot glyph when min_score==max_score.
 1.93 Thu Apr  2 18:20:35 EDT 2009
      - Many fixes to ideograph glyph to be more stable.
      - Fixed minor display issues involving bumping and directional arrows.
