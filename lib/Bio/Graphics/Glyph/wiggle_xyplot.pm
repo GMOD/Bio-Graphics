@@ -140,10 +140,12 @@ sub draw_plot {
     my $x = $left;
     my $y = $top + $self->pad_top;
     
-    my $x_scale = $self->scale;
+    my $x_scale     = $self->scale;
     my $panel_start = $self->panel->start;
     my $feature     = $self->feature;
-    my $f_start = $feature->start > $panel_start ? $feature->start : $panel_start;
+    my $f_start     = $feature->start > $panel_start 
+	                  ? $feature->start 
+			  : $panel_start;
 
     # position of "0" on the scale
     my $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $y_scale : $bottom;
@@ -151,6 +153,7 @@ sub draw_plot {
     $y_origin    = int($y_origin+0.5);
 
     $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
+    return unless $max_score > $min_score;
 
     my $lw       = $self->linewidth;
     my $positive = $self->pos_color;

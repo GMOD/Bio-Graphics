@@ -394,8 +394,12 @@ sub _draw_scale {
   # minor ticks - multiples of 10
   my $interval = 1;
   my $height   = $y2-$y1;
-  while ($height/(($max-$min)/$interval) < 2) { $interval *= 10 }
-  my $y_scale = $height/(($max-$min)/$interval);
+  my $y_scale  = 1;
+  if ($max > $min) {
+      while ($height/(($max-$min)/$interval) < 2) { $interval *= 10 }
+      $y_scale = $height/(($max-$min)/$interval);
+  }
+
   for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
       my $yr = int($y+0.5);
       $gd->line($x1-1,$yr,$x1,$yr,$fg) if $side eq 'left'  || $side eq 'both';

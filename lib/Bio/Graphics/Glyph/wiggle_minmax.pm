@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::wiggle_minmax;
-# $Id: wiggle_minmax.pm,v 1.1 2009-03-17 13:24:17 lstein Exp $
+# $Id: wiggle_minmax.pm,v 1.2 2009-04-29 09:58:32 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);
@@ -32,7 +32,7 @@ sub minmax {
 	}
     }
 
-    return ($min_score,$max_score);
+    return $self->sanity_check($min_score,$max_score);
 }
 
 1;

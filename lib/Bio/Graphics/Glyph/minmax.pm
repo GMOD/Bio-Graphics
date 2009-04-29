@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::minmax;
-# $Id: minmax.pm,v 1.2 2009-04-02 22:22:07 lstein Exp $
+# $Id: minmax.pm,v 1.3 2009-04-29 09:58:32 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::segments);
@@ -66,8 +66,20 @@ sub minmax {
       $min_score = $s if $do_min && (!defined $min_score or $s < $min_score);
     }
   }
+  return $self->sanity_check($min_score,$max_score);
+}
 
-  ($min_score,$max_score);
+sub sanity_check {
+    my $self = shift;
+    my ($min_score,$max_score) = @_;
+    return ($min_score,$max_score) if $max_score > $min_score;
+
+    if ($max_score > 0) {
+	$min_score = 0;
+    } else {
+	$max_score = 0;
+    }
+    return ($min_score,$max_score);
 }
 
 sub midpoint {
