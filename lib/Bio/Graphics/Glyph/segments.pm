@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::segments;
-#$Id: segments.pm,v 1.2 2009-03-20 13:03:01 lstein Exp $
+#$Id: segments.pm,v 1.3 2009-05-08 17:20:13 lstein Exp $
 
 use strict;
 use Bio::Location::Simple;
@@ -219,9 +219,14 @@ sub draw_multiple_alignment {
   my ($bl,$bt,$br,$bb)     = $self->bounds($left,$top);
   $top = $bt;
 
-  for my $p ($self->parts) {
-    my @bounds = $p->bounds($left,$top);
-    $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
+  if (my @p = $self->parts) {
+      for my $p (@p) {
+	  my @bounds = $p->bounds($left,$top);
+	  $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
+      }
+  } else {
+      my @bounds = $self->bounds($left,$top);
+      $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
   }
 
   my @s                     = $self->_subfeat($feature);
@@ -393,7 +398,9 @@ sub draw_multiple_alignment {
   }
 
   # draw
-  my $color = $self->fgcolor;
+  my $color = $self->bgcolor == $self->fgcolor 
+              ? $self->factory->translate_color('white')
+	      : $self->fgcolor;
   my $font  = $self->font;
   my $lineheight = $font->height;
   my $fontwidth  = $font->width;
@@ -428,7 +435,12 @@ sub draw_multiple_alignment {
 
       next unless $tgt_base && $x >= $panel_left && $x <= $panel_right;
 
-      $self->filled_box($gd,$x-$pixels_per_base/2+2,$y+1,$x+$pixels_per_base/2+1,$y+$lineheight,$mismatch,$mismatch)
+      $self->filled_box($gd,
+			$x-$pixels_per_base/2+3,
+			$y+1,
+			$x+$pixels_per_base/2+3,
+			$y+$lineheight,
+			$mismatch,$mismatch)
 	if $show_mismatch && $tgt_base && $src_base ne $tgt_base && $tgt_base !~ /[nN]/;
       $tgt_base = $complement{$tgt_base} if $true_target && $strand < 0;
       $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey : $color);

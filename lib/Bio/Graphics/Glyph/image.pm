@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::image;
 
-# $Id: image.pm,v 1.3 2009-04-02 22:22:07 lstein Exp $
+# $Id: image.pm,v 1.4 2009-05-08 17:20:12 lstein Exp $
 
 use strict;
 use GD;
@@ -223,11 +223,22 @@ sub draw_component {
 
   my $delta = (($x2-$x1) - $image->width)/2;
   my($x,$y) = ($x1+$delta,$y1+$vs+$self->height);
-  if ($gd->can('copy')) {
-    $gd->copy($image,$x,$y,0,0,$image->width,$image->height) ;
-  } else {
-    my $gray = $self->panel->translate_color('gray');
-    $gd->filledRectangle($x,$y,$x+$image->width,$y+$image->height,$gray);
+  if ($gd->can('copy') && !$gd->isa('GD::SVG::Image')) {
+      $gd->copy($image,$x,$y,0,0,$image->width,$image->height) ;
+  } 
+  elsif ($gd->isa('GD::SVG::Image') 
+	 && $self->image_path =~ m!^(ftp|http)+:/!) { # a URL
+      my ($img,$id) = $gd->_prep($x,$y);
+      $img->image('x'    => $x,
+		  'y'    => $y,
+                  width  => $image->width,
+		  height => $image->height,
+		  id     => $id,
+		  'xlink:href' => $self->image_path);
+  }
+  else {
+      my $gray = $self->panel->translate_color('gray');
+      $gd->filledRectangle($x,$y,$x+$image->width,$y+$image->height,$gray);
   }
 
   if ($vs > 0) {

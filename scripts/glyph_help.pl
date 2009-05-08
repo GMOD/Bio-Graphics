@@ -14,6 +14,7 @@ my $LIST   = 0;
 my $PICT   = 0;
 my $VIEW   = 0;
 my $BOXES  = 0;
+my $SVG    = 0;
 
 my $usage = <<USAGE;
 Usage: $0 [options] glyph_type 
@@ -28,8 +29,9 @@ Give usage information about Bio::Graphics glyphs.
                     The PNG will be written to stdout
     -v --view     Launch a viewer ("xv", "display" or "firefox") to show the
                     glyph.
-
     -b --boxes    Outline the boxes around each glyph
+    --svg         When used in conjunction with --picture, will create
+                    an SVG rather than a png using GD::SVG
 
 If neither -m nor -l are specified, the default is to print a summary
 of the glyph\'s options.
@@ -48,6 +50,7 @@ GetOptions ('manual'   => \$MANUAL,
 	    'picture'  => \$PICT,
 	    'view'     => \$VIEW,
 	    'boxes'    => \$BOXES,
+	    'svg'      => \$SVG,
 	   ) or die $usage;
 
 my $glyph = shift;
@@ -69,7 +72,7 @@ unless (eval "require $class;1") {
 }
 
 if ($PICT || $VIEW) {
-    print_picture($glyph,$VIEW);
+    print_picture($glyph,$VIEW,$SVG);
     exit 0;
 }
 
@@ -112,6 +115,7 @@ sub print_list {
 sub print_picture {
     my $glyph  = shift;
     my $viewit = shift;
+    my $svg    = shift;
 
     my $panel = Bio::Graphics::Panel->new(-length => 500,
 					  -width  => 250,
@@ -121,6 +125,8 @@ sub print_picture {
 					  -pad_bottom => 10,
 					  -key_style  => 'between',
 					  -truecolor  => 1,
+					  -image_class => $svg ? 
+					            'GD::SVG' : 'GD'
 	);
 
 
@@ -167,7 +173,7 @@ sub print_picture {
 	}
     }
 
-    my $png = $panel->png;
+    my $png = $svg ? $panel->svg : $panel->png;
     unless ($viewit) {
 	print $png;
 	return;

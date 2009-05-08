@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.8 2009-04-02 22:22:07 lstein Exp $
+# $Id: ideogram.pm,v 1.9 2009-05-08 17:20:12 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -127,9 +127,9 @@ sub draw {
   my @last;
   for my $part (@parts) {
     push @last, $part and next if
-        $part->feature->method =~ /centromere/i ||
-	$part->feature->start <= $fstart ||
-	$part->feature->end   >= $fstop;
+        $part->feature->primary_tag =~ /centromere/i ||
+	$part->feature->start      <= $fstart ||
+	$part->feature->end        >= $fstop;
     my $tile = $part->create_tile('left');
     $part->draw_component($gd,$left,$top);
   }
