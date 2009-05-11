@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::heat_map;
-#$Id: heat_map.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
+#$Id: heat_map.pm,v 1.3 2009-05-11 19:41:05 sheldon_mckay Exp $
 
 use strict;
 use Bio::Graphics::Glyph::minmax;
@@ -14,9 +14,26 @@ sub my_description {
     return <<END;
 This glyph draws "scored" features using a continuous
 color gradient is the HSV color space. The color of 
-each segment is proportional to the score.
+each segment is proportional to the score. Either monochrome
+gradients (for example the default white->red), or gradients progressing
+through the colors of the rainbow (magenta->blue->green->yelloe->red)
+can be created.
+
+For example:
+# a white->red heat map
+start_color = white
+end_color   = red
+
+# a rainbow
+start_color  = magenta
+end_color    = red
+
+# green->yellow->red
+start_color = green
+end_color   = red
 END
 }
+
 sub my_options {
     {
 	start_color =>  [
@@ -144,9 +161,17 @@ sub calculate_gradient {
 
   my ($h_start,$s_start,$v_start) = @$hsv_start;
   my ($h_stop,$s_stop,$v_stop )   = @$hsv_stop;
-  my $h_range = $h_stop - $h_start;
+
   my $s_range = $s_stop - $s_start;
   my $v_range = $v_stop - $v_start;
+
+  # special case: if start hue = end hue, we want to go round
+  # the whole wheel once
+  my $h_range = 256 if $h_start == $h_stop;
+
+  # Otherwise round the wheel clockwise or counterclockwise
+  # depending on start and end coordinates
+  $h_range ||= $h_stop - $h_start;
 
   # override brightness and saturation if required
   if (my $bri = $self->option('brightness')) {
@@ -315,9 +340,10 @@ sub bgcolor {
   my $self = shift;
   return defined $self->{partcolor} ? $self->{partcolor} : $self->SUPER::bgcolor;
 }
+
 sub fgcolor {
   my $self = shift;
-  return $self->bgcolor;
+  return $self->option('vary_fg') ? $self->bgcolor : $self->SUPER::fgcolor;;
 }
 
 sub RGBtoHSV {
