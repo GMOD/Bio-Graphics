@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::heat_map;
-#$Id: heat_map.pm,v 1.3 2009-05-11 19:41:05 sheldon_mckay Exp $
+#$Id: heat_map.pm,v 1.4 2009-05-15 13:42:37 pruzanov Exp $
 
 use strict;
 use Bio::Graphics::Glyph::minmax;
@@ -165,13 +165,19 @@ sub calculate_gradient {
   my $s_range = $s_stop - $s_start;
   my $v_range = $v_stop - $v_start;
 
+  my $h_range;
   # special case: if start hue = end hue, we want to go round
-  # the whole wheel once
-  my $h_range = 256 if $h_start == $h_stop;
-
-  # Otherwise round the wheel clockwise or counterclockwise
-  # depending on start and end coordinates
-  $h_range ||= $h_stop - $h_start;
+  # the whole wheel once. Otherwise round the wheel clockwise
+  # or counterclockwise depending on start and end coordinate
+  if ($h_start != $h_stop) {
+   my $direction = abs($h_stop - $h_start)/($h_stop - $h_start);
+   my ($sstart,$sstop) = sort {$a <=> $b} ($h_start,$h_stop);
+   $direction *= -1 if $sstop - $sstart > 256/2; #reverse the direction if we cross 0
+   $h_range = ($sstop - $sstart) <= 256/2 ? ($sstop - $sstart)*$direction : (256 - $sstop + $sstart)*$direction;
+  }
+  else {
+   $h_range = 256;
+  }
 
   # override brightness and saturation if required
   if (my $bri = $self->option('brightness')) {
