@@ -1,6 +1,6 @@
 package Bio::Graphics::FeatureFile;
 
-# $Id: FeatureFile.pm,v 1.13 2009-04-02 22:22:07 lstein Exp $
+# $Id: FeatureFile.pm,v 1.14 2009-05-29 14:48:06 lstein Exp $
 # This package parses and renders a simple tab-delimited format for features.
 # It is simpler than GFF, but still has a lot of expressive power.
 # See __END__ for the file format
@@ -955,11 +955,19 @@ sub setting {
   if (@_ > 2) {
     $self->{config}->{$_[0]}{$_[1]} = $_[2];
   }
-  if ($self->safe) {
+
+  elsif (@_ <= 1) {
+      return $self->_setting(@_);
+  }
+
+  elsif ($self->safe) {
       return $self->code_setting(@_);
-  } elsif ($self->safe_world) {
+  }
+
+  elsif ($self->safe_world) {
       return $self->safe_setting(@_);
   }
+
   else {
       $self->{code_check}++ && $self->clean_code(); # not safe; clean coderefs
       return $self->_setting(@_);
@@ -1761,7 +1769,7 @@ sub link_pattern {
       : $1 eq 'segend'       ? $panel->end     || ''
       : $1 eq 'length'       ? $feature->length || 0
       : $1 eq 'description'  ? eval {join '',$feature->notes} || ''
-      : $1 eq 'id'           ? $feature->feature_id || ''
+      : $1 eq 'id'           ? eval {$feature->feature_id} || eval {$feature->primary_id} || ''
       : '$'.$1
        )
 	!exg;
