@@ -1,4 +1,13 @@
 Revision history for Perl extension Bio::Graphics.
+1.95 Sat May 30 18:07:21 EDT 2009
+     - In the substitution pattern rules, $id is replaced with the
+     output of either the feature_id or primary_id methods depending 
+     on which one is implemented.
+     - The image.pm glyph will now render into SVG if a sufficiently-current
+     GD::SVG module is available.
+     - Some fixes to the segments glyph to work better with Bio::DB::Bam
+     rendering at the base pair level.
+     - The glyph_help.pl script can now create SVGs.
 1.94 Wed Apr 29 05:59:02 EDT 2009
      - Added a "fast" bumping option suitable for very dense tracks in which
        all features have identical height. Activate it using -bump=>3 or

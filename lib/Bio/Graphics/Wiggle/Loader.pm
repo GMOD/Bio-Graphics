@@ -586,7 +586,7 @@ sub wigfile {
     my $span = $self->{track_options}{span} || 
 	$self->{track_options}{step}        || 
 	1;
-    my $trim      = $self->current_track->{display_options}{trim} || 'none';
+    my $trim      = $self->current_track->{display_options}{trim} || 'stdev2';
     my $transform = $self->current_track->{display_options}{transform};
     my $wigfile = Bio::Graphics::Wiggle->new(
 					     $path,
