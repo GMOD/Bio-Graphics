@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::heat_map;
-#$Id: heat_map.pm,v 1.4 2009-05-15 13:42:37 pruzanov Exp $
+#$Id: heat_map.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 
 use strict;
 use Bio::Graphics::Glyph::minmax;
@@ -14,26 +14,9 @@ sub my_description {
     return <<END;
 This glyph draws "scored" features using a continuous
 color gradient is the HSV color space. The color of 
-each segment is proportional to the score. Either monochrome
-gradients (for example the default white->red), or gradients progressing
-through the colors of the rainbow (magenta->blue->green->yelloe->red)
-can be created.
-
-For example:
-# a white->red heat map
-start_color = white
-end_color   = red
-
-# a rainbow
-start_color  = magenta
-end_color    = red
-
-# green->yellow->red
-start_color = green
-end_color   = red
+each segment is proportional to the score.
 END
 }
-
 sub my_options {
     {
 	start_color =>  [
@@ -161,23 +144,9 @@ sub calculate_gradient {
 
   my ($h_start,$s_start,$v_start) = @$hsv_start;
   my ($h_stop,$s_stop,$v_stop )   = @$hsv_stop;
-
+  my $h_range = $h_stop - $h_start;
   my $s_range = $s_stop - $s_start;
   my $v_range = $v_stop - $v_start;
-
-  my $h_range;
-  # special case: if start hue = end hue, we want to go round
-  # the whole wheel once. Otherwise round the wheel clockwise
-  # or counterclockwise depending on start and end coordinate
-  if ($h_start != $h_stop) {
-   my $direction = abs($h_stop - $h_start)/($h_stop - $h_start);
-   my ($sstart,$sstop) = sort {$a <=> $b} ($h_start,$h_stop);
-   $direction *= -1 if $sstop - $sstart > 256/2; #reverse the direction if we cross 0
-   $h_range = ($sstop - $sstart) <= 256/2 ? ($sstop - $sstart)*$direction : (256 - $sstop + $sstart)*$direction;
-  }
-  else {
-   $h_range = 256;
-  }
 
   # override brightness and saturation if required
   if (my $bri = $self->option('brightness')) {
@@ -346,10 +315,9 @@ sub bgcolor {
   my $self = shift;
   return defined $self->{partcolor} ? $self->{partcolor} : $self->SUPER::bgcolor;
 }
-
 sub fgcolor {
   my $self = shift;
-  return $self->option('vary_fg') ? $self->bgcolor : $self->SUPER::fgcolor;;
+  return $self->bgcolor;
 }
 
 sub RGBtoHSV {
