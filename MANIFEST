@@ -38,6 +38,7 @@ lib/Bio/Graphics/Glyph/gene.pm
 lib/Bio/Graphics/Glyph/generic.pm
 lib/Bio/Graphics/Glyph/graded_segments.pm
 lib/Bio/Graphics/Glyph/group.pm
+lib/Bio/Graphics/Glyph/hat.pm
 lib/Bio/Graphics/Glyph/heat_map.pm
 lib/Bio/Graphics/Glyph/heat_map_ideogram.pm
 lib/Bio/Graphics/Glyph/heterogeneous_segments.pm
