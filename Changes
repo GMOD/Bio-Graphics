@@ -1,4 +1,7 @@
 Revision history for Perl extension Bio::Graphics.
+1.96 Thu Jun  4 17:49:57 EDT 2009
+     - Added "hat" and "hidden" glyphs, and changed way that the "line" glyph works in order to
+     support DAS 1.5.
 1.95 Sat May 30 18:07:21 EDT 2009
      - In the substitution pattern rules, $id is replaced with the
      output of either the feature_id or primary_id methods depending 

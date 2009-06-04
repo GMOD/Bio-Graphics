@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::line;
-# an arrow without the arrowheads
+# $Id: line.pm,v 1.3 2009-06-04 21:51:08 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);
@@ -10,31 +10,70 @@ This glyph draws a horizontal line spanning the feature.
 END
 }
 
-sub bottom {
-  my $self = shift;
-  my $val = $self->SUPER::bottom(@_);
-  $val += $self->font->height if $self->option('tick');
-  $val += $self->labelheight if $self->option('label');
-  $val;
+sub draw {
+    my $self = shift;
+    $self->SUPER::draw(@_);
+
+    my $gd = shift;
+
+    my $fg = $self->fgcolor;
+    my $linewidth = $self->linewidth;
+    $fg = $self->set_pen($linewidth) if $linewidth > 1;
+
+    my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries(@_);
+    my $center = ($y1+$y2)/2;
+
+    my ($lowest,$highest);
+
+    my @parts = $self->parts;
+    for (my $i = 0;$i<@parts;$i++) {
+	my $part      = $parts[$i];
+	my ($l,undef,$xx1,$yy1) = $part->calculate_boundaries(@_);
+
+	$lowest  = $l   if !defined $lowest  || $lowest > $l;
+	$highest = $xx1 if !defined $xx1     || $highest < $xx1;
+
+	my $next_part = $parts[$i+1] or last;
+	my ($xx2,$yy2,undef,undef) = $next_part->calculate_boundaries(@_);
+
+	my $middle = ($xx1+$xx2)/2;
+	$self->draw_connector($gd,$xx1,$xx2,$y1,$y2);
+    }
+
+    if ($lowest && $x1 < $lowest) {
+	my $middle = ($x1+$lowest)/2;
+	$self->draw_connector($gd,$x1,$lowest,$y1,$y2);
+    }
+
+    if ($highest && $x2 > $highest) {
+	my $middle = ($x2+$highest)/2;
+	$self->draw_connector($gd,$highest,$x2,$y1,$y2);
+    }
+
+    my $height = $self->height;
+    $height    = 12 unless $height > 12;
+
+    return unless $self->parts;
+    if ($self->feature->strand > 0) {
+	$self->arrow($gd,$x2,$x2+$height/2,$center);
+    } elsif ($self->feature->strand < 0) {
+	$self->arrow($gd,$x1,$x1-$height/2,$center);
+    }
 }
 
-sub draw_component {
-  my $self = shift;
-  my $gd = shift;
-  my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries(@_);
-
-  my $fg = $self->fgcolor;
-  my $a2 = $self->SUPER::height/2;
-  my $center = $y1+$a2;
-
-  my $linewidth = $self->linewidth;
-  $fg = $self->set_pen($linewidth) if $linewidth > 1;
-
-  $gd->line($x1,$center,$x2,$center,$fg);
-  # add a label if requested
-  $self->draw_label($gd,@_) if $self->option('label');
-
+sub draw_connector {
+    my $self = shift;
+    my $gd   = shift;
+    my ($left,$right,$high,$low) = @_;
+    my $fg = $self->fgcolor;
+    my $center = ($high+$low)/2;
+    $gd->line($left,$center,$right,$center,$fg);
 }
+
+sub bump { 0 }
+
+sub maxdepth { return }
+
 
 1;
 
@@ -50,7 +89,10 @@ Bio::Graphics::Glyph::line - The "line" glyph
 
 =head1 DESCRIPTION
 
-This glyph draws a line parallel to the sequence segment.
+This glyph draws a line parallel to the sequence segment. It is
+different from other glyphs in that it is designed to work with DAS
+tracks. The line is drawn BETWEEN the subparts, as if you specified a
+connector type of "line".
 
 =head2 OPTIONS
 

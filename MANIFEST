@@ -42,6 +42,7 @@ lib/Bio/Graphics/Glyph/hat.pm
 lib/Bio/Graphics/Glyph/heat_map.pm
 lib/Bio/Graphics/Glyph/heat_map_ideogram.pm
 lib/Bio/Graphics/Glyph/heterogeneous_segments.pm
+lib/Bio/Graphics/Glyph/hidden.pm
 lib/Bio/Graphics/Glyph/hybrid_plot.pm
 lib/Bio/Graphics/Glyph/ideogram.pm
 lib/Bio/Graphics/Glyph/image.pm

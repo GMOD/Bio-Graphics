@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.9 2009-04-23 05:36:08 lstein Exp $
+# $Id: Glyph.pm,v 1.10 2009-06-04 21:51:08 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -1402,6 +1402,7 @@ sub exceeds_depth {
 sub subfeat {
   my $self    = shift;
   my $feature = shift;
+
 
   return $self->_subfeat($feature) unless ref $self;  # protect against class invocation
 

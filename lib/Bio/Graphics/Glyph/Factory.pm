@@ -127,7 +127,12 @@ sub clone {
 
 =cut
 
-sub stylesheet { shift->{stylesheet}  }
+sub stylesheet { 
+    my $self = shift;
+    my $d    = $self->{stylesheet};
+    $self->{stylesheet} = shift if @_;
+    $d;
+}
 
 =head2 glyph_map
 
@@ -306,6 +311,7 @@ sub make_glyph {
 
   for my $f (@_) {
     my $type = $forced_type || $self->feature_to_glyph($f);
+
     my $glyphclass = 'Bio::Graphics::Glyph';
     $type ||= 'generic';
     $glyphclass .= "\:\:\L$type";
@@ -342,14 +348,25 @@ sub feature_to_glyph {
   my $self    = shift;
   my $feature = shift;
 
-  return scalar $self->{stylesheet}->glyph($feature) if $self->{stylesheet};
-  my $map = $self->glyph_map    or return 'generic';
-  if (ref($map) eq 'CODE') {
-    my $val = eval {$map->($feature)};
-    warn $@ if $@;
-    return $val || 'generic';
+  my $val;
+
+  if ($self->{stylesheet} && $feature->type !~ /track|group/) {
+      $val = scalar $self->{stylesheet}->glyph($feature);
+      return $val || 'generic';
   }
-  return $map->{$feature->primary_tag} || 'generic';
+
+  my $map = $self->glyph_map;
+  if ($map) {
+      if (ref($map) eq 'CODE') {
+	  $val = eval {$map->($feature)};
+	  warn $@ if $@;
+      }
+      else {
+	  $val = $map->{$feature->primary_tag};
+      }
+  }
+
+  return $val || 'generic';
 }
 
 
@@ -384,6 +401,12 @@ sub option {
   return $self->{overriding_options}{$option_name} 
     if exists $self->{overriding_options} && exists $self->{overriding_options}{$option_name};
 
+  if (exists $self->{stylesheet} && (my $ss = $self->{stylesheet})) {
+    my(undef,%options) = $ss->glyph($glyph->feature);
+    my $value = $options{$option_name};
+    return $value if defined $value;
+  }
+
   if (exists $self->{options} && (my $map    = $self->{options})) {
     if (exists $map->{$option_name} && defined(my $value  = $map->{$option_name})) {
       my $feature = $glyph->feature;
@@ -394,12 +417,6 @@ sub option {
 	if $@;
       return defined $val && $val eq '*default*' ? $GENERIC_OPTIONS{$option_name} : $val;
     }
-  }
-
-  if (exists $self->{stylesheet} && (my $ss = $self->{stylesheet})) {
-    my($glyph,%options) = $ss->glyph($glyph->feature);
-    my $value = $options{$option_name};
-    return $value if defined $value;
   }
 
   return $GENERIC_OPTIONS{$option_name};

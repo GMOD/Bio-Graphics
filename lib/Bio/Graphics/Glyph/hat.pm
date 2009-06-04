@@ -1,9 +1,9 @@
 package Bio::Graphics::Glyph::hat;
-# $Id: hat.pm,v 1.1 2009-06-03 20:22:17 lstein Exp $
+# $Id: hat.pm,v 1.2 2009-06-04 21:51:08 lstein Exp $
 # a simple inverted V (used by DAS)
 
 use strict;
-use base qw(Bio::Graphics::Glyph::generic);
+use base qw(Bio::Graphics::Glyph::line);
 
 sub my_description {
     return <<END;
@@ -11,23 +11,15 @@ This glyph draws an inverted V spanning the feature.
 END
 }
 
-sub draw_component {
-  my $self = shift;
-  my $gd = shift;
-  my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries(@_);
-
-  my $fg = $self->fgcolor;
-  my $center = ($y1+$y2)/2;
-  my $middle = ($x1+$x2)/2;
-
-  my $linewidth = $self->linewidth;
-  $fg = $self->set_pen($linewidth) if $linewidth > 1;
-
-  $gd->line($x1,$center,$middle,$y1,$fg);
-  $gd->line($middle,$y1,$x2,$center,$fg);
-  # add a label if requested
-  $self->draw_label($gd,@_) if $self->option('label');
-
+sub draw_connector {
+    my $self = shift;
+    my $gd   = shift;
+    my ($left,$right,$high,$low) = @_;
+    my $fg = $self->fgcolor;
+    my $center = ($high+$low)/2;
+    my $middle = ($left+$right)/2;
+    $gd->line($left,$center,$middle,$high,$fg);
+    $gd->line($middle,$high,$right,$center,$fg);
 }
 
 1;
@@ -36,7 +28,7 @@ __END__
 
 =head1 NAME
 
-Bio::Graphics::Glyph::line - The "line" glyph
+Bio::Graphics::Glyph::hat - The "hat" glyph
 
 =head1 SYNOPSIS
 
@@ -44,7 +36,10 @@ Bio::Graphics::Glyph::line - The "line" glyph
 
 =head1 DESCRIPTION
 
-This glyph draws a line parallel to the sequence segment.
+This glyph draws an inverted V parallel to the sequence segment. It is
+different from other glyphs in that it is designed to work with DAS
+tracks. The inverted V is drawn BETWEEN subparts as if you specified a
+connector type of "hat".
 
 =head2 OPTIONS
 

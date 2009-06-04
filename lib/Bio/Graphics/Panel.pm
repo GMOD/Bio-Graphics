@@ -369,7 +369,6 @@ sub _do_add_track {
      return 'group' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'group' };
      return $glyph_name;
    };
-
   $self->_add_track($position,$features,-map=>$panel_map,-stylesheet=>$ss,-options=>\%options);
 }
 
