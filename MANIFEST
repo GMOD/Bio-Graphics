@@ -1,7 +1,6 @@
 Build.PL
 Changes
 DISCLAIMER.txt
-README.bioperl
 eg/feature_data.gff
 eg/feature_data.txt
 eg/testit.pl
@@ -12,9 +11,12 @@ lib/Bio/Graphics/ConfiguratorI.pm
 lib/Bio/Graphics/DrawTransmembrane.pm
 lib/Bio/Graphics/Feature.pm
 lib/Bio/Graphics/FeatureBase.pm
+lib/Bio/Graphics/FeatureDir.pm
 lib/Bio/Graphics/FeatureFile.pm
 lib/Bio/Graphics/FeatureFile/Iterator.pm
 lib/Bio/Graphics/Glyph.pm
+lib/Bio/Graphics/Glyph/.#dna.pm.1.1
+lib/Bio/Graphics/Glyph/.#hybrid_plot.pm.1.2
 lib/Bio/Graphics/Glyph/alignment.pm
 lib/Bio/Graphics/Glyph/anchored_arrow.pm
 lib/Bio/Graphics/Glyph/arrow.pm
@@ -52,6 +54,7 @@ lib/Bio/Graphics/Glyph/merge_parts.pm
 lib/Bio/Graphics/Glyph/merged_alignment.pm
 lib/Bio/Graphics/Glyph/minmax.pm
 lib/Bio/Graphics/Glyph/oval.pm
+lib/Bio/Graphics/Glyph/pairplot.pm
 lib/Bio/Graphics/Glyph/pentagram.pm
 lib/Bio/Graphics/Glyph/phylo_align.pm
 lib/Bio/Graphics/Glyph/pinsertion.pm
@@ -59,6 +62,7 @@ lib/Bio/Graphics/Glyph/primers.pm
 lib/Bio/Graphics/Glyph/processed_transcript.pm
 lib/Bio/Graphics/Glyph/protein.pm
 lib/Bio/Graphics/Glyph/ragged_ends.pm
+lib/Bio/Graphics/Glyph/rainbow_gene.pm
 lib/Bio/Graphics/Glyph/redgreen_box.pm
 lib/Bio/Graphics/Glyph/redgreen_segment.pm
 lib/Bio/Graphics/Glyph/repeating_shape.pm
@@ -99,8 +103,11 @@ lib/Bio/Graphics/RendererI.pm
 lib/Bio/Graphics/Util.pm
 lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
+Makefile.PL
 MANIFEST
+META.yml
 README
+README.bioperl
 scripts/contig_draw.pl
 scripts/feature_draw.pl
 scripts/frend.pl
@@ -112,6 +119,8 @@ t/data/feature_data.txt
 t/data/t1/version1.gif
 t/data/t1/version1.png
 t/data/t1/version10.png
+t/data/t1/version11.gif
+t/data/t1/version11.png
 t/data/t1/version2.gif
 t/data/t1/version2.png
 t/data/t1/version3.gif
@@ -132,6 +141,8 @@ t/data/t2/version13.png
 t/data/t2/version14.gif
 t/data/t2/version14.png
 t/data/t2/version15.png
+t/data/t2/version16.gif
+t/data/t2/version16.png
 t/data/t2/version2.gif
 t/data/t2/version2.png
 t/data/t2/version3.gif
@@ -144,6 +155,10 @@ t/data/t2/version8.png
 t/data/t2/version9.png
 t/data/t3/version1.gif
 t/data/t3/version1.png
+t/data/t3/version10.gif
+t/data/t3/version10.png
+t/data/t3/version11.gif
+t/data/t3/version11.png
 t/data/t3/version2.gif
 t/data/t3/version2.png
 t/data/t3/version3.gif
@@ -155,13 +170,3 @@ t/data/t3/version7.png
 t/data/t3/version8.gif
 t/data/t3/version8.png
 t/data/t3/version9.png
-t/data/t3/version10.gif
-t/data/t3/version10.png
-t/data/t1/version11.gif
-t/data/t1/version11.png
-t/data/t2/version16.gif
-t/data/t2/version16.png
-t/data/t3/version11.gif
-t/data/t3/version11.png
-Makefile.PL
-META.yml
