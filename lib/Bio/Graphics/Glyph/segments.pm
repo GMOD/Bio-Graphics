@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::segments;
-#$Id: segments.pm,v 1.3 2009-05-08 17:20:13 lstein Exp $
+#$Id: segments.pm,v 1.4 2009-06-23 10:54:16 lstein Exp $
 
 use strict;
 use Bio::Location::Simple;
@@ -175,6 +175,7 @@ sub draw {
 
   if ($draw_target) {
     return $self->SUPER::draw(@_) unless eval {$self->feature->hit->seq};
+    return $self->SUPER::draw(@_) if $self->feature_has_subparts;
     $drew_sequence = $self->draw_multiple_alignment(@_);
   }
 

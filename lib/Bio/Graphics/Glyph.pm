@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.10 2009-06-04 21:51:08 lstein Exp $
+# $Id: Glyph.pm,v 1.11 2009-06-23 10:54:16 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -54,10 +54,12 @@ sub my_options {
 	    10,
 	    'Height of the glyph.'],
 	box_subparts=> [
-	    'boolean',
-	    undef,
-	    'If this option is true, then imagemaps constructed from this glyph will contain',
-	    'bounding boxes around each subpart of a feature (e.g. each exon in a gene).'],
+	    'integer',
+	    0,
+	    'If this option is greater than zero, then imagemaps constructed from this glyph will contain',
+	    'bounding boxes around each subpart of a feature (e.g. each exon in a gene). The value of the',
+	    'option indicates the depth of recursion.'
+	],
 	fgcolor => [
 	    'color',
 	    'black',

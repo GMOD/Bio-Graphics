@@ -2155,7 +2155,7 @@ some are shared by all glyphs:
               callbacks for subparts of
               the glyph.
 
-  -box_subparts Return boxes around feature          false
+  -box_subparts Return boxes around feature          0
                subparts rather than around the
                feature itself.
 
