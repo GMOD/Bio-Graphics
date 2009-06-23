@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.10 2009-05-30 22:12:40 lstein Exp $
+# $Id: ideogram.pm,v 1.11 2009-06-23 13:51:38 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;
@@ -325,47 +325,34 @@ sub draw_telomere {
     my $x = $new_x1;
     my $y = $new_y;
 
-    # make an itinerant border with color unlikely to be used
-    # as a panel bgcolor
+    # erase extra stuff
+    $gd->line($x1,$y1,$x1+5,$y1,$bg);
+    $gd->line($x1,$y1,$x1,$y2,$bg);
+    $gd->line($x1,$y2,$x1+5,$y2,$bg);
+
     $gd->arc( $x, $y, $arcradius * 2,
-	      $arcsize, 90, 270, $orange);
-    $gd->line($x-1,$y1,$x1-3,$y1,$orange);
-    $gd->line($x1-3,$y1,$x1-3,$y2,$orange);
-    $gd->line($x1-3,$y2,$x-1,$y2,$orange);
+	      $arcsize, 90, 270, $fgcolor);
 
-    # carve away anything that does not look like a telomere
-    $gd->fillToBorder($x1+1,$y1+1,$orange,$bg);
-    $gd->fillToBorder($x1+1,$y2-1,$orange,$bg);
-
-    # remove the border
-    $gd->line($x-1,$y1,$x1-3,$y1,$bg);
-    $gd->line($x1-3,$y1,$x1-3,$y2,$bg);
-    $gd->line($x1-3,$y2,$x-1,$y2,$bg);
-    $gd->arc( $x, $y, $arcradius * 2,
-	      $arcsize, 90, 270, $fgcolor);    
-
-    # remove that little blip at the vertex
-    $gd->line($x1-1,$y-1,$x1-1,$y+1,$bg);
-     
+    # erase off-target colors
+    $gd->fill($x1+1,$y1+1,$bg);
+    $gd->fill($x1+1,$y2-1,$bg);
   }
   
   if ( $state < 1 ) {    # right telomere
     my $x = $new_x2;
     my $y = $new_y;
 
-     $gd->arc( $x, $y, $arcradius * 2,
-               $arcsize, 270, 90, $orange);
-     $gd->line($x+1,$y1,$x2+3,$y1,$orange);
-     $gd->line($x2+3,$y1,$x2+3,$y2,$orange);
-     $gd->line($x2+3,$y2,$x+1,$y2,$orange);
-     $gd->fillToBorder($x2-1,$y1+1,$orange,$bg);
-     $gd->fillToBorder($x2-1,$y2-1,$orange,$bg);
-    $gd->line($x+1,$y1,$x2+3,$y1,$bg);
-     $gd->line($x2+3,$y1,$x2+3,$y2,$bg);
-     $gd->line($x2+3,$y2,$x+1,$y2,$bg);
-     $gd->arc( $x, $y, $arcradius * 2,
- 	      $arcsize, 270, 90, $fgcolor);
-     $gd->line($x2,$y-1,$x2,$y+1,$bg);
+    # erase extra stuff
+    $gd->line($x2-5,$y1,$x2,$y1,$bg);
+    $gd->line($x2,$y1,$x2,$y2,$bg);
+    $gd->line($x2-5,$y2,$x2,$y2,$bg);
+
+    $gd->arc( $x, $y, $arcradius * 2,
+	      $arcsize, 270, 90, $fgcolor);
+
+    # erase off-target colors
+    $gd->fill($x2-1,$y1+1,$bg);
+    $gd->fill($x2-1,$y2-1,$bg);
   }
 
   unless ( $self->can_pattern ) {
