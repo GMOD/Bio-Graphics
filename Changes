@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.97 Thu Jul  2 15:22:21 EDT 2009
+     - Added "feature_limit" option to put a cap on the maximum number of features that a 
+     track will attempt to display. This only works correctly if features are added one at a
+     time with add_feature().
 1.96 Thu Jun  4 17:49:57 EDT 2009
      - Added "hat" and "hidden" glyphs, and changed way that the "line" glyph works in order to
      support DAS 1.5.
