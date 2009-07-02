@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.11 2009-06-23 10:54:16 lstein Exp $
+# $Id: Glyph.pm,v 1.12 2009-07-02 19:21:54 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -137,6 +137,11 @@ sub my_options {
 	    -1,
 	    'This option will cause bumping to stop after the indicated number of features',
 	    'pile up. Subsequent collisions will not be bumped.'],
+	feature_limit => [
+	    'integer',
+	    0,
+	    'This option will set an upper bound on the number of features to be displayed.',
+	    'For this to work properly, features must be added one at a time using add_feature().'],
 	hbumppad => [
 	    'integer',
 	    2,
@@ -197,7 +202,7 @@ sub new {
   $self->{flip}++  if $flip;
   $self->{top} = 0;
 
-  my $panel = $factory->panel;
+  my $panel   = $factory->panel;
   my $p_start = $panel->start;
   my $p_end   = $panel->end;
 
@@ -234,7 +239,8 @@ sub new {
           sort { $a->[1] <=> $b->[1] }
 	    map { [$_, $_->left ] }
 	      $self->make_subglyph($level+1,@visible_subfeatures);
-    $self->{parts}   = \@subglyphs;
+    $self->{feature_count} = scalar @subglyphs;
+    $self->{parts}         = \@subglyphs;
   }
 
   my ($start,$stop) = ($self->start, $self->stop);
@@ -276,6 +282,24 @@ sub parts      {
   my $self = shift;
   return unless $self->{parts};
   return wantarray ? @{$self->{parts}} : $self->{parts};
+}
+
+sub feature_count {
+    my $self = shift;
+    return $self->{feature_count} || 0;
+}
+
+sub features_clipped {
+    my $self = shift;
+    my $d = $self->{features_clipped};
+    $self->{features_clipped} = shift if @_;
+    return $d;
+}
+
+sub _bump_feature_count {
+    my $self  = shift;
+    my $count = shift || 1;
+    return $self->{feature_count} += $count;
 }
 
 # this is different than parts(). parts() will return subglyphs
@@ -356,10 +380,21 @@ sub add_feature {
 
   for my $feature (@_) {
     if (ref $feature eq 'ARRAY') {
-      $self->add_group(@$feature);
+	$self->add_group(@$feature);
+	$self->_bump_feature_count(scalar @$feature);
     } else {
       warn $factory if DEBUG;
-      push @{$self->{parts}},$factory->make_glyph(0,$feature);
+      my $parts   = $self->{parts} ||= [];
+      my $limit   = $self->feature_limit;
+      my $count   = $self->_bump_feature_count;
+
+      if (!$limit || $count <= $limit) {
+	  push @$parts,$factory->make_glyph(0,$feature);	  
+      } elsif (rand() < $limit/$count) {
+	  $self->features_clipped(1);
+	  $parts->[rand @$parts] = $factory->make_glyph(0,$feature); # subsample
+      }
+
     }
   }
 }
@@ -1389,6 +1424,10 @@ sub maxdepth {
   return 1 if $feature->can('compound') && $feature->compound;
 
   return;
+}
+
+sub feature_limit {
+    return shift->option('feature_limit') || 0;
 }
 
 sub exceeds_depth {
