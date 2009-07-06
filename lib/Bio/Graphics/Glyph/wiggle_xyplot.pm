@@ -183,7 +183,7 @@ sub draw_plot {
     if ($type eq 'boxes') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
-	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$color,$color,$lw);
+	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$color,$color,$lw) if $y1-$y2;
 	}
     }
 
@@ -215,7 +215,7 @@ sub draw_plot {
 	for (@points) {
 	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
 	    my ($y_start,$y_end) = $y1 < $y_origin ? ($y1,$y_origin) : ($y_origin,$y1);
-	    $self->filled_box($gd,$current->[0],$y_start,$x2,$y_end,$color,$color,1);
+	    $self->filled_box($gd,$current->[0],$y_start,$x2,$y_end,$color,$color,1) if $y1-$y2;
 	    $current = $_;
 	}	
     }

@@ -1949,6 +1949,10 @@ Typical usage is:
  		    -height    => 10,
  		    -label     => 1);
 
+The track object is simply a specialized type of glyph. See
+L<Bio::Graphics::Glyph> for a description of the methods that it
+supports.
+
 =item $track = unshift_track($glyph,$features,@options)
 
 unshift_track() works like add_track(), except that the new track is
@@ -2121,6 +2125,10 @@ some are shared by all glyphs:
   -bump	      Bump direction		   0
 
   -sort_order Specify layout sort order    "default"
+
+  -feature_limit
+              Maximum number of features   undef (unlimited)
+                 to display
 
   -bump_limit Maximum number of levels     undef (unlimited)
               to bump
@@ -2367,11 +2375,21 @@ is turned off.  This is useful if you would like overlapping features
 to stack in a particular order.  Features towards the end of the list
 will overlay those towards the beginning of the sort order.
 
-B<bump_limit>: When bumping is chosen, colliding features will
+B<-feature_limit>: When this option is set to a non-zero value, calls
+to a track's add_feature() method will maintain a count of features
+added to a track.  Once the feature count exceeds the value set in
+-feature_limit, additional features will displace existing ones in a
+way that effects a uniform sampling of the total feature set. This is
+useful to protect against excessively large tracks. The total number
+of features added can be retrieved by calling the track's
+feature_count() method.
+
+B<-bump_limit>: When bumping is chosen, colliding features will
 ordinarily move upward or downward without limit.  When many features
 collide, this can lead to excessively high images.  You can limit the
 number of levels that features will bump by providing a numeric
-B<bump_limit> option.
+B<bump_limit> option. After the limit is hit, features will pile up on
+top of each other, usually as a band at the bottom of the track.
 
 The B<-filter> option, which must be a CODE reference, will be invoked
 once for each feature prior to rendering it. The coderef will receive

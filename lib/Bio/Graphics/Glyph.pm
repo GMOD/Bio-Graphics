@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.12 2009-07-02 19:21:54 lstein Exp $
+# $Id: Glyph.pm,v 1.13 2009-07-06 14:47:56 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -1793,6 +1793,15 @@ Add the list of features to the glyph, creating subparts.  This is
 most common done with the track glyph returned by
 Bio::Graphics::Panel-E<gt>add_track().
 
+If the Bio::Graphics::Panel was initialized with B<-feature_limit> set
+to a non-zero value, then calls to a track glyph's add_feature()
+method will maintain a count of features added to the track.  Once the
+feature count exceeds the value set in -feature_limit, additional
+features will displace existing ones in a way that effects a uniform
+sampling of the total feature set. This is useful to protect against
+excessively large tracks. The total number of features added can be
+retrieved by calling the glyph's feature_count() method.
+
 =item $feature = $glyph-E<gt>add_group(@features)
 
 This is similar to add_feature(), but the list of features is treated
@@ -1821,6 +1830,17 @@ example:
     my $factory = $self->factory;
     $factory->make_glyph($factory,'arrow',@_);
  }
+
+=item $count = $glyph-E<gt>feature_count()
+
+Return the number of features added to this glyph via add_feature().
+
+=item $flag = $glyph->features_clipped()
+
+If the panel was initialized with -feature_limit set to a non-zero
+value, then calls to add_features() will limit the number of glyphs to
+the indicated value. If this value was exceeded, then
+features_clipped() will return true.
 
 =back
 
@@ -1904,6 +1924,7 @@ method will return the list of subglyphs it contains. Subglyphs are
 created automatically by the new() method and are created subject to
 the maximum recursion depth specified by the maxdepth() method and/or
 the -maxdepth option.
+
 
 =back
 

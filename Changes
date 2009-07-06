@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+1.98 Mon Jul  6 09:48:58 EDT 2009
+     - Documented -feature_limit in the Panel docs as well as in Glyph.
+     - Fixed bug in wiggle_xyplot that caused an ugly 1-pixel rectangle to be drawn
+       in the case of a zero-height data value.
 1.97 Thu Jul  2 15:22:21 EDT 2009
      - Added "feature_limit" option to put a cap on the maximum number of features that a 
      track will attempt to display. This only works correctly if features are added one at a
