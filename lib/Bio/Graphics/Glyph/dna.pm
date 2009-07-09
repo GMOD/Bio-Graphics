@@ -215,7 +215,7 @@ sub draw_gc_content {
     my $scale = $maxgc - $mingc;
     foreach (my $i; $i < @bins; $i++)
       {
-	$bins[$i] = ($bins[$i] - $mingc) / $scale;
+	$bins[$i] = $scale != 0 ? ($bins[$i] - $mingc) / $scale : 0;
       }
     $maxgc = int($maxgc * 100);
     $mingc = int($mingc * 100);
