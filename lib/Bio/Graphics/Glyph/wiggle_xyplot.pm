@@ -7,6 +7,17 @@ use base qw(Bio::Graphics::Glyph::wiggle_minmax
 use IO::File;
 use File::Spec;
 
+# Added pad_top subroutine (pad_top of Glyph.pm, which is called when executing $self->pad_top
+# returns 0, so we need to override it here)
+sub pad_top {
+  my $self = shift;
+  my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
+  if ($pad < ($self->font('gdTinyFont')->height)) {
+    $pad = $self->font('gdTinyFont')->height;  # extra room for the scale
+  }
+  $pad;
+}
+
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
 sub draw {
@@ -138,7 +149,7 @@ sub draw_plot {
     my $y_scale  = $max_score > $min_score ? $height/($max_score-$min_score)
 	                                   : 1;
     my $x = $left;
-    my $y = $top + $self->pad_top;
+    my $y = $top;
     
     my $x_scale     = $self->scale;
     my $panel_start = $self->panel->start;
@@ -146,6 +157,8 @@ sub draw_plot {
     my $f_start     = $feature->start > $panel_start 
 	                  ? $feature->start 
 			  : $panel_start;
+
+    $y += $self->pad_top;
 
     # position of "0" on the scale
     my $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $y_scale : $bottom;
