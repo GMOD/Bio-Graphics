@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::wiggle_density;
-# $Id: wiggle_density.pm,v 1.6 2009-04-24 18:08:21 lstein Exp $
+# $Id: wiggle_density.pm,v 1.7 2009-08-19 15:33:49 pruzanov Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
@@ -244,8 +244,8 @@ sub draw_segment {
   my $min_value = $self->min_score;
   my $max_value = $self->max_score;
 
+  my ($min,$max) = $self->minmax($data);
   unless (defined $min_value && defined $max_value) {
-      my ($min,$max) = $self->minmax($data);
       $min_value ||= $min;
       $max_value ||= $max;
   }
@@ -269,7 +269,7 @@ sub draw_segment {
       $rgb_pos = [$self->panel->rgb($poscolor)];
       $rgb_neg = [$self->panel->rgb($negcolor)];
   } else {
-      $rgb = [$self->panel->rgb($self->bgcolor)];
+      $rgb = $max > $min_value ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
   }
 
 
