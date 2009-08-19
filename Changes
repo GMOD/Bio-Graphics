@@ -1,4 +1,7 @@
 Revision history for Perl extension Bio::Graphics.
+1.981 Wed Aug 19 15:21:31 EDT 2009
+     - Peter Ruzanov fixed bug in wiggle_xyplot that caused histogram to go to background
+       color under somd circumstances.
 1.98 Mon Jul  6 09:48:58 EDT 2009
      - Documented -feature_limit in the Panel docs as well as in Glyph.
      - Fixed bug in wiggle_xyplot that caused an ugly 1-pixel rectangle to be drawn
