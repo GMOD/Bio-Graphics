@@ -1,6 +1,6 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.13 2009-07-06 14:47:56 lstein Exp $
+# $Id: Glyph.pm,v 1.14 2009-08-26 21:59:24 lstein Exp $
 
 use strict;
 use Carp 'croak','cluck';
@@ -688,9 +688,10 @@ sub getfont {
 		  gdMediumBoldFont => $img_class->gdMediumBoldFont(),
 		  gdLargeFont      => $img_class->gdLargeFont(),
 		  gdGiantFont      => $img_class->gdGiantFont(),
+		  sanserif         => $img_class->gdSmallFont(),
     		 };
 
-    my $gdfont = $ref->{$font};
+    my $gdfont = $ref->{$font} || $ref->{gdSmallFont};
     $self->configure($option => $gdfont);
     return $gdfont;
   }
@@ -948,7 +949,6 @@ sub draw {
   $self->panel->startGroup($gd);
 
   my $connector = $self->connector;
-
   if (my @parts = $self->parts) {
 
     # invoke sorter if user wants to sort always and we haven't already sorted

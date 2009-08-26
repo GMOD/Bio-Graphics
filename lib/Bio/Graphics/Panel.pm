@@ -579,7 +579,6 @@ sub gd {
 	  $offset += $self->draw_between_key($gd,$track,$offset);
       }
 
-
       $self->draw_empty($gd,$offset,$empty_track_style)
 	  if !$has_parts && $empty_track_style=~/^(line|dashed)$/;
 

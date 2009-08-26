@@ -404,6 +404,10 @@ sub option {
   if (exists $self->{stylesheet} && (my $ss = $self->{stylesheet})) {
     my(undef,%options) = $ss->glyph($glyph->feature);
     my $value = $options{$option_name};
+    if (defined $value) {  # some cleanup on DAS glyphs
+	$value =~ s/yes/1/i;
+	$value =~ s/no/0/i;
+    }
     return $value if defined $value;
   }
 
