@@ -15,8 +15,6 @@ lib/Bio/Graphics/FeatureDir.pm
 lib/Bio/Graphics/FeatureFile.pm
 lib/Bio/Graphics/FeatureFile/Iterator.pm
 lib/Bio/Graphics/Glyph.pm
-lib/Bio/Graphics/Glyph/.#dna.pm.1.1
-lib/Bio/Graphics/Glyph/.#hybrid_plot.pm.1.2
 lib/Bio/Graphics/Glyph/alignment.pm
 lib/Bio/Graphics/Glyph/anchored_arrow.pm
 lib/Bio/Graphics/Glyph/arrow.pm
