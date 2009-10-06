@@ -1,5 +1,5 @@
 package Bio::Graphics::Glyph::wiggle_density;
-# $Id: wiggle_density.pm,v 1.7 2009-08-19 15:33:49 pruzanov Exp $
+# $Id: wiggle_density.pm,v 1.8 2009/10/06 20:36:04 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
@@ -92,6 +92,8 @@ sub draw_coverage {
     my $self    = shift;
     my $feature = shift;
     my $array   = shift;
+
+    $array      = [split ',',$array] unless ref $array;
     my ($gd,$left,$top) = @_;
 
     my ($start,$end)    = $self->effective_bounds($feature);

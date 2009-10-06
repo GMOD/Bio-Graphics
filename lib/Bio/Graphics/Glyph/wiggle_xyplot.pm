@@ -84,6 +84,8 @@ sub draw_coverage {
     my $feature = shift;
     my $array   = shift;
 
+    $array      = [split ',',$array] unless ref $array;
+
     my ($start,$end)    = $self->effective_bounds($feature);
     my $bases_per_bin   = ($end-$start)/@$array;
     my $pixels_per_base = $self->scale;
