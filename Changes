@@ -1,4 +1,6 @@
 Revision history for Perl extension Bio::Graphics.
+1.99 Mon Nov 16 08:15:23 EST 2009  
+     - Segments glyph now handles indels for features that have CIGAR strings.
 1.982 Wed Aug 26 17:57:43 EDT 2009
      - Fixed DAS stylesheet support so that Ensembl and Dazzle sources both work
        properly.	 
