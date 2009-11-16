@@ -16,6 +16,8 @@ use constant SRC_END   => 2;
 use constant TGT_START => 3;
 use constant TGT_END   => 4;
 
+eval { require Bio::Graphics::Browser2::Realign; 1; } || eval { require Bio::Graphics::Browser::Realign; };
+
 use base qw(Bio::Graphics::Glyph::segmented_keyglyph Bio::Graphics::Glyph::generic);
 
 my %complement = (g=>'c',a=>'t',t=>'a',c=>'g',n=>'n',
@@ -242,9 +244,9 @@ sub draw_multiple_alignment {
   }
 
   my $can_realign;
-  if (eval { require Bio::Graphics::Browser2::Realign; 1 }) {
+  if (Bio::Graphics::Browser2::Realign->can('align_segs')) {
       $can_realign   = \&Bio::Graphics::Browser2::Realign::align_segs;
-  } elsif (eval { require Bio::Graphics::Browser::Realign; 1 }) {
+  } elsif (Bio::Graphics::Browser::Realign->can('align_segs')) {
       $can_realign   = \&Bio::Graphics::Browser::Realign::align_segs;
   }
 
@@ -459,7 +461,7 @@ sub draw_multiple_alignment {
       next unless $tgt_base && $x >= $panel_left && $x <= $panel_right;
 
       $self->filled_box($gd,
-			$x-$pixels_per_base/2+3,
+			$i == 0 ? $x-3 : $x-$pixels_per_base/2+3,
 			$y+1,
 			$x+$pixels_per_base/2+3,
 			$y+$lineheight,
@@ -551,12 +553,12 @@ sub _gapped_alignment_to_segments {
 
     for my $event (@$cigar) {
 	my ($op,$count) = @$event;
-	if ($op eq 'I') {
+	if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
 	    $pad_source .= '-' x $count;
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
 	}
-	elsif ($op eq 'D') {
+	elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
 	    $pad_source .= substr($tdna,0,$count,'');
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
@@ -567,8 +569,37 @@ sub _gapped_alignment_to_segments {
 	}
     }
 
-    return Bio::Graphics::Browser2::Realign->pads_to_segments($pad_source,$pad_match,$pad_target);
+    return $self->pads_to_segments($pad_source,$pad_match,$pad_target);
 }
+
+sub pads_to_segments {
+    my $self = shift;
+    my ($gap1,$align,$gap2) = @_;
+
+    # create arrays that map residue positions to gap positions
+    my @maps;
+    for my $seq ($gap1,$gap2) {
+	my @seq = split '',$seq;
+	my @map;
+	my $residue = 0;
+	for (my $i=0;$i<@seq;$i++) {
+	    $map[$i] = $residue;
+	    $residue++ if $seq[$i] ne '-';
+	}
+	push @maps,\@map;
+    }
+
+    my @result;
+    while ($align =~ /(\S+)/g) {
+	my $align_end   = pos($align) - 1;
+	my $align_start = $align_end  - length($1) + 1;
+	push @result,[@{$maps[0]}[$align_start,$align_end],
+		      @{$maps[1]}[$align_start,$align_end]];
+    }
+    return wantarray ? @result : \@result;
+}
+
+
 
 sub _subsequence {
   my $self = shift;
