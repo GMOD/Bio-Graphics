@@ -101,9 +101,7 @@ lib/Bio/Graphics/RendererI.pm
 lib/Bio/Graphics/Util.pm
 lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
-Makefile.PL
 MANIFEST
-META.yml
 README
 README.bioperl
 scripts/contig_draw.pl
@@ -168,3 +166,5 @@ t/data/t3/version7.png
 t/data/t3/version8.gif
 t/data/t3/version8.png
 t/data/t3/version9.png
+Makefile.PL
+META.yml

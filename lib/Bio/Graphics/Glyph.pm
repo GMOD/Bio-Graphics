@@ -1027,9 +1027,10 @@ sub draw_connectors {
 	$self->_connector($gd,$dx,$dy,$parts[-1]->bounds,$x2,$xt2,$x2,$xb2);
     }
   } else {
-      # I don't understand what this code is for... LS
-      #    my ($x1,$y1,$x2,$y2) = $self->bounds($dx,$dy);
-      #    $self->draw_connector($gd,$y1,$y2,$x1,$y1,$y2,$x2);
+      # This code draws the connectors from end-to-end when there are no parts in
+      # view (e.g. zoomed into a gap in an alignment).
+      my ($x1,$y1,$x2,$y2) = $self->bounds($dx,$dy);
+      $self->draw_connector($gd,$y1,$y2,$x1,$y1,$y2,$x2);
   }
 
 }

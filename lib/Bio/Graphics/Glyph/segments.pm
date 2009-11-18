@@ -269,15 +269,17 @@ sub draw_multiple_alignment {
       $strands{$target} = $strand;
     }
 
-    if ($can_realign) {
+    my $cigar = eval {$s->cigar_array};
+
+    if ($cigar || ($can_realign && $do_realign)) {
 	my ($sdna,$tdna) = ($s->dna,$target->dna);	
 	my @exact_segments;
 
-	if (my $cigar = eval {$s->cigar_array}) {
+	if ($cigar) {
 	    warn   "Segmenting [$target,$src_start,$src_end,$tgt_start,$tgt_end] via $cigar.\n" if DEBUG;
 	    @exact_segments = $self->_gapped_alignment_to_segments($cigar,$sdna,$tdna);
 	}
-	elsif ($do_realign) {
+	else {
 	    warn   "Realigning [$target,$src_start,$src_end,$tgt_start,$tgt_end].\n" if DEBUG;
 	    @exact_segments = $can_realign->($sdna,$tdna);	    
 	}
@@ -295,7 +297,7 @@ sub draw_multiple_alignment {
 	}
     }
     else {
-      push @segments,[$target,$src_start,$src_end,$tgt_start,$tgt_end];
+	push @segments,[$target,$src_start,$src_end,$tgt_start,$tgt_end];
     }
   }
 
@@ -344,15 +346,14 @@ sub draw_multiple_alignment {
   # the subseq() method
   my $ref_dna = $feature->subseq(1-$offset_left,$feature->length+$offset_right)->seq;
 
-  # old version
+  # this may not be right if the alignment involves only a portion of the target DNA
+  my $tgt_dna   = $feature->hit->dna;
+
+
+  # none of these seem to be working properly with BAM alignments
+  # my $tgt_len = abs($segments[-1]->[TGT_END] - $segments[0]->[TGT_START]) + 1;
   # my $tgt_dna = $feature->hit->subseq(1-$offset_left,$feature->length+$offset_right)->seq;
-
-  # dirty hack
-  # my $tgt_dna   = $feature->hit->dna;
-
-  # this MIGHT be right
-  my $tgt_len = abs($segments[-1]->[TGT_END] - $segments[0]->[TGT_START]) + 1;
-  my $tgt_dna = $feature->hit->subseq(1-$offset_left,$tgt_len+$offset_right)->seq;
+  # my $tgt_dna = $feature->hit->subseq(1-$offset_left,$tgt_len+$offset_right)->seq;
 
   # work around changes in the API
   $ref_dna    = $ref_dna->seq if ref $ref_dna and $ref_dna->can('seq');
@@ -401,9 +402,11 @@ sub draw_multiple_alignment {
 
   # relativize coordinates
   if ($strand < 0) {
-    $ref_dna = $self->reversec($ref_dna);
+# breaks BAM, but probably needed for non-BAM features
+    $ref_dna = $self->reversec($ref_dna) unless eval { $feature->reversed } ;
     $tgt_dna = $self->reversec($tgt_dna);
   }
+
 
   for my $seg (@segments) {
     $seg->[SRC_START] -= $abs_start - 1;

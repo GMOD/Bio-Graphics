@@ -1,4 +1,6 @@
 Revision history for Perl extension Bio::Graphics.
+1.991 Mon Nov 16 09:20:18 EST 2009
+      - CPAN upload failed due to lack of $VERSION in hybrid_plot. Uploaded again.
 1.99 Mon Nov 16 08:15:23 EST 2009  
      - Segments glyph now handles indels for features that have CIGAR strings.
 1.982 Wed Aug 26 17:57:43 EDT 2009

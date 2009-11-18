@@ -6,6 +6,7 @@ use constant DEBUG=>0;
 use constant NEGCOL=>"orange";
 use constant POSCOL=>"blue";
 
+our $VERSION = '1.0';
 
 #Checking the method for individual features (RNA-Seq reads)
 sub _check_uni {
