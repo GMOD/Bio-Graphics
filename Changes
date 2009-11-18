@@ -1,4 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
+
+1.992 Wed Nov 18 13:06:07 EST 2009
+      - Fixed issue in which the connector vanishes when zoomed in to
+        the region between two parts (such as the region between two
+        exons)
+
 1.991 Mon Nov 16 09:20:18 EST 2009
       - CPAN upload failed due to lack of $VERSION in hybrid_plot. Uploaded again.
 1.99 Mon Nov 16 08:15:23 EST 2009  

@@ -2,7 +2,7 @@ package Bio::Graphics;
 
 use strict;
 use Bio::Graphics::Panel;
-our $VERSION = '1.991';
+our $VERSION = '1.992';
 
 1;
 
