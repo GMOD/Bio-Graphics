@@ -198,7 +198,7 @@ sub draw_plot {
     if ($type eq 'boxes') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
-	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$color,$color,$lw) if $y1-$y2;
+	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$color,$color,$lw) if abs($y2-$y1) > 0;
 	}
     }
 

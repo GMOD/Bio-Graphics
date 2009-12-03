@@ -1219,6 +1219,7 @@ sub filled_box {
   $bg ||= $self->bgcolor;
   $fg ||= $self->fgcolor;
   $lw ||= $self->option('linewidth') || 1;
+  $x2 = $x1+1 if abs($x2-$x1) < 1;
 
   $gd->filledRectangle($x1,$y1,$x2,$y2,$bg);
   $fg = $self->set_pen($lw,$fg) if $lw > 1;

@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
 
+1.993 Thu Dec  3 06:36:06 EST 2009
+      - Fixed issue which caused GD::SVG rendering of xyplot glyph to show scale
+      but no values under some circumstances.
+
 1.992 Wed Nov 18 13:06:07 EST 2009
       - Fixed issue in which the connector vanishes when zoomed in to
         the region between two parts (such as the region between two
