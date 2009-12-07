@@ -16,6 +16,7 @@ lib/Bio/Graphics/FeatureFile.pm
 lib/Bio/Graphics/FeatureFile/Iterator.pm
 lib/Bio/Graphics/Glyph.pm
 lib/Bio/Graphics/Glyph/alignment.pm
+lib/Bio/Graphics/Glyph/allele_tower.pm
 lib/Bio/Graphics/Glyph/anchored_arrow.pm
 lib/Bio/Graphics/Glyph/arrow.pm
 lib/Bio/Graphics/Glyph/box.pm
