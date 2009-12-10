@@ -1446,7 +1446,6 @@ sub subfeat {
   my $self    = shift;
   my $feature = shift;
 
-
   return $self->_subfeat($feature) unless ref $self;  # protect against class invocation
 
   return if $self->level == 0 && $self->no_subparts;

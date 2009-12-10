@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
 
+1.994 Thu Dec 10 10:07:19 EST 2009
+      - The GFF3 Gap attribute (which contains a CIGAR string) is now supported in the segments
+      glyph. Set -split_on_cigar=>1 when creating the track in order to activate this feature.
+
 1.993 Thu Dec  3 06:36:06 EST 2009
       - Fixed issue which caused GD::SVG rendering of xyplot glyph to show scale
       but no values under some circumstances.

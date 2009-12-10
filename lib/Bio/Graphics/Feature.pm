@@ -116,7 +116,23 @@ Get the subfeatures of this feature. If an optional list of types is
 provided, then only returns subfeatures with the indicated
 primary_tag. (This is an extension of the Bio::SeqFeatureI interface).
 
+=item $feature->add_hit($hit)
+
+For nucleotide alignments, add a feature that is a "hit" on the feature.
+
+=item $hit = $feature->hit
+
+Return the hit.
+
 =cut
+
+sub add_hit {
+    my $self = shift;
+    my $hit = shift;
+    $self->{_hit} = $hit;
+}
+
+sub hit { shift->{_hit} }
 
 sub get_SeqFeatures {
     my $self   = shift;
@@ -135,6 +151,8 @@ sub each_tag_value {
   return $ref && $ref eq 'ARRAY' ? @{$self->{attributes}{$tag}}
                                  : $self->{attributes}{$tag};
 }
+
+
 
 =item segments()
 

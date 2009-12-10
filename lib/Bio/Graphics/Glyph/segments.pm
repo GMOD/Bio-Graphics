@@ -69,6 +69,11 @@ sub my_options {
 	      'Show the target DNA in its native (plus strand) orientation, even',
 	      'if the alignment is to the minus strand.',
 	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+	  split_on_cigar => [
+	      'boolean',
+	      undef,
+	      'If true, and if the feature contains a CIGAR string as the value of the Gap',
+	      'tag, then split the feature into subparts based on the CIGAR.'],
 	  realign => [
 	      'boolean',
 	      undef,
@@ -162,6 +167,104 @@ sub maxdepth {
 #  return $self->bgcolor;
 #}
 
+# Override _subfeat() method to make it appear that a top-level feature that
+# has no subfeatures appears as a feature that has a single subfeature.
+# Otherwise at high mags gaps will be drawn as components rather than
+# as connectors.  Because of differing representations of split features
+# in Bio::DB::GFF::Feature and Bio::SeqFeature::Generic, there is
+# some breakage of encapsulation here.
+sub _subfeat {
+    my $self    = shift;
+    my $feature = shift;
+
+    my @subfeat = $self->SUPER::_subfeat($feature);
+
+    if (!@subfeat && $self->option('split_on_cigar')) {
+	my $cigar   = $self->_get_cigar($feature);
+	if ($cigar && @$cigar) {
+	    return $self->_split_on_cigar($feature,$cigar);
+	}
+    }
+
+    return @subfeat if @subfeat;
+    if ($self->level == 0 && !@subfeat && !$self->feature_has_subparts) {
+	return $self->feature;
+    } else {
+	return;
+    }
+}
+
+sub _split_on_cigar {
+    my $self = shift;
+    my ($feature,$cigar) = @_;
+
+    my $source_start = $feature->start;
+    my $source_end   = $feature->end;
+    my $ss  = $feature->strand;
+    my $ts  = $feature->hit->strand;
+    my $target_start = eval {$feature->hit->start} || return $feature;
+
+    my (@parts);
+
+    # BUG: we handle +/+ and -/+ alignments, but not +/- or -/-
+    # (i.e. the target has got to have forward strand coordinates)
+
+    # forward strand
+    if ($ss >= 0) {  
+	for my $event (@$cigar) {
+	    my ($op,$count) = @$event;
+	    if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
+		$target_start += $count;
+	    }
+	    elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
+		$source_start += $count;
+	    } else {  # everything else is assumed to be a match -- revisit
+		push @parts,[$source_start,$source_start+$count-1,
+			     $target_start,$target_start+$count-1];
+		$source_start += $count;
+		$target_start += $count;
+	    }
+	}
+
+    # minus strand
+    } else {
+	for my $event (@$cigar) {
+	    my ($op,$count) = @$event;
+	    if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
+		$target_start += $count;
+	    }
+	    elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
+		$source_end -= $count;
+	    } else {  # everything else is assumed to be a match -- revisit
+		push @parts,[$source_end-$count+1,$source_end,
+			     $target_start,$target_start+$count-1];
+		$source_end   -= $count;
+		$target_start += $count;
+	    }
+	}
+	
+    }
+
+    my $id  = $feature->seq_id;
+    my $tid = $feature->hit->seq_id;
+    my @result = map {
+	my ($s1,$s2,$t1,$t2) = @$_;
+	my $s = Bio::Graphics::Feature->new(-seq_id=> $id,
+					    -start => $s1,
+					    -end   => $s2,
+					    -strand => $ss,
+	    );
+	my $h = Bio::Graphics::Feature->new(-seq_id=> $tid,
+					    -start => $t1,
+					    -end   => $t2,
+					    -strand => $ts,
+	    );
+	$s->add_hit($h);
+	$s;
+    } @parts;
+    return @result;
+}
+
 sub draw {
   my $self = shift;
 
@@ -252,6 +355,7 @@ sub draw_multiple_alignment {
 
   my (@segments,%strands);
   for my $s (@s) {
+
     my $target = $s->hit;
     my ($src_start,$src_end) = ($s->start,$s->end);
     next unless $src_start <= $panel_end && $src_end >= $panel_start;
@@ -269,7 +373,7 @@ sub draw_multiple_alignment {
       $strands{$target} = $strand;
     }
 
-    my $cigar = eval {$s->cigar_array};
+    my $cigar = $self->_get_cigar($s);
 
     if ($cigar || ($can_realign && $do_realign)) {
 	my ($sdna,$tdna) = ($s->dna,$target->dna);	
@@ -602,7 +706,24 @@ sub pads_to_segments {
     return wantarray ? @result : \@result;
 }
 
+sub _get_cigar {
+    my $self = shift;
+    my $feat = shift;
+    
+    # some features have this built in
+    return $feat->cigar_array if $feat->can('cigar_array');
 
+    my ($cigar) = $feat->get_tag_values('Gap');
+    return unless $cigar;
+
+    my @arry;
+    while ($cigar =~ /(\d*)([A-Z])/g) {
+	my ($count,$op) = ($1,$2);
+	$count ||= 1;
+	push @arry,[$op,$count];
+    }
+    return \@arry;
+}
 
 sub _subsequence {
   my $self = shift;
@@ -615,24 +736,6 @@ sub _subsequence {
     $sub = substr($seq,$start-1,$end-$start+1);
   }
   return $self->flip ? $complement{$sub} : $sub;
-}
-
-# Override _subfeat() method to make it appear that a top-level feature that
-# has no subfeatures appears as a feature that has a single subfeature.
-# Otherwise at high mags gaps will be drawn as components rather than
-# as connectors.  Because of differing representations of split features
-# in Bio::DB::GFF::Feature and Bio::SeqFeature::Generic, there is
-# some breakage of encapsulation here.
-sub _subfeat {
-  my $self    = shift;
-  my $feature = shift;
-  my @subfeat  = $self->SUPER::_subfeat($feature);
-  return @subfeat if @subfeat;
-  if ($self->level == 0 && !@subfeat && !$self->feature_has_subparts) {
-    return $self->feature;
-  } else {
-    return;
-  }
 }
 
 # draw the classic "i-beam" icon to indicate that an insertion fits between
