@@ -577,7 +577,7 @@ sub _retrieve_values {
 
   # if the length is grossly greater than the samples, then we won't even
   # bother fetching all the data, but just sample into the disk file
-  if ($length/$samples > 100) {
+  if ($length/$samples > 100 && $step == 1) {
       my @result;
       my $window   = 20*($span/$step);
       my $interval = $length/$samples;
