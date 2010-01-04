@@ -100,7 +100,8 @@ sub bump {
   my $self = shift;
   return 1 # top level bumps, other levels don't unless specified in config
     if $self->{level} == 0
-      && lc $self->feature->primary_tag eq 'gene'; 
+      && lc $self->feature->primary_tag eq 'gene'
+      && eval {($self->subfeat($self->feature))[0]->type =~ /RNA|pseudogene/i};
   return $self->SUPER::bump;
 }
 
@@ -158,7 +159,11 @@ sub _subfeat {
       push @transcripts, $feature->get_SeqFeatures($t);
     }
     return @transcripts if @transcripts;
-    return $feature->get_SeqFeatures;  # no transcripts?! return whatever's there
+    my @features = $feature->get_SeqFeatures;  # no transcripts?! return whatever's there
+    return @features if @features;
+
+    # fall back to drawing a solid box if no subparts and level 0
+    return ($feature) if $class->{level} == 0;
   }
   elsif ($feature->primary_tag =~ /^CDS/i) {
       my @parts = $feature->get_SeqFeatures();

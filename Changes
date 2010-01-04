@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
 
+1.995 
+      - Fixed the gene glyph so that non-SO genes (gene=>exon without an intervening transcript)
+        display properly. Otherwise the exons were bumping.
+
 1.994 Thu Dec 10 10:07:19 EST 2009
       - The GFF3 Gap attribute (which contains a CIGAR string) is now supported in the segments
       glyph. Set -split_on_cigar=>1 when creating the track in order to activate this feature.

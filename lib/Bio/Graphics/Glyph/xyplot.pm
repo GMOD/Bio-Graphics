@@ -10,6 +10,64 @@ our $VERSION = ${Bio::Root::Version::VERSION};
 
 use constant DEBUG=>0;
 
+sub my_description { 
+    return <<'END';
+This glyph is used for drawing features that have a position on the
+genome and a numeric value.  It can be used to represent gene
+prediction scores, motif-calling scores, percent similarity,
+microarray intensities, or other features that require a line plot.
+
+The plot is designed to work on a single feature group that contains
+subfeatures. It is the subfeatures that carry the score
+information. For a more efficient implementation that is suitable for
+dense genome-wide data, use Bio::Graphics::Wiggle and the
+wiggle_xyplot glyph.
+END
+
+}
+sub my_options {
+    {
+	point_radius => [
+	      'integer',
+	      1,
+	      'When drawing data points, this specifies the radius of each point.',
+	    ],
+	 clip => [
+	     'boolean',
+	     0,
+	     'If min_score and/or max_score are manually specified,',
+	     'then setting this to true will cause values outside the',
+	     'range to be clipped.'
+	    ],
+	 graph_type => [
+	     'string',
+	     'histogram',
+	     'Type of graph to generate. Options are "histogram", "boxes",',
+	     '"line","points", or "linepoints".'
+	     ],
+	 point_symbol => [
+	     'string',
+	     'none',
+	     'Symbol to use for each data point when drawing line graphs.',
+	     'Options are "triangle", "square", "disc", "filled_triangle",',
+	     '"filled_square", "filled_disc", "point" and "none"',
+	 ],
+	 scale => [
+	     'string',
+	     'right',
+	     'Position where the Y axis scale is drawn, if any.',
+	     'Options are one of "left", "right", "both" or "none".',
+	 ],
+
+	 scale_color => [
+	     'color',
+	     'fgcolor',
+	     'Color of the X and Y scales. Defaults to the same as fgcolor.',
+	 ]
+	 
+    };
+}
+
 my %SYMBOLS = (
 	       triangle => \&draw_triangle,
 	       square   => \&draw_square,
@@ -632,12 +690,6 @@ glyph-specific options:
 
   -graph_height Specify height of the graph   Same as the
                                               "height" option.
-
-  -pos_color   For boxes only, bgcolor for    Same as bgcolor
-               points with positive scores
-
-  -neg_color   For boxes only, bgcolor for    Same as bgcolor
-               points with negative scores
 
   -part_color  For boxes & points only,       none
                bgcolor of each part (should

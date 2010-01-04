@@ -81,7 +81,7 @@ sub bgfallback {
 
 sub bgcolor {
     my $self    = shift;
-    my $bgcolor = $self->factory->{options}{'bgcolor'};
+    my $bgcolor  = $self->option('bgcolor');
     return $bgcolor if defined $bgcolor;
     return 'gneg:white gpos25:silver gpos50:gray gpos:gray  gpos75:darkgray gpos100:black acen:cen gvar:var';
 }
@@ -188,13 +188,13 @@ sub draw_component {
       $bgcolor_index = $fallback;
   }
   elsif ($bgcolor_index =~ /\w+:/) {
-      ($bgcolor_index) = $self->bgcolor =~ /$stain:(\S+)/ if $stain;
+      ($bgcolor_index)        = $self->bgcolor =~ /$stain:(\S+)/ if $stain;
       ($bgcolor_index,$stain) = qw/white none/ if !$stain;
   }
 
   my $black = $gd->colorAllocate( 0, 0, 0 );
-  my $cm_color  = $self->{cm_color}  ||= $self->translate_color('lightgrey');
-  my $var_color = $self->{var_color} ||= $self->translate_color('#805080' );
+  my $cm_color  = $self->{cm_color}  ||= $self->cm_color;
+  my $var_color = $self->{var_color} ||= $self->var_color;
 
   my $bgcolor = $self->factory->translate_color($bgcolor_index);
   my $fgcolor = $self->fgcolor;
@@ -274,6 +274,7 @@ sub draw_outline {
 sub draw_centromere {
   my $self = shift;
   my ( $gd, $x1, $y1, $x2, $y2, $bgcolor, $fgcolor ) = @_;
+
   # blank slate
   $self->wipe(@_);
 
@@ -383,6 +384,10 @@ sub draw_stalk {
 sub create_tile {
   my $self      = shift;
   my $direction = shift;
+
+  my $gd = $self->panel->gd;
+  return unless $gd->can('setTile');
+
   # Prepare tile to use for filling an area
   my $tile;
   if ( $direction eq 'right' ) {
@@ -400,7 +405,7 @@ sub create_tile {
     $tile->line( 4, 0, 0, 4, $black);
   }
 
-  $self->panel->gd->setTile($tile);
+  $gd->setTile($tile);
   return $tile;
 }
 
@@ -424,6 +429,22 @@ sub wipe {
 
 # Disable bumping entirely, since it messes up the ideogram
 sub bump { return 0; }
+
+sub cm_color {
+    my $self    = shift;
+    my $bgcolor = $self->bgcolor;
+    my ($c)     = $bgcolor =~ /cen:(\S+)/;
+    $c         ||= 'lightgrey';
+    return $self->translate_color($c);
+}
+
+sub var_color {
+    my $self    = shift;
+    my $bgcolor = $self->bgcolor;
+    my ($c)     = $bgcolor =~ /var:(\S+)/;
+    $c         ||= '#805080';
+    return $self->translate_color($c);
+}
 
 1;
 

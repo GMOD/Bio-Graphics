@@ -5,6 +5,37 @@ use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
 use File::Spec;
 
+sub my_description {
+    return <<END;
+This glyph draws quantitative data as a heatmap. Higher-intensity parts of the feature
+will be drawn with more saturation.
+
+For this glyph to work, the feature must define one of the following tags:
+
+  wigfile -- a path to a Bio::Graphics::Wiggle file
+
+  wigdata -- Wiggle data in the Bio::Graphics::Wiggle "wif" format, as created
+             by \$wig->export_to_wif().
+
+  coverage-- a simple comma-delimited string containing the quantitative values,
+             assumed to be one value per pixel.
+
+END
+}
+
+sub my_options {
+    {
+	basedir => [
+	    'string',
+	    undef,
+	    'If a relative path is used for "wigfile", then this option provides',
+	    'the base directory on which to resolve the path.'
+	    ],
+    };
+}
+
+
+
 sub draw {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
