@@ -61,13 +61,23 @@ sub my_options {
 	    'option indicates the depth of recursion.'
 	],
 	fgcolor => [
-	    'color',
+	    ['color','featureScore','featureRGB'],
 	    'black',
-	    'The foreground color of the glyph, used for drawing outlines.'],
+	    'The foreground color of the glyph, used for drawing outlines.',
+	    'A value of "featureScore" will produce a greyscale gradient from the',
+	    "feature's score value based on a range from 0 (lightest) to 1000 (darkest).",
+	    'A value of "featureRGB" will look for a feature tag named "RGB" and use that',
+	    'for the color value.',
+	    'See the next section for color choices.'],
 	bgcolor => [
-	    'color',
+	    ['color','featureScore','featureRGB'],
 	    'turquoise',
-	    'The background color of the glyph, used for filling its contents.'],
+	    'The background color of the glyph, used for filling its contents.',
+	    'A value of "featureScore" will produce a greyscale gradient from the',
+	    "feature's score value based on a range from 0 (lightest) to 1000 (darkest).",
+	    'A value of "featureRGB" will look for a feature tag named "RGB" and use that',
+	    'for the color value.',
+	    'See the next section for color choices.'],
 	fillcolor => [
 	    'color',
 	    'turquoise',
@@ -651,8 +661,18 @@ sub hbumppad {
 # we also look for the "color" option for Ace::Graphics compatibility
 sub fgcolor {
   my $self  = shift;
-  my $index   = $self->option('color') || $self->option('fgcolor');
+  my $fgcolor = $self->option('color') || $self->option('fgcolor');
+
+  my $index   = $fgcolor;
   $index = 'black' unless defined $index;
+
+  if ($index eq 'featureRGB') {
+      ($index) = $self->feature->get_tag_values('RGB');
+      $index ||= $fgcolor;
+  } elsif ($index eq 'featureScore') {
+      $index = $self->score_to_color;
+  }
+
   $self->factory->translate_color($index);
 }
 
@@ -668,7 +688,37 @@ sub bgcolor {
   my $bgcolor = $self->option('bgcolor');
   my $index = defined $bgcolor ? $bgcolor : $self->option('fillcolor');
   $index = 'white' unless defined $index;
+
+  if ($index eq 'featureRGB') {
+      ($index) = $self->feature->get_tag_values('RGB');
+      $index ||= $bgcolor;
+  } elsif ($index eq 'featureScore') {
+      $index = $self->score_to_color;
+  }
+
   $self->factory->translate_color($index);
+}
+
+# for compatibility with UCSC genome browser useScore option
+sub score_to_color {
+    my $self = shift;
+    my $feature   = $self->feature;
+
+    my ($score)   = $feature->can('score') 
+                  ? $feature->score
+                  : $feature->get_tag_values('score');
+
+    my $max_score = 945;  # defined by UCSC docs
+    my $min_score = 166;
+    my $min_gray = 0;
+    my $max_gray = 255;
+    my $rgb_per_score = ($max_gray-$min_gray)/($max_score-$min_score);
+
+    $score = $max_score if $score > $max_score;
+    $score = $min_score if $score < $min_score;
+
+    my $gray = int($max_gray - ($min_gray + ($score-$min_score) * $rgb_per_score));
+    return "rgb($gray,$gray,$gray)";
 }
 
 sub getfont {

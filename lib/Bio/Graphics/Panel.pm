@@ -2196,6 +2196,15 @@ named "transparent". In the rgb() and rgba() forms, red, green, blue
 values can be specified as percentages, as in rgb(100%,0%,50%);
 otherwise, the values are integers from 0 to 255.
 
+In addition, the -fgcolor and -bgcolor options accept the special
+color names "featureScore" and "featureRGB". In the first case,
+Bio::Graphics will examine each feature in the track for a defined
+"score" tag (or the presence of a score() method) with a numeric value
+ranging from 0-1000. It will draw a grayscale color ranging from
+lightest (0) to darkest (1000). If the color is named "featureRGB",
+then Bio::Graphics will look for a tag named "RGB" and will use that
+as the color.
+
 B<Foreground color:> The -fgcolor option controls the foreground
 color, including the edges of boxes and the like.
 

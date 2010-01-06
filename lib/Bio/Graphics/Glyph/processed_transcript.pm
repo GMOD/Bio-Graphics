@@ -158,6 +158,7 @@ sub thin_utr {
 
 sub utr_color {
   my $self = shift;
+  return $self->SUPER::bgcolor if $self->thin_utr;
   return $self->color('utr_color') if $self->option('utr_color');
   return $self->factory->translate_color(DEFAULT_UTR_COLOR);
 }

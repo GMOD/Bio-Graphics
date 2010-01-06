@@ -1,8 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
 
-1.995 
+1.995 Wed Jan  6 10:06:17 EST 2010
       - Fixed the gene glyph so that non-SO genes (gene=>exon without an intervening transcript)
         display properly. Otherwise the exons were bumping.
+      - Added support for "featureRGB" and "featureScore" special color names. This provides
+        an additional level of UCSC graphics compatibility.
 
 1.994 Thu Dec 10 10:07:19 EST 2009
       - The GFF3 Gap attribute (which contains a CIGAR string) is now supported in the segments
