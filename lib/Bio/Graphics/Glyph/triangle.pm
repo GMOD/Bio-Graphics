@@ -20,6 +20,13 @@ sub pad_right {
   return $extra > $right ? $extra : $right;
 }
 
+sub orient {
+    my $self = shift;
+    my $o    = $self->option('orient');
+    $o       = $self->option('direction') unless defined $o;
+    return $o || 'S';
+}
+
 sub draw_component {
   my $self = shift;
   my $gd = shift;

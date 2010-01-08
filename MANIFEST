@@ -24,6 +24,7 @@ lib/Bio/Graphics/Glyph/broken_line.pm
 lib/Bio/Graphics/Glyph/cds.pm
 lib/Bio/Graphics/Glyph/christmas_arrow.pm
 lib/Bio/Graphics/Glyph/crossbox.pm
+lib/Bio/Graphics/Glyph/cross.pm
 lib/Bio/Graphics/Glyph/dashed_line.pm
 lib/Bio/Graphics/Glyph/diamond.pm
 lib/Bio/Graphics/Glyph/dna.pm

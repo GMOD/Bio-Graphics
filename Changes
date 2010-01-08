@@ -1,5 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
 
+1.996
+     - Added the "cross" glyph for DAS compatibility.
+     - Fixed the triangle glyph so that DAS stylesheets can set orientation
+       properly.	
+
 1.995 Wed Jan  6 10:06:17 EST 2010
       - Fixed the gene glyph so that non-SO genes (gene=>exon without an intervening transcript)
         display properly. Otherwise the exons were bumping.
