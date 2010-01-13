@@ -655,7 +655,7 @@ L<Bio::Graphics::Glyph> for a full explanation.
 
   -hilite       Highlight color                undef (no color)
 
-In addition, the alignment glyph recognizes the following
+In addition, the xyplot glyph recognizes the following
 glyph-specific options:
 
   Option         Description                  Default
