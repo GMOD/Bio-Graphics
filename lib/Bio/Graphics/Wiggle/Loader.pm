@@ -168,12 +168,10 @@ sub conf_stanzas {
 	push @lines,"description = $options->{description}"
 	    if $options->{description};
 	if (my $color = $options->{color}) {
-	    push @lines,($options->{visibility} =~ /pack|dense/i ? "pos_color=" : "fgcolor=")
-		. format_color($color);
+	    push @lines,"bgcolor=".format_color($color);
 	}
 	if (my $color = $options->{altColor}) {
-	    push @lines,($options->{visibility} =~ /pack|dense/i ? "neg_color=" : "bgcolor=")
-		. format_color($color);
+	    push @lines,"fgcolor=" . format_color($color);
 	}
 	if (exists $options->{viewLimits} and my ($low,$hi) = split ':',$options->{viewLimits}) {
 	    push @lines,"min_score   =  $low";
@@ -608,6 +606,7 @@ sub wigfile {
 
 sub format_color {
   my $rgb = shift;
+  return $rgb unless $rgb =~ /\d+,\d+,\d+/;
   my ($r,$g,$b) = split ',',$rgb;
   my $hex = '#'.join '',map {sprintf("%02X",$_)}($r,$g,$b);
   return translate_color($hex);
