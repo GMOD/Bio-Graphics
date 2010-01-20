@@ -1,8 +1,29 @@
 package Bio::Graphics::Glyph::smoothing;
+use base 'Bio::Graphics::Glyph';
 
 use strict;
 
 use constant SMOOTHING  => 'mean';
+
+sub my_options {
+    {
+	smoothing => [
+	    ['none','mean','max','min'],
+	    'none',
+	     'Whether to smooth data values across a defined window.',
+	     'Mean smoothing will run a rolling mean across the window.',
+	     'Max smoothing will take the maximum value across the window,',
+	     'and min smoothing will take the minimum value.'
+	    ],
+	smoothing_window => [
+	    'integer',
+	    undef,
+	     'Size of the smoothing window. If not specified, the window',
+             'will be taken to be 10% of the region under display.'
+	    ],
+    };
+}
+
 
 sub get_smoothing {
   my $self = shift;
