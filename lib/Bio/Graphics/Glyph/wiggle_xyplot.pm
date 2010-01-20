@@ -42,7 +42,14 @@ sub my_options {
 	    'If true, draw a semi-transparent band across the image that indicates',
 	    'the mean and standard deviation of the data set. Only of use when a wig',
 	    'file is provided.'
-        ]
+        ],
+	autoscale => [
+	    ['local','global'],
+            'local',
+	    'If set to "global" , then the minimum and maximum values of the XY plot',
+	    'will be taken from the wiggle file as a whole. Otherwise, the plot will be',
+	    'scaled to the minimum and maximum values of the region currently on display.'
+        ],
     };
 }
 
