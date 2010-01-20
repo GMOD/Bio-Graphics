@@ -86,13 +86,13 @@ sub pad_right {
 
 sub pad_bottom {
   my $self = shift;
-  return 0 unless $self->{level} < 2; # don't invoke this expensive call on exons
+  return 0 unless $self->{level} < 2 || $self->is_utr; # don't invoke this expensive call on exons
   return $self->SUPER::pad_bottom;
 }
 
 sub pad_top {
   my $self = shift;
-  return 0 unless $self->{level} < 2; # don't invoke this expensive call on exons
+  return 0 unless $self->{level} < 2 || $self->is_utr; # don't invoke this expensive call on exons
   return $self->SUPER::pad_top;
 }
 
