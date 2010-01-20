@@ -52,6 +52,13 @@ feature. In the case of "featurefile", the returned file will contain
 GBrowse stanzas that describe a reasonable starting format to display
 the data.
 
+=item $loader->allow_sampling(1)
+
+If allow_sampling() is passed a true value, then very large files
+(more than 5 MB) will undergo a sampling procedure to find their
+minimum and maximum values and standard deviation. Otherwise, file
+will be read in its entirety to generate those statistics.
+
 =back
 
 =head2 EXTENSIONS
@@ -126,9 +133,15 @@ sub new {
 		trackname       => $trackname,
 	        tracknum        => '000',
 		track_options   => {},
+		allow_sampling  => 0,
 	       },ref $class || $class;
 }
-
+sub allow_sampling {
+    my $self = shift;
+    my $d    = $self->{allow_sampling};
+    $self->{allow_sampling} = shift if @_;
+    $d;
+}
 sub basedir  { shift->{base}     }
 sub wigfiles { shift->{wigfiles} }
 sub conf_stanzas {
@@ -356,7 +369,7 @@ sub minmax {
   my $seqids = ($self->current_track->{seqids} ||= {});
   my $chrom  = $self->{track_options}{chrom};
 
-  if ((my $size = stat($infh)->size) > BIG_FILE) {
+  if ($self->allow_sampling && (my $size = stat($infh)->size) > BIG_FILE) {
       warn "Wiggle file is very large; resorting to genome-wide sample statistics for $chrom.\n";
       $self->{FILEWIDE_STATS} ||= $self->sample_file($infh,BIG_FILE_SAMPLES);
       for (keys %{$self->{FILEWIDE_STATS}}) {
