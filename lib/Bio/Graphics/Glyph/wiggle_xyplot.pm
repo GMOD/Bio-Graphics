@@ -378,6 +378,7 @@ sub create_parts_for_dense_feature {
 
     my $span = $self->scale> 1 ? $end - $start : $self->width;
     my $data = $dense->values($start,$end,$span);
+    # warn join ' ',map{int($_+0.5)} @$data;
     my $points_per_span = ($end-$start+1)/$span;
     my @parts;
 

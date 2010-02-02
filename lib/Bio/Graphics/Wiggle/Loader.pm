@@ -401,6 +401,7 @@ sub minmax {
   }
 
   for my $seqid (keys %stats) {
+      warn "seqid = $seqid, max=",$stats{$seqid}->max();
       $seqids->{$seqid}{min}    = $stats{$seqid}->min();
       $seqids->{$seqid}{max}    = $stats{$seqid}->max();
       $seqids->{$seqid}{mean}   = $stats{$seqid}->mean();
@@ -597,7 +598,7 @@ sub wigfile {
     my $span = $self->{track_options}{span} || 
 	$self->{track_options}{step}        || 
 	1;
-    my $trim      = $self->current_track->{display_options}{trim} || 'stdev2';
+    my $trim      = $self->current_track->{display_options}{trim} || 'stdev10';
     my $transform = $self->current_track->{display_options}{transform};
     my $wigfile = Bio::Graphics::Wiggle->new(
 					     $path,

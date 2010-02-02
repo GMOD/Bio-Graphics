@@ -255,6 +255,7 @@ sub new {
   my $stored_options = eval {$self->_readoptions} || {};
   $options->{start}-- if defined $options->{start};  # 1-based ==> 0-based coordinates
   my %merged_options = (%$stored_options,%$options);
+  warn "merged options = ",join ' ',%merged_options;
   $merged_options{version}||= 0;
   $merged_options{seqid}  ||= 'chrUnknown';
   $merged_options{min}    ||= 0;
@@ -575,21 +576,35 @@ sub _retrieve_values {
   my $length = $end-$start+1;
   $samples ||= $length;
 
+  warn "samples = $samples, length=$length, span=$span, step=$step";
+  warn "length/samples = ",$length/$samples;
+
   # if the length is grossly greater than the samples, then we won't even
   # bother fetching all the data, but just sample into the disk file
   if ($length/$samples > 100 && $step == 1) {
       my @result;
-      my $window   = 20*($span/$step);
+#      my $window   = 20*($span/$step);
       my $interval = $length/$samples;
+#      my $window   = 100*$interval/$span;
+      my $window    = $interval/2;
+      warn "window = $window, interval = $interval";
       for (my $i=0;$i<$samples;$i++) {
-	  my $packed_data = $self->_retrieve_packed_range($start+$i*$interval,$window,$step);
+	  my $packed_data = $self->_retrieve_packed_range(int($start+$i*$interval-$window),
+							  int($window),
+							  $step);
 	  my @bases= grep {$_} unpack('C*',$packed_data);
 	  if (@bases) {
-	      my $arry = $self->unscale(\@bases);	  
+	      my $arry = $self->unscale(\@bases);	 
 	      my $n    = @$arry;
 	      my $total = 0;
 	      $total   += $_ foreach @$arry;
-	      push @result,$total/$n;
+	      my $mean = $total/$n;
+	      my $max;
+	      for (@$arry) { $max = $_ if !defined $max || $max < $_ }
+#	      warn $start+$i*$interval,': ',join(',',map {int($_)} @$arry),
+#	      " mean = $mean, max = $max";
+#	      push @result,$mean;
+	      push @result,$max;
 	  } else {
 	      push @result,0;
 	  }

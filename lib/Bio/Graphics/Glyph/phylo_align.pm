@@ -56,6 +56,7 @@ sub extract_features {
   #						      $self->feature->start => $self->feature->stop);
   #my @match = $segment->features('submatch:pa'); 
   my @match = $self->feature->features('submatch:pa');
+  warn $self->feature->features;
 #print "Match has ",$#match,"<p>\n";
   
   # exract wifiles here too:
@@ -126,7 +127,7 @@ sub unknown_species {
     @unknown_species;
   } else {
     %alignments = $self->extract_features;
-    $refspecies = $self->option('reference');
+    $refspecies = $self->option('reference_species');
     @current_species =  keys %alignments;   #all species in viewing window
     @known_species = $self->known_species;  #all species from cladogram info
     @unknown_species;                       #species in GFF but not in clado
@@ -422,7 +423,7 @@ sub draw {
 # TODO: Gap entries give an undef for the min values for some reason
   
   
-  my $refspecies = $self->option('reference');
+  my $refspecies = $self->option('reference_species');
   
   my @current_species = keys %alignments;    #all species in viewing window
   my @known_species = $self->known_species($tree);  #all species from cladogram info
