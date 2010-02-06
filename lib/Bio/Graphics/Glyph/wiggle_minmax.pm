@@ -15,8 +15,8 @@ sub minmax {
     my $do_min     = !defined $min_score;
     my $do_max     = !defined $max_score;
 
-    warn "wigmin = ",$self->wig->min;
-    warn "wigmax = ",$self->wig->max;
+    #warn "wigmin = ",$self->wig->min;
+    #warn "wigmax = ",$self->wig->max;
 
     if ($autoscale eq 'global') {
 	if (my $wig = $self->wig) {	
