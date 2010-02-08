@@ -376,7 +376,8 @@ sub draw_multiple_alignment {
     my $cigar = $self->_get_cigar($s);
 
     if ($cigar || ($can_realign && $do_realign)) {
-	my ($sdna,$tdna) = ($s->dna,$target->dna);	
+	my ($sdna,$tdna) = ($s->dna,$target->dna);
+	
 	my @exact_segments;
 
 	if ($cigar) {
@@ -711,7 +712,11 @@ sub _get_cigar {
     my $feat = shift;
     
     # some features have this built in
-    return $feat->cigar_array if $feat->can('cigar_array');
+    if ($feat->can('cigar_array')) {
+	my $cigar = $feat->cigar_array;
+	@$cigar = reverse @$cigar if $feat->strand < 0;
+	return $cigar;
+    }
 
     my ($cigar) = $feat->get_tag_values('Gap');
     return unless $cigar;
