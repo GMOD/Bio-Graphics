@@ -6,6 +6,8 @@ Revision history for Perl extension Bio::Graphics.
        properly.	
      - Fixed wiggle_xyplot/density documentation of smoothing options.  
      - Turn off sampling from wiggle loader by default (turn it on with --sample option).
+     - Multiple sequence alignment code in the segments glyph has been updated to deal with
+       the Samtools case of both reference DNA and target reporting minus strand alignments.
      - It felt like time to go to 2.00.
 
 1.995 Wed Jan  6 10:06:17 EST 2010
