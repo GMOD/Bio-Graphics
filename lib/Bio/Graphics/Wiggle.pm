@@ -255,7 +255,7 @@ sub new {
   my $stored_options = eval {$self->_readoptions} || {};
   $options->{start}-- if defined $options->{start};  # 1-based ==> 0-based coordinates
   my %merged_options = (%$stored_options,%$options);
-  warn "merged options = ",join ' ',%merged_options;
+#  warn "merged options = ",join ' ',%merged_options;
   $merged_options{version}||= 0;
   $merged_options{seqid}  ||= 'chrUnknown';
   $merged_options{min}    ||= 0;
@@ -576,8 +576,8 @@ sub _retrieve_values {
   my $length = $end-$start+1;
   $samples ||= $length;
 
-  warn "samples = $samples, length=$length, span=$span, step=$step";
-  warn "length/samples = ",$length/$samples;
+#  warn "samples = $samples, length=$length, span=$span, step=$step";
+#  warn "length/samples = ",$length/$samples;
 
   # if the length is grossly greater than the samples, then we won't even
   # bother fetching all the data, but just sample into the disk file
@@ -587,7 +587,7 @@ sub _retrieve_values {
       my $interval = $length/$samples;
 #      my $window   = 100*$interval/$span;
       my $window    = $interval/2;
-      warn "window = $window, interval = $interval";
+#      warn "window = $window, interval = $interval";
       for (my $i=0;$i<$samples;$i++) {
 	  my $packed_data = $self->_retrieve_packed_range(int($start+$i*$interval-$window),
 							  int($window),
