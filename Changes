@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.01 Thu Feb 25 16:46:08 EST 2010
+     - Fixed display of alignments that have hard-clipping in their CIGAR strings.
+
 2.00 Wed Jan 20 11:12:13 EST 2010
      - Added the "cross" glyph for DAS compatibility.
      - Fixed the triangle glyph so that DAS stylesheets can set orientation

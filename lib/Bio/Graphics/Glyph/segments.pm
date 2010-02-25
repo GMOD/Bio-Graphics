@@ -661,7 +661,7 @@ sub _gapped_alignment_to_segments {
 
     for my $event (@$cigar) {
 	my ($op,$count) = @$event;
-	if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
+	if ($op eq 'I' || $op eq 'S') {
 	    $pad_source .= '-' x $count;
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
@@ -670,6 +670,9 @@ sub _gapped_alignment_to_segments {
 	    $pad_source .= substr($tdna,0,$count,'');
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
+	}
+	elsif ($op eq 'H') {
+	    # Nothing to do. This is simply an informational operation.
 	} else {  # everything else is assumed to be a match -- revisit
 	    $pad_source .= substr($sdna,0,$count,'');
 	    $pad_target .= substr($tdna,0,$count,'');
