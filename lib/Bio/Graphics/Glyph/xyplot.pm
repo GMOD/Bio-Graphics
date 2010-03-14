@@ -257,7 +257,7 @@ sub _draw_histogram {
   my $self = shift;
   my ($gd,$left,$top,$bottom) = @_;
 
-  my @parts  = $self->parts;
+  my @parts   = $self->parts;
   my $fgcolor = $self->fgcolor;
 
   # draw each of the component lines of the histogram surface

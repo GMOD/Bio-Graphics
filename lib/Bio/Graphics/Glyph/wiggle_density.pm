@@ -64,6 +64,14 @@ sub draw {
       $self->draw_coverage($feature,$coverage,@_);
       $drawnit++;
   }
+  # support for BigWig/BigBed
+  if ($feature->can('statistical_summary')) {
+      my $stats = $feature->statistical_summary($self->width);
+      my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+      $self->draw_coverage($feature,\@vals,@_);
+      $drawnit++;
+  }
+
   if ($drawnit) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');

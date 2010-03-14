@@ -11,17 +11,34 @@ sub draw {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   my $feature   = $self->feature;
 
+  my $drawnit;
+
   my ($wigfile) = $feature->attributes('wigfile');
   if ($wigfile) {
     $self->draw_wigfile($feature,$self->rel2abs($wigfile),@_);
-    $self->draw_label(@_)       if $self->option('label');
-    $self->draw_description(@_) if $self->option('description');
-    return;
+    $drawnit++;
   }
 
   my ($wigdata) = $feature->attributes('wigdata');
   if ($wigdata) {
     $self->draw_wigdata($feature,$wigdata,@_);
+    $drawnit++;
+  }
+
+    my ($coverage)  = $feature->attributes('coverage');
+  if ($coverage) {
+      $self->draw_coverage($feature,$coverage,@_);
+      $drawnit++;
+  }
+  # support for BigWig/BigBed
+  if ($feature->can('statistical_summary')) {
+      my $stats = $feature->statistical_summary($self->width);
+      my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+      $self->draw_coverage($feature,\@vals,@_);
+      $drawnit++;
+  }
+
+  if ($drawnit) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     return;
@@ -87,6 +104,50 @@ sub _draw_wigfile {
 			$x1,$y1,$x2,$y2);
 }
 
+sub draw_coverage {
+    my $self    = shift;
+    my $feature = shift;
+    my $array   = shift;
+
+    $array      = [split ',',$array] unless ref $array;
+    my ($gd,$left,$top) = @_;
+
+    my ($start,$end)    = $self->effective_bounds($feature);
+    my $length          = $end - $start + 1;
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my @parts;
+    my $samples = $length < $self->panel->width ? $length 
+                                                : $self->panel->width;
+    my $samples_per_base = $samples/$length;
+
+    for (my $i=0;$i<$samples;$i++) {
+	my $offset = $i/$samples_per_base;
+	my $v      = $array->[$offset/$bases_per_bin];
+	push @parts,$v;
+    }
+    my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
+    $self->draw_segment($gd,
+			$start,$end,
+			\@parts,
+			$start,$end,
+			1,1,
+			$x1,$y1,$x2,$y2);
+}
+
+sub effective_bounds { # copied from wiggle_xyplot -- ouch!
+    my $self    = shift;
+    my $feature = shift;
+    my $panel_start = $self->panel->start;
+    my $panel_end   = $self->panel->end;
+    my $start       = $feature->start>$panel_start 
+                         ? $feature->start 
+                         : $panel_start;
+    my $end         = $feature->end<$panel_end   
+                         ? $feature->end   
+                         : $panel_end;
+    return ($start,$end);
+}
+
 sub draw_segment {
   my $self = shift;
   my ($gd,
@@ -127,7 +188,8 @@ sub draw_segment {
 
   # get data values across the area
   my $samples = $length < $self->panel->width ? $length : $self->panel->width;
-  my $data    = $seg_data->values($start,$end,$samples);
+  my $data    = ref $seg_data eq 'ARRAY' ? $seg_data
+                                         : $seg_data->values($start,$end,$samples);
 
   # scale the glyph if the data end before the panel does
   my $data_width = $end - $start;
@@ -162,6 +224,8 @@ sub draw_segment {
     }
   }
 }      
+
+
 
 sub rel2abs {
     my $self = shift;
