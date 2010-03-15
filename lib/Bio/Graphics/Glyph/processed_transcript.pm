@@ -140,6 +140,48 @@ sub draw {
   $self->SUPER::draw(@_);
 }
 
+# sub draw_component {
+#     my $self = shift;
+#     $self->SUPER::draw_component(@_);
+
+#     return unless $self->thin_utr;
+
+#     my $partno = $self->{partno};
+#     my $gd    = shift;
+#     if ($partno > 0 && !$self->is_utr) {
+# 	my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
+# 	$gd->line($x1,$y1+1,$x1,$y2-1,$self->bgcolor); # erase
+#     }
+#     elsif ($partno > 0 && $self->is_utr) {
+# 	my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
+# 	$gd->line($x1,$y1+1,$x1,$y2-1,$self->bgcolor); # erase
+#     }
+# }
+
+sub draw {
+    my $self = shift;
+    $self->SUPER::draw(@_);
+
+    return unless $self->thin_utr;
+    my $gd       = shift;
+    my ($dx,$dy) = @_;
+    my $bgcolor = $self->bgcolor;
+
+    my @parts = $self->parts;
+    for (my $i = 0; $i < @parts; $i++) {
+	if ($i >= 1 && ($parts[$i-1]->is_utr != $parts[$i]->is_utr)) {
+	    next unless $parts[$i-1]->end+1 == $parts[$i]->start;
+	    my ($x1,$y1,$x2,$y2) = $parts[$i]->bounds($dx,$dy+$self->top+$self->pad_top);
+	    my $height           = $parts[$i-1]->is_utr ? 
+		                       $parts[$i-1]->height 
+				     : $parts[$i]->height;
+	    my $center           = ($y1+$y2)/2;
+	    $gd->line($x1,$center-$height/2,$x1,$center+$height/2,$bgcolor); # erase
+	}
+    }
+
+}
+
 sub boxes {
   my $self = shift;
   $self->fixup_glyph();
