@@ -65,9 +65,6 @@ sub draw {
   $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $scale : $bottom;
   $y_origin    = $top if $max_score < 0;
 
-  $self->panel->startGroup($gd);
-  $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
-  $self->panel->endGroup($gd);
  }
 }
 
