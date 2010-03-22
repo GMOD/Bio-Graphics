@@ -254,6 +254,7 @@ sub t2 {
 
   my $zed_27 = $ftr->new(-segments=>[[400,500],[550,600],[800,950]],
 			 -name=>'zed-27',
+			 -strand => 1,
 			 -subtype=>'exon',-type=>'transcript');
   my $abc3 = $ftr->new(-segments=>[[100,200],[350,400],[500,550]],
 		       -name=>'abc53',
@@ -269,6 +270,7 @@ sub t2 {
 
   my $bigone = $ftr->new(-segments=>[[-200,-120],[90,270],[290,300]],
 			 -name=>'big one',
+			 -strand => 1,
 			 -subtype=>'predicted',-type=>'alignment');
 
   my $fred_12 = $ftr->new(-segments=>[$xyz4,$zed_27],
@@ -294,6 +296,7 @@ sub t2 {
   my $partial_gene = $ftr->new(-segments=>[$confirmed_exon1,$predicted_exon1,$predicted_exon2,$confirmed_exon3],
 			       -name => 'partial gene',
 			       -type => 'transcript',
+			       -strand => 1,
 			       -desc => '(from a big annotation pipeline)'
 			    );
   my @segments = $partial_gene->segments;

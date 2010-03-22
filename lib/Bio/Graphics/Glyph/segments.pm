@@ -327,7 +327,6 @@ sub draw_component {
     $self->SUPER::draw_component(@_);
 
     return unless $self->show_mismatch;
-
     my $mismatch_color = $self->mismatch_color;
     my $feature = $self->feature;
     my $start = $self->feature->start;

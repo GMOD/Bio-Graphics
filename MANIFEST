@@ -23,8 +23,8 @@ lib/Bio/Graphics/Glyph/box.pm
 lib/Bio/Graphics/Glyph/broken_line.pm
 lib/Bio/Graphics/Glyph/cds.pm
 lib/Bio/Graphics/Glyph/christmas_arrow.pm
-lib/Bio/Graphics/Glyph/crossbox.pm
 lib/Bio/Graphics/Glyph/cross.pm
+lib/Bio/Graphics/Glyph/crossbox.pm
 lib/Bio/Graphics/Glyph/dashed_line.pm
 lib/Bio/Graphics/Glyph/diamond.pm
 lib/Bio/Graphics/Glyph/dna.pm
@@ -95,6 +95,7 @@ lib/Bio/Graphics/Glyph/whiskerplot.pm
 lib/Bio/Graphics/Glyph/wiggle_box.pm
 lib/Bio/Graphics/Glyph/wiggle_density.pm
 lib/Bio/Graphics/Glyph/wiggle_minmax.pm
+lib/Bio/Graphics/Glyph/wiggle_whiskers.pm
 lib/Bio/Graphics/Glyph/wiggle_xyplot.pm
 lib/Bio/Graphics/Glyph/xyplot.pm
 lib/Bio/Graphics/Panel.pm
@@ -103,7 +104,10 @@ lib/Bio/Graphics/RendererI.pm
 lib/Bio/Graphics/Util.pm
 lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
+lib/Bio/Graphics/WiggleCompressed.pm
+Makefile.PL
 MANIFEST
+META.yml
 README
 README.bioperl
 scripts/contig_draw.pl
@@ -141,6 +145,8 @@ t/data/t2/version14.png
 t/data/t2/version15.png
 t/data/t2/version16.gif
 t/data/t2/version16.png
+t/data/t2/version17.gif
+t/data/t2/version17.png
 t/data/t2/version2.gif
 t/data/t2/version2.png
 t/data/t2/version3.gif
@@ -157,6 +163,8 @@ t/data/t3/version10.gif
 t/data/t3/version10.png
 t/data/t3/version11.gif
 t/data/t3/version11.png
+t/data/t3/version12.gif
+t/data/t3/version12.png
 t/data/t3/version2.gif
 t/data/t3/version2.png
 t/data/t3/version3.gif
@@ -168,5 +176,5 @@ t/data/t3/version7.png
 t/data/t3/version8.gif
 t/data/t3/version8.png
 t/data/t3/version9.png
-Makefile.PL
-META.yml
+t/data/wig_data.wig
+t/Wiggle.t
