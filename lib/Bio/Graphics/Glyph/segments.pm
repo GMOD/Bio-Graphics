@@ -417,14 +417,17 @@ sub draw_multiple_alignment {
   my ($bl,$bt,$br,$bb)     = $self->bounds($left,$top);
   $top = $bt;
 
+  my $stranded = $self->stranded;
   if (my @p = $self->parts) {
       for my $p (@p) {
 	  my @bounds = $p->bounds($left,$top);
-	  $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
+	  $stranded ? $self->filled_arrow($gd,$strand,@bounds)
+                    : $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
       }
   } else {
       my @bounds = $self->bounds($left,$top);
-      $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
+	  $stranded ? $self->filled_arrow($gd,$strand,@bounds)
+                    : $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
   }
 
   my @s                     = $self->_subfeat($feature);
