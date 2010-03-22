@@ -126,6 +126,7 @@ sub new {
   my $base      = shift 
                  or croak "Usage: Bio::Graphics::Wiggle::Loader->new('/base/path','trackname')";
   my $trackname = shift || 'track';
+  my $wigclass  = shift || 'Bio::Graphics::Wiggle';
   -d $base && -w _  or croak "$base is not a writeable directory";
   return bless {
 		base            => $base,
@@ -134,6 +135,7 @@ sub new {
 	        tracknum        => '000',
 		track_options   => {},
 		allow_sampling  => 0,
+		wigclass        => $wigclass,
 	       },ref $class || $class;
 }
 sub allow_sampling {
@@ -141,6 +143,12 @@ sub allow_sampling {
     my $d    = $self->{allow_sampling};
     $self->{allow_sampling} = shift if @_;
     $d;
+}
+sub wigclass { 
+    my $self = shift;
+    my $d    = $self->{wigclass};
+    $self->{wigclass} = shift if @_;
+    return $d;
 }
 sub basedir  { shift->{base}     }
 sub wigfiles { shift->{wigfiles} }
@@ -401,7 +409,6 @@ sub minmax {
   }
 
   for my $seqid (keys %stats) {
-      warn "seqid = $seqid, max=",$stats{$seqid}->max();
       $seqids->{$seqid}{min}    = $stats{$seqid}->min();
       $seqids->{$seqid}{max}    = $stats{$seqid}->max();
       $seqids->{$seqid}{mean}   = $stats{$seqid}->mean();
@@ -600,17 +607,23 @@ sub wigfile {
 	1;
     my $trim      = $self->current_track->{display_options}{trim} || 'stdev10';
     my $transform = $self->current_track->{display_options}{transform};
-    my $wigfile = Bio::Graphics::Wiggle->new(
-					     $path,
-					     1,
-					     {
-					      seqid => $seqid,
-					      step  => $step,
-					      span  => $span,
-					      trim  => $trim,
-					      @stats,
-					     },
-					    );
+    my $class   = $self->wigclass;
+    unless ($class->can('new')) {
+	warn "loading $class";
+	eval "require $class";
+	die $@ if $@;
+    }
+    my $wigfile = $class->new(
+	$path,
+	1,
+	{
+	    seqid => $seqid,
+	    step  => $step,
+	    span  => $span,
+	    trim  => $trim,
+	    @stats,
+	},
+	);
     $wigfile or croak "Couldn't create wigfile $wigfile: $!";
     $self->current_track->{seqids}{$seqid}{wig}     = $wigfile;
     $self->current_track->{seqids}{$seqid}{wigpath} = $path;

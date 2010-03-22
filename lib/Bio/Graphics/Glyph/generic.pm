@@ -603,7 +603,8 @@ sub arrow {
   my ($x1,$x2,$y) = @_;
 
   my $fg     = $self->set_pen;
-  my $height = $self->height/3;
+  my $height = $self->height/4;
+  $height    = 3 if $height < 3;
 
   $image->line($x1,$y,$x2,$y,$fg);
   $self->arrowhead($image,$x2,$y,$height,+1) if $x1 < $x2;

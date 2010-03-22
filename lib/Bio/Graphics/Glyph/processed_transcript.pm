@@ -135,30 +135,6 @@ sub fixup_glyph {
 }
 
 sub draw {
-  my $self = shift;
-  $self->fixup_glyph();
-  $self->SUPER::draw(@_);
-}
-
-# sub draw_component {
-#     my $self = shift;
-#     $self->SUPER::draw_component(@_);
-
-#     return unless $self->thin_utr;
-
-#     my $partno = $self->{partno};
-#     my $gd    = shift;
-#     if ($partno > 0 && !$self->is_utr) {
-# 	my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
-# 	$gd->line($x1,$y1+1,$x1,$y2-1,$self->bgcolor); # erase
-#     }
-#     elsif ($partno > 0 && $self->is_utr) {
-# 	my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
-# 	$gd->line($x1,$y1+1,$x1,$y2-1,$self->bgcolor); # erase
-#     }
-# }
-
-sub draw {
     my $self = shift;
     $self->SUPER::draw(@_);
 

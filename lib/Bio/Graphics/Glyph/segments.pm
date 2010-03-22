@@ -62,7 +62,16 @@ sub my_options {
 	  mismatch_color => [
 	      'color',
 	      'lightgrey',
-	      'The color to use for mismatched bases when displaying alignments.'],
+	      'The color to use for mismatched bases when displaying alignments.',
+	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
+	  indel_color => [
+	      'color',
+	      'lightgrey',
+	      'The color to use for indels when displaying alignments.'],
+	  mismatch_only => [
+	      'boolean',
+	      undef,
+	      'If true, only print mismatched bases when displaying alignments.'],
 	  true_target => [
 	      'boolean',
 	      undef,
@@ -82,6 +91,27 @@ sub my_options {
 	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
     }
 }
+
+sub mismatch_color {
+    my $self = shift;
+    my $c    = $self->option('mismatch_color') || 'lightgrey';
+    return $self->translate_color($c);
+}
+
+sub indel_color {
+    my $self = shift;
+    my $c    = $self->option('indel_color');
+    return $self->mismatch_color unless $c;
+    return $self->translate_color($c);
+}
+
+sub show_mismatch {
+    my $self = shift;
+    return $self->option('show_mismatch') || $self->option('mismatch_only');
+}
+
+sub mismatch_only { shift->option('mismatch_only') }
+
 
 sub pad_left {
   my $self = shift;
@@ -292,6 +322,68 @@ sub draw {
 
 }
 
+sub draw_component {
+    my $self = shift;
+    $self->SUPER::draw_component(@_);
+
+    return unless $self->show_mismatch;
+
+    my $mismatch_color = $self->mismatch_color;
+    my $feature = $self->feature;
+    my $start = $self->feature->start;
+    my (@mismatch_positions,@indel_positions);
+
+    if (my ($src,$matchstr,$tgt) = eval{$feature->padded_alignment}) {
+	my @src   = split '',$src;
+	my @match = split '',$matchstr;
+	my @tgt   = split '',$tgt;
+	my $pos   = $start;
+	for (my $i=0;$i<@src;$i++) {
+	    if (($src[$i] eq '-' || $tgt[$i] eq '-') && $i > 0 && $i < length $src) {
+		push @indel_positions,$pos;
+		next if $src[$i] eq '-';
+	    } else {
+		push @mismatch_positions,$pos unless $src[$i] eq $tgt[$i];
+	    }
+	    $pos++;
+	}
+    }
+
+    else {
+	my $sdna = eval {$feature->dna};
+	my $tdna = eval {$feature->target->dna};  # works with GFF files
+
+	return unless $sdna =~ /[gatc]/i;
+	return unless $tdna =~ /[gatc]/i;
+
+	my @src = split '',$sdna;
+	my @tgt = split '',$tdna;
+	for (my $i=0;$i<@src;$i++) {
+	    next if $src[$i] eq $tgt[$i];
+	    push @mismatch_positions,$i+$start;
+	}
+    }
+
+    my $gd = shift;
+    my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
+
+    my @pixel_positions = $self->map_no_trunc(@mismatch_positions);
+
+    foreach (@pixel_positions) {
+	next if $_ < $x1;
+	next if $_ > $x2;
+	$gd->line($_,$y1+1,$_,$y2-1,$mismatch_color);
+    }
+
+    @pixel_positions = $self->map_no_trunc(@indel_positions);
+    my $indel = $self->indel_color;
+    foreach (@pixel_positions) {
+	next if $_ < $x1;
+	next if $_ > $x2;
+	$gd->line($_,$y1+1,$_,$y2-1,$indel);
+    }
+}
+
 sub draw_multiple_alignment {
   my $self = shift;
   my $gd   = shift;
@@ -301,7 +393,7 @@ sub draw_multiple_alignment {
   my $ragged_extra         = $self->option('ragged_start') 
                                ? RAGGED_START_FUZZ : $self->option('ragged_extra');
   my $true_target          = $self->option('true_target');
-  my $show_mismatch        = $self->option('show_mismatch');
+  my $show_mismatch        = $self->show_mismatch;
   my $do_realign           = $self->option('realign');
 
   my $pixels_per_base      = $self->scale;
@@ -539,8 +631,8 @@ sub draw_multiple_alignment {
   my $lineheight = $font->height;
   my $fontwidth  = $font->width;
 
-  my $mismatch = $self->factory->translate_color($self->option('mismatch_color') || 'lightgrey');
-  my $grey     = $self->factory->translate_color('gray');
+  my $mismatch = $self->mismatch_color;
+  my $grey     = $self->translate_color('gray');
 
   my $base2pixel = 
     $self->flip ?
@@ -554,6 +646,7 @@ sub draw_multiple_alignment {
 	$fontwidth/2 + $left + ($abs_start + $src-$panel_start-1 + $tgt) * $pixels_per_base - 1;    
       };
 
+  my $mismatch_only = $self->mismatch_only;
   my ($tgt_last_end,$src_last_end,$leftmost,$rightmost);
   for my $seg (sort {$a->[SRC_START]<=>$b->[SRC_START]} @segments) {
     my $y = $top-1;
@@ -568,16 +661,18 @@ sub draw_multiple_alignment {
 
       next unless $tgt_base && $x >= $panel_left && $x <= $panel_right;
 
+      my $is_mismatch = $show_mismatch && $tgt_base && $src_base ne $tgt_base && $tgt_base !~ /[nN]/;
+
       $self->filled_box($gd,
 			$i == 0 ? $x-3 : $x-$pixels_per_base/2+3,
 			$y+1,
 			$x+$pixels_per_base/2+3,
 			$y+$lineheight,
 			$mismatch,$mismatch)
-	if $show_mismatch && $tgt_base && $src_base ne $tgt_base && $tgt_base !~ /[nN]/;
+	  if $show_mismatch && $is_mismatch;
       $tgt_base = $complement{$tgt_base} if $true_target && $strand < 0;
-      $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey : $color);
-
+      $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey : $color)
+	  unless $mismatch_only && !$is_mismatch;
       $drew_sequence++;
     }
 
@@ -876,7 +971,15 @@ In addition, the following glyph-specific options are recognized:
                  the mismatch color.  
                  See "Displaying Alignments".
 
+  -mismatch_only When combined with -draw_target,     0 (false)
+                 draws only the mismatched bases
+                 in the alignment. Implies
+                 -show_mismatch.
+                 See "Displaying Alignments".
+
   -mismatch_color The mismatch color to use           'lightgrey'
+
+  -indel_color   The color to use for small indels.   'lightgrey'
 
   -true_target   Show the target DNA in its native    0 (false)
                  (plus strand) orientation, even if

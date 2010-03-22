@@ -231,6 +231,7 @@ use constant BODY   => 'C';
 use constant DEBUG  => 0;
 use constant DEFAULT_SMOOTHING => 'mean';
 use constant VERSION => 0;
+our $VERSION = '1.0';
 
 sub new {
   my $class          = shift;
@@ -240,9 +241,7 @@ sub new {
                          ? '+<'    # ...open for read/write
                          : '+>'    # ...else clobber and open a new one
                     : '<';       # read only
-  my $fh = $path ? IO::File->new($path,$mode)
-                 : IO::File->new_tmpfile;
-
+  my $fh = $class->new_fh($path,$mode);
   $fh or die (($path||'temporary file').": $!");
 
   $options ||= {};
@@ -255,7 +254,7 @@ sub new {
   my $stored_options = eval {$self->_readoptions} || {};
   $options->{start}-- if defined $options->{start};  # 1-based ==> 0-based coordinates
   my %merged_options = (%$stored_options,%$options);
-#  warn "merged options = ",join ' ',%merged_options;
+  # warn "merged options = ",join ' ',%merged_options;
   $merged_options{version}||= 0;
   $merged_options{seqid}  ||= 'chrUnknown';
   $merged_options{min}    ||= 0;
@@ -269,6 +268,13 @@ sub new {
   $self->{options}         = \%merged_options;
   $self->_do_trim        unless $self->trim eq 'none';
   return $self;
+}
+
+sub new_fh {
+    my $self = shift;
+    my ($path,$mode) = @_;
+    return $path ? IO::File->new($path,$mode)
+                 : IO::File->new_tmpfile;
 }
 
 sub end {

@@ -7,6 +7,19 @@ use base qw(Bio::Graphics::Glyph::transcript);
 
 use constant MIN_WIDTH_FOR_ARROW => 8;
 
+sub stranded {
+  my $self = shift;
+  my $s = $self->option('strand_arrow') || $self->option('stranded');
+  return $s if defined $s;
+  my $f       = $self->feature;
+  my $strand  = $f->strand;
+  $strand    *= -1 if $self->{flip};
+  my $part_no = $self->{partno};
+  my $parts   = $self->{total_parts};
+  return ($strand > 0 && $part_no == $parts-1)
+    || ($strand < 0 && $part_no == 0);
+}
+
 sub extra_arrow_length {
   my $self = shift;
   my $strand = $self->feature->strand || 0;
@@ -87,7 +100,7 @@ sub draw_component {
   $filled = 0 if $str < 0 && $rect[0] < $self->panel->pad_left;
   $filled = 0 if $str > 0 && $rect[2] > $pwidth - $self->panel->pad_right;
 
-  if ($filled) {
+  if ($self->stranded && $filled) {
     my ($first,$last)  = ($self->{partno} == 0 , $self->{partno} == $self->{total_parts}-1);
     ($first,$last)     = ($last,$first) if $self->{flip};
 

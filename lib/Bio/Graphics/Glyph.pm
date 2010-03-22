@@ -94,11 +94,19 @@ sub my_options {
 	strand_arrow => [
 	    'boolean',
 	    undef,
-	    "Whether to indicate the feature's strandedness."],
+	    "Whether to indicate the feature's strandedness. If equal to 'ends'",
+	    "then only the right and left ends of multi-part features will show",
+	    "strandedness."
+	],
 	stranded => [
 	    'boolean',
 	    undef,
-	    'Synonym for -strand_arrow.'],
+	    'Synonym for -strand_arrow.',
+	    "Indicates whether to indicate the feature's strandedness. If equal to 'ends'",
+	    "then only the right and left ends of multi-part features will show",
+	    "strandedness."
+
+	],
 	key => [
 	    'string',
 	    undef,
