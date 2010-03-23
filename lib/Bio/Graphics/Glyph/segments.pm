@@ -122,10 +122,10 @@ sub pad_left {
 
   return $self->SUPER::pad_left 
     unless $self->draw_target && $ragged && $self->dna_fits;
-  my $target = eval {$self->feature->hit} or return $self->SUPER::pad_left;
-
-  return $self->SUPER::pad_left unless $target->start<$target->end && $target->start < $ragged;
-  return ($target->start-1) * $self->scale;
+  my $extra = 0;
+  my $target = eval {$self->feature->hit} or return $self->SUPER::pad_left + $extra;
+  return $self->SUPER::pad_left + $extra unless $target->start<$target->end && $target->start < $ragged;
+  return ($target->start-1) * $self->scale + $extra;
 }
 
 sub pad_right {
@@ -141,6 +141,11 @@ sub pad_right {
   return ($target->end-1) * $self->scale;
 }
 
+sub labelwidth {
+  my $self = shift;
+  return $self->SUPER::labelwidth unless $self->draw_target && $self->dna_fits && $self->label_position eq 'left';
+  return $self->{labelwidth} ||= (length($self->label||'')+1) * $self->font->width;
+}
 sub draw_target {
   my $self = shift;
   return if $self->option('draw_dna');
@@ -383,6 +388,8 @@ sub draw_component {
     }
 }
 
+# BUG: this horrible subroutine has grown without control and needs
+# to be broken down into manageable subrutines.
 sub draw_multiple_alignment {
   my $self = shift;
   my $gd   = shift;
@@ -419,14 +426,14 @@ sub draw_multiple_alignment {
   my $stranded = $self->stranded;
   if (my @p = $self->parts) {
       for my $p (@p) {
-	  my @bounds = $p->bounds($left,$top);
-	  $stranded ? $self->filled_arrow($gd,$strand,@bounds)
-                    : $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
+	  my ($x1,$y1,$x2,$y2) = $p->bounds($left,$top);
+	  $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
+                    : $self->filled_box($gd,$x1,$y1,$x2,$y2,$self->bgcolor,$self->bgcolor);
       }
   } else {
-      my @bounds = $self->bounds($left,$top);
-	  $stranded ? $self->filled_arrow($gd,$strand,@bounds)
-                    : $self->filled_box($gd,@bounds,$self->bgcolor,$self->bgcolor);
+      my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
+      $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
+	        : $self->filled_box($gd,$x1,$y1,$x2,$y2,$self->bgcolor,$self->bgcolor);
   }
 
   my @s                     = $self->_subfeat($feature);
@@ -634,6 +641,7 @@ sub draw_multiple_alignment {
   my $fontwidth  = $font->width;
 
   my $mismatch = $self->mismatch_color;
+  my $indel    = $self->indel_color;
   my $grey     = $self->translate_color('gray');
 
   my $base2pixel = 
@@ -652,8 +660,8 @@ sub draw_multiple_alignment {
   my ($tgt_last_end,$src_last_end,$leftmost,$rightmost);
   for my $seg (sort {$a->[SRC_START]<=>$b->[SRC_START]} @segments) {
     my $y = $top-1;
-
-    for (my $i=0; $i<$seg->[SRC_END]-$seg->[SRC_START]+1; $i++) {
+    my $end = $seg->[SRC_END]-$seg->[SRC_START];
+    for (my $i=0; $i<$end+1; $i++) {
 
       my $src_base = $self->_subsequence($ref_dna,$seg->[SRC_START]+$i,$seg->[SRC_START]+$i);
       my $tgt_base = $self->_subsequence($tgt_dna,$seg->[TGT_START]+$i,$seg->[TGT_START]+$i);
@@ -665,13 +673,40 @@ sub draw_multiple_alignment {
 
       my $is_mismatch = $show_mismatch && $tgt_base && $src_base ne $tgt_base && $tgt_base !~ /[nN]/;
 
-      $self->filled_box($gd,
-			$i == 0 ? $x-3 : $x-$pixels_per_base/2+3,
-			$y+1,
-			$x+$pixels_per_base/2+3,
-			$y+$lineheight,
-			$mismatch,$mismatch)
-	  if $show_mismatch && $is_mismatch;
+      if ($show_mismatch && $is_mismatch) {
+	  my $left  = $i == 0    ? $x-6                        : $x-$pixels_per_base/2;
+	  my $right = $i == $end ? $x+$pixels_per_base         : $x+$pixels_per_base/2 + 3;
+	  my $top   = $y+2;
+	  my $bottom= $y+$lineheight   - 1;
+	  my $middle= $y+$lineheight/2 + 1;
+	  my $pkg  = $self->polygon_package;
+
+	  if ($self->stranded && $i==0 && $self->strand < 0) {
+	      my $poly = $pkg->new;
+	      $poly->addPt($right,$top);
+	      $poly->addPt($left+5,$top);
+	      $poly->addPt($left,$middle);
+	      $poly->addPt($left+5,$bottom);
+	      $poly->addPt($right,$bottom);
+	      $gd->filledPolygon($poly,$mismatch);
+	  } elsif ($self->stranded && $i==$end && $strand > 0) {
+	      my $poly = $pkg->new;
+	      $poly->addPt($left,$top);
+	      $poly->addPt($right-5,$top);
+	      $poly->addPt($right,$middle);
+	      $poly->addPt($right-5,$bottom);
+	      $poly->addPt($left,$bottom);
+	      $gd->filledPolygon($poly,$mismatch);
+	  } else {
+	      $self->filled_box($gd,
+				$left,
+				$top,
+				$right,
+				$bottom,
+				$mismatch,$mismatch);
+	  }
+      }
+    
       $tgt_base = $complement{$tgt_base} if $true_target && $strand < 0;
       $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey : $color)
 	  unless $mismatch_only && !$is_mismatch;
@@ -696,7 +731,7 @@ sub draw_multiple_alignment {
 	next if $gap_left <= $panel_left || $gap_right >= $panel_right;
 
 	$self->filled_box($gd,$gap_left,$y+1,
-			      $gap_right-2,$y+$lineheight,$mismatch,$mismatch) if
+			      $gap_right-2,$y+$lineheight,$indel,$indel) if
 				$show_mismatch && $gap_left >= $panel_left && $gap_right <= $panel_right;
 
 
@@ -725,7 +760,7 @@ sub draw_multiple_alignment {
 	for (my $i=0;$i<$delta-1;$i++) {
 	  my $x = $base2pixel->($src_last_end,$i+1);
 	  next if $x > $panel_right;
-	  $self->filled_box($gd,$x-$pixels_per_base/2+2,$y,$x+$pixels_per_base/2+1,$y+$lineheight,$mismatch,$mismatch)
+	  $self->filled_box($gd,$x-$pixels_per_base/2+2,$y,$x+$pixels_per_base/2+1,$y+$lineheight,$indel,$indel)
 	    if $show_mismatch;
 	  $gd->char($font,$x,$y,'-',$color);
 	}

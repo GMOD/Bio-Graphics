@@ -1363,7 +1363,7 @@ sub filled_arrow {
   $orientation *= -1 if $self->{flip};
 
   my ($width) = $gd->getBounds;
-  my $indent = $y2-$y1 < $x2-$x1 ? $y2-$y1 : ($x2-$x1)/2;
+  my $indent  = $y2-$y1 < $x2-$x1 ? $y2-$y1 : ($x2-$x1)/2;
 
   my $panel        = $self->panel;
   my $offend_left  = $x1 < $panel->pad_left;
