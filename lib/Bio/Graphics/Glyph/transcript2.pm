@@ -103,12 +103,12 @@ sub draw_component {
     } elsif ($strand >= 0 && $last) { # last exon, plus strand
       $self->filled_arrow($gd,+1,@rect);
     } else {
-      $self->SUPER::draw_component($gd,@_);
+	$self->filled_box($gd,@rect);
     }
   }
 
   else {
-    $self->SUPER::draw_component($gd,@_);
+      $self->filled_box($gd,@rect);
   }
 
 }
