@@ -1,4 +1,11 @@
 Revision history for Perl extension Bio::Graphics.
+2.03 Fri Mar 26 16:32:02 EDT 2010
+     - Segments glyph now smarter about fetching reference sequence; this improves performance
+       on multiple alignments.
+     - -show_mismatch option now takes following arguments: 0 (false), "always", "base level" (draw only
+       when DNA is in view), or a number, in which case mismatches will only be drawn when the length
+       of the window is <= that number. For compatibility, a value of "1" is the same as "base level."
+     - Fixed display of protein sequence in genes when -draw_protein is true.
 
 2.02 Sun Mar 14 18:44:04 EDT 2010
      - Added a wiggle_whiskers glyph that works nicely with BigWig and

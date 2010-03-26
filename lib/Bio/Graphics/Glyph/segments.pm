@@ -54,10 +54,15 @@ sub my_options {
 	      'of the alignment. The value is the maximum number of extra bases.',
 	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
 	  show_mismatch => [
-	      'boolean',
+	      'string',
 	      undef,
 	      'When combined with -draw_target, highlights mismatched bases in',
-	      'the mismatch color.',  
+	      'the mismatch color. A value of "base level" will show the mismatch',  
+	      'when the individual bases are displayed. A value of "always" will show',
+	      'the mismatch at both the base level and the zoomed out level.',
+	      'A numeric value will show the mismatch when the track is showing',
+	      'a region less than or equal to the specified level. A value of "1"',
+	      'is identical to "base level".',
 	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
 	  mismatch_color => [
 	      'color',
@@ -107,7 +112,13 @@ sub indel_color {
 
 sub show_mismatch {
     my $self = shift;
-    return $self->option('show_mismatch') || $self->option('mismatch_only');
+    my $smm = $self->option('show_mismatch');
+    $smm  ||= 1 if $self->option('mismatch_only');
+    return $smm if $smm eq '1';
+    return 1 if $smm eq 'always';
+    return 1 if $smm =~ /^base/ && $self->dna_fits;
+    return 1 if $smm =~ /^\d+$/ && $smm >= $self->panel->length;
+    return;
 }
 
 sub mismatch_only { shift->option('mismatch_only') }
@@ -455,6 +466,8 @@ sub draw_multiple_alignment {
   }
 
   my (@segments,%strands);
+  my ($ref_dna,$tgt_dna);
+
   for my $s (@s) {
 
     my $target = $s->hit;
@@ -475,19 +488,18 @@ sub draw_multiple_alignment {
     }
 
     my $cigar = $self->_get_cigar($s);
-
     if ($cigar || ($can_realign && $do_realign)) {
-	my ($sdna,$tdna) = ($s->dna,$target->dna);
+	($ref_dna,$tgt_dna) = ($s->dna,$target->dna);
 	
 	my @exact_segments;
 
 	if ($cigar) {
 	    warn   "Segmenting [$target,$src_start,$src_end,$tgt_start,$tgt_end] via $cigar.\n" if DEBUG;
-	    @exact_segments = $self->_gapped_alignment_to_segments($cigar,$sdna,$tdna);
+	    @exact_segments = $self->_gapped_alignment_to_segments($cigar,$ref_dna,$tgt_dna);
 	}
 	else {
 	    warn   "Realigning [$target,$src_start,$src_end,$tgt_start,$tgt_end].\n" if DEBUG;
-	    @exact_segments = $can_realign->($sdna,$tdna);	    
+	    @exact_segments = $can_realign->($ref_dna,$tgt_dna);	    
 	}
 
 	foreach (@exact_segments) {
@@ -497,8 +509,8 @@ sub draw_multiple_alignment {
 		: [$target,$src_end-$_->[1],$src_end-$_->[0],$_->[2]+$tgt_start,$_->[3]+$tgt_start];
 	    warn "[$target,$_->[0]+$src_start,$_->[1]+$src_start,$tgt_end-$_->[3],$tgt_end-$_->[2]]" if DEBUG;
 	    warn "=========> [@$a]\n" if DEBUG;
-	    warn substr($sdna,     $_->[0],$_->[1]-$_->[0]+1),"\n" if DEBUG;
-	    warn substr($tdna,$_->[2],$_->[3]-$_->[2]+1),"\n"      if DEBUG;
+	    warn substr($ref_dna,     $_->[0],$_->[1]-$_->[0]+1),"\n" if DEBUG;
+	    warn substr($tgt_dna,$_->[2],$_->[3]-$_->[2]+1),"\n"      if DEBUG;
 	    push @segments,$a;
 	}
     }
@@ -550,10 +562,10 @@ sub draw_multiple_alignment {
 
   # get the DNAs now - a little complicated by the necessity of using
   # the subseq() method
-  my $ref_dna = $feature->subseq(1-$offset_left,$feature->length+$offset_right)->seq;
+  $ref_dna ||= $feature->subseq(1-$offset_left,$feature->length+$offset_right)->seq;
 
   # this may not be right if the alignment involves only a portion of the target DNA
-  my $tgt_dna   = $feature->hit->dna;
+  $tgt_dna ||= $feature->hit->dna;
 
 
   # none of these seem to be working properly with BAM alignments
@@ -674,8 +686,8 @@ sub draw_multiple_alignment {
       my $is_mismatch = $show_mismatch && $tgt_base && $src_base ne $tgt_base && $tgt_base !~ /[nN]/;
 
       if ($show_mismatch && $is_mismatch) {
-	  my $left  = $i == 0    ? $x-6                        : $x-$pixels_per_base/2;
-	  my $right = $i == $end ? $x+$pixels_per_base         : $x+$pixels_per_base/2 + 3;
+	  my $left  = $x-2;
+	  my $right = $left+$pixels_per_base-2;
 	  my $top   = $y+2;
 	  my $bottom= $y+$lineheight   - 1;
 	  my $middle= $y+$lineheight/2 + 1;

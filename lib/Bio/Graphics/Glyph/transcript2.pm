@@ -111,6 +111,9 @@ sub draw_component {
       $self->filled_box($gd,@rect);
   }
 
+  # copied from generic::draw_component
+  $self->draw_translation($gd,@_) if $self->{cds_translation}; # created earlier by calculate_cds()
+  $self->draw_sequence($gd,@_)    if $self->option('draw_dna') && $self->dna_fits;
 }
 
 sub bump {
