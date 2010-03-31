@@ -38,9 +38,6 @@ sub frame_and_offset {
                    ? $pos + $phase
 	           : $pos - $phase;  # probably wrong
   my $frame  = ($codon_start-1) % 3;
-#  my $frame = $strand >= 0
-#    ? ($pos - $phase - 1) % 3
-#    : (1 - $pos - $phase) % 3;
   my $offset = $strand >= 0 ? $phase : -$phase;
   return wantarray ? ($frame,$offset) : $frame;
 }

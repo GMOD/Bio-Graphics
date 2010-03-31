@@ -54,15 +54,14 @@ sub my_options {
 	      'of the alignment. The value is the maximum number of extra bases.',
 	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
 	  show_mismatch => [
-	      'string',
+	      'integer',
 	      undef,
 	      'When combined with -draw_target, highlights mismatched bases in',
-	      'the mismatch color. A value of "base level" will show the mismatch',  
-	      'when the individual bases are displayed. A value of "always" will show',
-	      'the mismatch at both the base level and the zoomed out level.',
-	      'A numeric value will show the mismatch when the track is showing',
-	      'a region less than or equal to the specified level. A value of "1"',
-	      'is identical to "base level".',
+	      'the mismatch color. A value of 0 or undef never shows mismatches.',
+	      'A value of 1 shows mismatches at the base pair alignment level, but',
+	      'not at magnifications too low to allow the DNA to be displayed.',
+	      'Any other positive integer will show mismatches when the track is showing',
+	      'a region less than or equal to the specified value.',
 	      'See L<Bio::Graphics::Glyph::segments/"Displaying Alignments">.'],
 	  mismatch_color => [
 	      'color',
@@ -114,11 +113,9 @@ sub show_mismatch {
     my $self = shift;
     my $smm = $self->option('show_mismatch');
     $smm  ||= 1 if $self->option('mismatch_only');
-    return $smm if $smm eq '1';
-    return 1 if $smm eq 'always';
-    return 1 if $smm =~ /^base/ && $self->dna_fits;
-    return 1 if $smm =~ /^\d+$/ && $smm >= $self->panel->length;
-    return;
+    return unless $smm;
+    return 1 if $smm == 1 && $self->dna_fits;
+    return 1 if $smm >= $self->panel->length;
 }
 
 sub mismatch_only { shift->option('mismatch_only') }

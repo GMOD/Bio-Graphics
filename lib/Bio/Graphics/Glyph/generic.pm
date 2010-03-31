@@ -85,14 +85,27 @@ sub my_options {
 	    'integer',
 	    0,
 	    'Additional whitespace (in pixels) to add to the left of this glyph.'],
+        labelcolor => [
+	    'color',
+	    'black',
+	    'The color to use for drawing label text in this glyph (also known as fontcolor).'],
         fontcolor => [
 	    'color',
 	    'black',
-	    'The color to use for drawing label text in this glyph.'],
+	    'The color to use for drawing label text in this glyph (also known as labelcolor).'],
         font2color => [
 	    'color',
 	    'black',
-	    'The color to use for drawing description text in this glyph.'],
+	    'The color to use for drawing description text in this glyph (also known as descriptioncolor.'],
+        descriptioncolor => [
+	    'color',
+	    'black',
+	    'The color to use for drawing description text in this glyph (also known as font2color.'],
+	basecolor => [
+	    'color',
+	    'black',
+	    'The color to use for drawing DNA/protein residues at the base level',
+        ],
 	font  => [
 	    'font',
 	    'gdSmallFont',
@@ -124,14 +137,22 @@ sub font {
 
 sub fontcolor {
   my $self = shift;
-  my $fontcolor = $self->color('fontcolor');
+  my $fontcolor = $self->color('labelcolor') || $self->color('fontcolor');
   return defined $fontcolor ? $fontcolor : $self->fgcolor;
 }
 sub font2color {
   my $self = shift;
-  my $font2color = $self->color('font2color');
+  my $font2color = $self->color('descriptioncolor') || $self->color('font2color');
   return defined $font2color ? $font2color : $self->fgcolor;
 }
+sub basecolor {
+  my $self = shift;
+  my $basecolor = $self->color('basecolor');
+  return defined $basecolor ? $basecolor : $self->fgcolor;
+}
+
+sub labelcolor       {shift->fontcolor}
+sub descriptioncolor {shift->font2color}
 
 sub height {
   my $self = shift;
@@ -333,7 +354,7 @@ sub draw_translation {
 
   my $y         = $y1 + ($self->height - $font->height)/2;
   my $fontwidth = $font->width;
-  my $color     = $self->fontcolor;
+  my $color     = $self->basecolor;
 
   $strand *= -1 if $self->{flip};
 
@@ -349,15 +370,22 @@ sub draw_translation {
   my $left       = $self->panel->left;
 
   my @residues = split '',$self->{cds_translation};
-  push @residues,$self->{cds_splice_residue} if $self->{cds_splice_residue};
+  push @residues,$self->{cds_splice_residue_tail} 
+      if $self->{cds_splice_residue_tail};
+
   for (my $i=0;$i<@residues;$i++) {
     my $x = $strand > 0 ? $start + $i * $pixels_per_residue
                         : $stop  - $i * $pixels_per_residue;
     next unless ($x >= $x1 && $x <= $x2);
     $x -= $fontwidth + 1 if $self->{flip}; # align right when flipped
-    last if $x+$fontwidth >= $right;
-    last if $x            <= $left;
+#    last if $x+$fontwidth >= $right;
+#    last if $x            <= $left;
     $gd->char($font,$x+$x_fudge,$y,$residues[$i],$color);
+  }
+
+  if ($self->{cds_splice_residue_head}) {
+      $gd->char($font,$x1+2,$y,$self->{cds_splice_residue_head},$color)          if $strand > 0;
+      $gd->char($font,$x2-$fontwidth-2,$y,$self->{cds_splice_residue_head},$color) if $strand < 0;
   }
 }
 
@@ -374,7 +402,7 @@ sub draw_sequence {
 
   my $y         = $y1 + ($self->height - $font->height)/2 - 1;
   my $fontwidth = $font->width;
-  my $color     = $self->fontcolor;
+  my $color     = $self->basecolor;
 
   $strand *= -1 if $self->{flip};
 
@@ -428,20 +456,20 @@ sub draw_label {
 		$x,
 		$self->top + $top - 1,
 		$label,
-		$self->fontcolor);
+		$self->labelcolor);
   } elsif ($self->label_position eq 'left') {
     $gd->string($font,
 		$x,
 		$self->{top} + ($self->height - $font->height)/2 + $top,
 		$label,
-		$self->fontcolor);
+		$self->labelcolor);
   # used for alignments, doesn't account for padding, viewer discretion is advised...
   } elsif ($self->label_position eq 'alignment_left') {
     $gd->string($font,
 		1,
 		$self->{top} + ($self->height - $font->height)/2 + $top,
 		$label,
-		$self->fontcolor);
+		$self->labelcolor);
   }
 }
 
@@ -457,7 +485,7 @@ sub draw_label {
 # 	      $x,
 # 	      $self->bottom - $self->pad_bottom + $top + $dy,
 # 	      $label,
-# 	      $self->font2color);
+# 	      $self->descriptioncolor);
 # }
 
 sub draw_description {
@@ -473,7 +501,7 @@ sub draw_description {
 	      $left,
 	      $bottom,
 	      $label,
-	      $self->font2color);
+	      $self->descriptioncolor);
 }
 
 sub draw_part_labels {
@@ -486,7 +514,7 @@ sub draw_part_labels {
 
   my $font  = $self->font;
   my $width = $font->width;
-  my $color = $self->fontcolor;
+  my $color = $self->labelcolor;
 
   my $y     = $top + $self->bottom - $self->pad_bottom;
   my $merge_em = $self->part_label_merge;
@@ -619,35 +647,50 @@ sub reversec {
   return $dna;
 }
 
-# this gets invoked if the user has requested that the protein translation
+# This gets invoked if the user has requested that the protein translation
 # gets drawn using the draw_translation option and protein_fits() returns
 # true. It is a rather specialized function and possibly belongs somewhere else,
 # but putting it here makes it possible for any feature to display its protein
 # translation.
 sub calculate_cds {
   my $self = shift;
-  my @parts = $self->feature_has_subparts ? $self->parts : $self;
+
+  return if $self->{cds_translation};
+
+  my $f        = $self->feature;
+
+  my @subfeats = $self->find_subfeats_with_phase($f) or return;
+  my @parts    = $self->feature_has_subparts ? $self->parts : $self;
+
+  my @parts_with_phase = grep {defined eval {$_->feature->phase}} @parts;
+  my %parts    = map {$_->feature->start => $_} @parts_with_phase;
 
   my $codon_table = $self->option('codontable');
   $codon_table    = 1 unless defined $codon_table;
   require Bio::Tools::CodonTable unless Bio::Tools::CodonTable->can('new');
   my $translate_table = Bio::Tools::CodonTable->new(-id=>$codon_table);
 
-  for (my $i=0; $i < @parts; $i++) {
-    my $part    = $parts[$i];
-    my $feature = $part->feature;
+  my $strand          = $f->strand;
+  $strand            *= -1 if $self->{flip};
+
+  for (my $i=0; $i < @subfeats; $i++) {
+    my $feature = $subfeats[$i];
+    my $prior   = $subfeats[$i-1] if $i>0;
+    my $next    = $subfeats[$i+1] if $i<$#subfeats;
+    ($prior,$next) = ($next,$prior) if $strand < 0;
+
+    my $part    = $parts{$feature->start} or next;
 
     my $pos     = $feature->strand >= 0 ? $feature->start : $feature->end;
     my $phase   = eval {$feature->phase};
     next unless defined $phase;
+
     my $seq     = $feature->seq;
     next unless defined $seq;
 
-    my $strand          = $feature->strand;
     my ($frame,$offset) = frame_and_offset($pos,
 					   $strand,
-					   -$phase);
-    $strand *= -1 if $self->{flip};
+					   $phase);
     $part->{cds_frame}     = $frame;
     $part->{cds_offset}    = $offset;
 
@@ -656,26 +699,31 @@ sub calculate_cds {
     my $protein = $seq->translate(undef,undef,$phase,$codon_table)->seq;
     $part->{cds_translation}  = $protein;
 
-  BLOCK: {
-      length $protein >= $feature->length/3           and last BLOCK;
-      ($feature->length - $phase) % 3 == 0            and last BLOCK;
-	
-      my $next_part    = $parts[$i+1]
-	or do {
-	  $part->{cds_splice_residue} = '?';
-	  last BLOCK; };
+    my $spliced_codon = '';
 
-      my $next_feature = $next_part->feature         or  last BLOCK;
-      my $next_phase   = eval {$next_feature->phase} or  last BLOCK;
-      my $splice_codon = '';
-      my $left_of_splice  = substr($self->get_seq($feature->seq),     -$next_phase, $next_phase);
-      my $right_of_splice = substr($self->get_seq($next_feature->seq),0           , 3-$next_phase);
-      $splice_codon = $left_of_splice . $right_of_splice;
-      length $splice_codon == 3                      or last BLOCK;
-      my $amino_acid = $translate_table->translate($splice_codon);
-      $part->{cds_splice_residue} = $amino_acid;
+    if ($phase == 2 && $prior) {
+	# get 1 bp from end of previous
+	my $dna       = $self->get_dna($feature);
+	my $prior_dna = $self->get_dna($prior) if $prior;
+	$spliced_codon .= substr($prior_dna,-1,1);
+	$spliced_codon .= substr($dna,0,2);
+	$part->{cds_splice_residue_head} = $translate_table->translate($spliced_codon);
+    } elsif ($next && $next->phase == 1) { 
+	my $dna       = $self->get_dna($feature);
+	my $next_dna    = $self->get_dna($next)  if $next;
+	$spliced_codon .= substr($dna,-2,2);
+	$spliced_codon .= substr($next_dna,0,1);
+	$part->{cds_splice_residue_tail} = $translate_table->translate($spliced_codon);
     }
   }
+  return;
+}
+
+sub find_subfeats_with_phase {
+    my $self = shift;
+    my $feat = shift;
+    return $feat if $feat->can('phase') && defined $feat->phase;
+    return grep {$_->can('phase') && defined $_->phase} $feat->get_SeqFeatures;
 }
 
 # hack around changed feature API
@@ -686,6 +734,14 @@ sub get_seq {
   return $seq if ref $seq && $seq->can('translate');
   require Bio::PrimarySeq unless Bio::PrimarySeq->can('new');
   return Bio::PrimarySeq->new(-seq=>$seq);
+}
+
+sub get_dna {
+    my $self = shift;
+    my $seq  = shift or return;
+    my $obj  = $seq->seq;
+    $obj = $obj->seq if ref $obj;
+    return $obj;
 }
 
 1;
@@ -835,10 +891,12 @@ L<Bio::Das>,
 L<GD>
 
 =head1 AUTHOR
-p
-Allen Day E<lt>day@cshl.orgE<gt>.
+
+Allen Day E<lt>day@cshl.orgE<gt>,
+Lincoln Stein E<lt>lincoln.stein@gmail.comE<gt>
 
 Copyright (c) 2001 Cold Spring Harbor Laboratory
+Copyright (c) 2010 Ontario Institute for Cancer Research
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.  See DISCLAIMER.txt for
