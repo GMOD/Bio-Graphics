@@ -583,7 +583,6 @@ sub _retrieve_values {
   $samples ||= $length;
 
 #  warn "samples = $samples, length=$length, span=$span, step=$step";
-#  warn "length/samples = ",$length/$samples;
 
   # if the length is grossly greater than the samples, then we won't even
   # bother fetching all the data, but just sample into the disk file
