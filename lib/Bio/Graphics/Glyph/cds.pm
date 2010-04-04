@@ -198,7 +198,11 @@ sub draw {
     my $part    = $parts[$i];
     my $feature = $part->feature;
 
-    my $type = $feature->method;
+    my $type =
+         $feature->can('method') ? $feature->method :
+         $feature->can('type')   ? $feature->type   :
+                                   '';
+
     next if ($self->option('sub_part') && $type ne $self->option('sub_part'));
 
     next if $ignore_non_cds && lc($type) ne 'cds';
