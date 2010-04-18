@@ -305,7 +305,9 @@ sub load {
     if ($format ne 'none') {
       # remember where we are, find min and max values, return
       my $pos = tell($infh);
-      $self->minmax($infh,$format eq 'bed' ? $_ : '');
+      $self->minmax($infh,$format eq 'bed' ? $_ : '')
+	  unless $self->{track_options}{chrom} &&
+	         exists $self->current_track->{seqids}{$self->{track_options}{chrom}}{min};
       seek($infh,$pos,0);
 
       $self->process_bed($infh,$_)        if $format eq 'bed';
@@ -386,7 +388,6 @@ sub minmax {
       return;
   }
 
-#  my $stats = Statistics::Descriptive::Sparse->new();
   my %stats;
   if ($bedline) {  # left-over BED line
       my @tokens = split /\s+/,$bedline;
@@ -398,8 +399,9 @@ sub minmax {
   }
 
   while (<$infh>) {
-      last if /^track|fixedStep|variableStep/;
-      next if /^\#/;
+      last if /^track/;
+      last if /chrom=(\S+)/ && $1 ne $chrom;
+      next if /^\#|fixedStep|variableStep/;
       my @tokens = split(/\s+/,$_) or next;
       my $seqid  = @tokens > 3 ? $tokens[0] : $chrom;
       my $value  = $tokens[-1];

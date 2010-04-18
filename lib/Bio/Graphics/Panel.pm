@@ -938,7 +938,7 @@ sub ticks {
   # and enough room for the labels
   my $scale = $self->scale;
 
-  my $interval = 1;
+  my $interval = 10;
 
   while (1) {
     my $pixels = $interval * $scale;

@@ -128,7 +128,7 @@ sub draw_frame {
   my $self = shift;
   my ($feature,$strand,$base_offset,$phase,$gd,$x1,$y1,$x2,$y2) = @_;
   my ($seq,$pos);
-  $seq = $feature->seq or return; # no sequence, arggh.
+  $seq = $self->get_dna($feature) or return; # no sequence, arggh.
 
   my $strand0 = $strand;
   $strand *= -1 if $self->{flip};
@@ -160,7 +160,7 @@ sub draw_frame {
 
   # the dreaded difference between a Bio::SeqFeature and a Bio::Seq
 
-  my $realseq  = $self->get_seq($seq);
+  my $realseq  = $self->get_seq($feature);
   return unless $realseq;
   $realseq    = $realseq->revcom if $strand < 0;
 

@@ -365,27 +365,30 @@ sub draw_translation {
   my $stop  = $self->map_no_trunc($feature->end   + $self->{cds_offset});
 
   ($start,$stop) = ($stop,$start) if $stop < $start;  # why does this keep happening?
-  my $x_fudge    = $self->{flip} ? 1 : 2;
+  my $x_fudge    = $self->{flip}  ? -1 : 2;
   my $right      = $self->panel->right;
   my $left       = $self->panel->left;
 
   my @residues = split '',$self->{cds_translation};
+#  warn "residues = @residues, start=$start, stop=$stop, strand=$strand, x1=$x1, x2=$x2, cds_offset = $self->{cds_offset}";
+
   push @residues,$self->{cds_splice_residue_tail} 
       if $self->{cds_splice_residue_tail};
 
   for (my $i=0;$i<@residues;$i++) {
     my $x = $strand > 0 ? $start + $i * $pixels_per_residue
                         : $stop  - $i * $pixels_per_residue;
-    next unless ($x >= $x1 && $x <= $x2);
     $x -= $fontwidth + 1 if $self->{flip}; # align right when flipped
-#    last if $x+$fontwidth >= $right;
-#    last if $x            <= $left;
-    $gd->char($font,$x+$x_fudge,$y,$residues[$i],$color);
+    my $pos = $x+$x_fudge;
+    $gd->char($font,$pos,$y,$residues[$i],$color)
+	if $pos >= $x1 && $pos <= $x2;
   }
 
   if ($self->{cds_splice_residue_head}) {
-      $gd->char($font,$x1+2,$y,$self->{cds_splice_residue_head},$color)          if $strand > 0;
-      $gd->char($font,$x2-$fontwidth-2,$y,$self->{cds_splice_residue_head},$color) if $strand < 0;
+      $gd->char($font,$x1+2,$y,$self->{cds_splice_residue_head},$color)            
+	  if $strand > 0 && $start >= $left;
+      $gd->char($font,$x2-$fontwidth-2,$y,$self->{cds_splice_residue_head},$color) 
+	  if $strand < 0 && $stop <= $right;
   }
 }
 
@@ -415,8 +418,7 @@ sub draw_sequence {
   my $right      = $self->panel->right;
   my $left       = $self->panel->left;
 
-  my $seq   = $self->get_seq($self->feature->seq);
-  $seq      = $seq->seq if $seq;   # get the dna
+  my $seq   = $self->get_dna($self->feature);
 
   my $canonical = $self->option('canonical_strand');
 
@@ -472,21 +474,6 @@ sub draw_label {
 		$self->labelcolor);
   }
 }
-
-# sub draw_description {
-#   my $self = shift;
-#   my ($gd,$left,$top,$partno,$total_parts) = @_;
-#   my $label = $self->description or return;
-#   my $x = $self->left + $left;
-#   $x   += $self->pad_left;  # offset to beginning of drawn part of feature
-#   $x = $self->panel->left + 1 if $x <= $self->panel->left;
-#   my $dy= $self->part_labels ? $self->font->height : 0;
-#   $gd->string($self->descfont,
-# 	      $x,
-# 	      $self->bottom - $self->pad_bottom + $top + $dy,
-# 	      $label,
-# 	      $self->descriptioncolor);
-# }
 
 sub draw_description {
   my $self = shift;
@@ -655,7 +642,7 @@ sub reversec {
 sub calculate_cds {
   my $self = shift;
 
-  return if $self->{cds_translation};
+  return if exists $self->{cds_translation};
 
   my $f        = $self->feature;
 
@@ -673,11 +660,14 @@ sub calculate_cds {
   my $strand          = $f->strand;
   $strand            *= -1 if $self->{flip};
 
+  my $panel_start     = $self->panel->start;
+  my $panel_end       = $self->panel->end;
+
   for (my $i=0; $i < @subfeats; $i++) {
     my $feature = $subfeats[$i];
     my $prior   = $subfeats[$i-1] if $i>0;
     my $next    = $subfeats[$i+1] if $i<$#subfeats;
-    ($prior,$next) = ($next,$prior) if $strand < 0;
+    ($prior,$next) = ($next,$prior) if $f->strand < 0;
 
     my $part    = $parts{$feature->start} or next;
 
@@ -685,11 +675,11 @@ sub calculate_cds {
     my $phase   = eval {$feature->phase};
     next unless defined $phase;
 
-    my $seq     = $feature->seq;
+    my $seq     = $self->get_seq($feature);
     next unless defined $seq;
 
     my ($frame,$offset) = frame_and_offset($pos,
-					   $strand,
+					   $feature->strand,
 					   $phase);
     $part->{cds_frame}     = $frame;
     $part->{cds_offset}    = $offset;
@@ -699,21 +689,25 @@ sub calculate_cds {
     my $protein = $seq->translate(undef,undef,$phase,$codon_table)->seq;
     $part->{cds_translation}  = $protein;
 
-    my $spliced_codon = '';
+    # warn "protein = $protein";
 
     if ($phase == 2 && $prior) {
 	# get 1 bp from end of previous
-	my $dna       = $self->get_dna($feature);
-	my $prior_dna = $self->get_dna($prior) if $prior;
-	$spliced_codon .= substr($prior_dna,-1,1);
+	my $dna         = $self->get_dna($feature);
+	my $prior_dna   = $self->get_dna($prior);
+	my $spliced_codon = substr($prior_dna,-1,1);
 	$spliced_codon .= substr($dna,0,2);
 	$part->{cds_splice_residue_head} = $translate_table->translate($spliced_codon);
-    } elsif ($next && $next->phase == 1) { 
-	my $dna       = $self->get_dna($feature);
+	# warn "codon = $spliced_codon, splice_residue_head = $part->{cds_splice_residue_head}";
+    } 
+
+    if ($next && $next->phase == 1) { 
+	my $dna         = $self->get_dna($feature);
 	my $next_dna    = $self->get_dna($next)  if $next;
-	$spliced_codon .= substr($dna,-2,2);
-	$spliced_codon .= substr($next_dna,0,1);
+	my $spliced_codon = substr($dna,-2,2);
+	$spliced_codon   .= substr($next_dna,0,1);
 	$part->{cds_splice_residue_tail} = $translate_table->translate($spliced_codon);
+	# warn "codon = $spliced_codon, splice_residue_tail = $part->{cds_splice_residue_tail}";
     }
   }
   return;
@@ -729,19 +723,23 @@ sub find_subfeats_with_phase {
 # hack around changed feature API
 sub get_seq {
   my $self = shift;
-  my $seq  = shift;
-  return unless $seq;
-  return $seq if ref $seq && $seq->can('translate');
-  require Bio::PrimarySeq unless Bio::PrimarySeq->can('new');
-  return Bio::PrimarySeq->new(-seq=>$seq);
+  my $feature = shift;
+  my $dna = $self->get_dna($feature);
+  return Bio::PrimarySeq->new(-seq=>$dna);  
 }
 
 sub get_dna {
     my $self = shift;
-    my $seq  = shift or return;
-    my $obj  = $seq->seq;
-    $obj = $obj->seq if ref $obj;
-    return $obj;
+    my $feat = shift or return;
+    my $key = join(':',(eval{$feat->seq_id}||'',$feat->start,$feat->end,$feat->strand));
+    my $panel = $self->panel;
+    if (exists $panel->{_seqcache}{$key}) {
+	return $panel->{_seqcache}{$key};
+    } else {
+	my $obj  = $feat->seq;
+	$obj = $obj->seq if ref $obj;
+	return $panel->{_seqcache}{$key} = $obj;
+    }
 }
 
 1;

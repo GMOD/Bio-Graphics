@@ -259,8 +259,13 @@ sub _split_on_cigar {
 	    if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
 		$target_start += $count;
 	    }
-	    elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
+	    elsif ($op eq 'D' || $op eq 'N') {
 		$source_start += $count;
+	    }
+	    elsif ($op eq 'P') {
+		# Do NOTHING for pads. Irrelevant for pairwise
+		# alignments, since we cannot show the pad in
+		# the reference sequence
 	    } else {  # everything else is assumed to be a match -- revisit
 		push @parts,[$source_start,$source_start+$count-1,
 			     $target_start,$target_start+$count-1];
@@ -276,8 +281,11 @@ sub _split_on_cigar {
 	    if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
 		$target_start += $count;
 	    }
-	    elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
+	    elsif ($op eq 'D' || $op eq 'N') {
 		$source_end -= $count;
+	    }
+	    elsif ($op eq 'P') {
+		# do nothing for pads
 	    } else {  # everything else is assumed to be a match -- revisit
 		push @parts,[$source_end-$count+1,$source_end,
 			     $target_start,$target_start+$count-1];
@@ -487,6 +495,8 @@ sub draw_multiple_alignment {
     my $cigar = $self->_get_cigar($s);
     if ($cigar || ($can_realign && $do_realign)) {
 	($ref_dna,$tgt_dna) = ($s->dna,$target->dna);
+	warn "ref/tgt" if DEBUG;
+	warn "$ref_dna\n$tgt_dna";
 	
 	my @exact_segments;
 
@@ -758,7 +768,7 @@ sub draw_multiple_alignment {
 	    my $length = $delta-1;
 	    if ($gap_distance >= $fontwidth*length($length)) {
 		my $center = $gap_left + $gap_distance/2 - ($fontwidth*length($length))/2;
-		$gd->char($font,$center,$y,$length,$color);
+		$gd->string($font,$center,$y,$length,$color);
 	    }
 	}
 	# stick in a blob
@@ -799,20 +809,22 @@ sub _gapped_alignment_to_segments {
     my $self = shift;
     my ($cigar,$sdna,$tdna) = @_;
     my ($pad_source,$pad_target,$pad_match);
+    warn "_gapped_alignment_to_segments\n$sdna\n$tdna" if DEBUG;
 
     for my $event (@$cigar) {
 	my ($op,$count) = @$event;
+	warn "op=$op, count=$count";
 	if ($op eq 'I' || $op eq 'S') {
 	    $pad_source .= '-' x $count;
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
 	}
-	elsif ($op eq 'D' || $op eq 'N' || $op eq 'P') {
-	    $pad_source .= substr($tdna,0,$count,'');
+	elsif ($op eq 'D' || $op eq 'N') {
+	    $pad_source .= substr($sdna,0,$count,'');
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
 	}
-	elsif ($op eq 'H') {
+	elsif ($op eq 'H' || $op eq 'P') {
 	    # Nothing to do. This is simply an informational operation.
 	} else {  # everything else is assumed to be a match -- revisit
 	    $pad_source .= substr($sdna,0,$count,'');
@@ -820,6 +832,8 @@ sub _gapped_alignment_to_segments {
 	    $pad_match  .= '|' x $count;
 	}
     }
+
+    warn "pads:\n$pad_source\n$pad_match\n$pad_target" if DEBUG;
 
     return $self->pads_to_segments($pad_source,$pad_match,$pad_target);
 }

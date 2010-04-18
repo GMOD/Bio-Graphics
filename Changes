@@ -6,6 +6,12 @@ Revision history for Perl extension Bio::Graphics.
        when DNA is in view), or a number, in which case mismatches will only be drawn when the length
        of the window is <= that number. For compatibility, a value of "1" is the same as "base level."
      - Fixed display of protein sequence in genes when -draw_protein is true.
+     - Fixed display of long deletions in segments glyph base-pair alignments to avoid drop-out of
+       sequence from the right end of the alignment following deleted region.
+     - Fixed display of insertions in segments glyph base-pair alignments so that the length
+       of the deletion is displayed when there is more than one digit of length.
+     - Fixed Wiggle loader routine to handle statistics on chromosomes that have a 
+       combination of fixed and variable step declarations.
 
 2.02 Sun Mar 14 18:44:04 EDT 2010
      - Added a wiggle_whiskers glyph that works nicely with BigWig and
