@@ -258,6 +258,7 @@ use IO::File;
 use Text::ParseWords 'shellwords';
 use Bio::DB::SeqFeature::Store;
 use File::Basename 'dirname';
+use File::Spec;
 use Cwd 'getcwd';
 
 # default colors for unconfigured features
@@ -343,8 +344,6 @@ the [GENERAL] section of the file, it will be evaluated as perl code
 immediately after parsing.  You can use this to declare global
 variables and subroutines for use in option values.
 
-=back
-
 =cut
 
 # args array:
@@ -355,6 +354,10 @@ variables and subroutines for use in option values.
 #                returns     ($newref,$new_coord1,$new_coord2...)
 
 sub new {
+    shift->_new(@_);
+}
+
+sub _new {
   my $class = shift;
   my %args  = @_;
   my $self = bless {
@@ -385,12 +388,10 @@ sub new {
   if (my $file = $args{-file}) {
     no strict 'refs';
     if (defined fileno($file)) { # a filehandle
-	$self->_stat($file);
 	$self->parse_fh($file);
     } elsif ($file eq '-') {
 	$self->parse_argv();
     } else {
-	$self->_stat($file);
 	$self->parse_file($file);
     }
   } elsif (my $text = $args{-text}) {
@@ -399,6 +400,90 @@ sub new {
 
   $self->finish_parse();
   return $self;
+}
+
+=item $features = Bio::Graphics::FeatureFile-E<gt>new_from_cache(@args)
+
+Like new() but caches the parsed file in /tmp/bio_graphics_ff_cache_*
+(where * is the UID of the current user). This can speed up parsing
+tremendously for files that have many includes.
+
+Note that the presence of an #exec statement always invalidates the
+cache and causes a full parse.
+
+=cut
+
+sub new_from_cache {
+    my $self = shift;
+    my %args = @_;
+    my $has_libs;
+
+    unless ($has_libs = defined &nfreeze) {
+	$has_libs = eval <<END;
+use Storable 'lock_store','lock_retrieve';
+use File::Path 'mkpath';
+1;
+END
+    warn "You need Storable to use new_from_cache(); returning uncached data" unless $has_libs;
+    }
+
+    $Storable::Deparse = 1;
+    $Storable::Eval    = 1;
+
+    my $file      = $has_libs && $args{-file} or return $self->_new(@_);
+    my $uid       = $<;
+    (my $name     = $args{-file}) =~ s!/!_!g;
+    my $cachefile = File::Spec->catfile(File::Spec->tmpdir,"bio_graphics_ff_cache_${uid}",$name);
+    if (-e $cachefile && (stat(_))[9] >= $self->file_mtime($args{-file})) { # cache is valid
+	return lock_retrieve($cachefile);
+    } else {
+	mkpath(dirname($cachefile));
+	my $parsed = $self->_new(@_);
+	lock_store($parsed,$cachefile);
+	return $parsed;
+    }
+    
+}
+
+=item $mtime = Bio::Graphics::FeatureFile->file_mtime($path)
+
+Return the modification time of the indicated feature file without performing a full parse. This
+takes into account the various #include and #exec directives and returns the maximum mtime of
+any of the included files. Any #exec directive will return the current time. This is
+useful for caching the parsed data structure.
+
+=back
+
+=cut
+
+sub file_mtime {
+    my $self = shift;
+
+    my $file  = shift;
+    my $mtime = 0;
+
+    for my $f (glob($file)) {
+	my $m  = (stat($f))[9] or next;
+	$mtime = $m if $mtime < $m;
+	open my $fh,'<',$file or next;
+	my $cwd = getcwd();
+	chdir(dirname($file));
+
+
+	while (<$fh>) {
+	    if (/^\#exec/) {
+		return time();  # now!
+	    }
+	    if (/^\#include\s+(.+)/i) {  # #include directive
+		my ($include_file) = shellwords($1);
+		my $m  = $self->file_mtime($include_file);
+		$mtime = $m if $mtime < $m;
+	    }
+	}
+	chdir($cwd);
+    }
+
+    return $mtime;
 }
 
 # render our features onto a panel using configuration data
@@ -556,7 +641,16 @@ sub render {
 sub _stat {
   my $self = shift;
   my $file = shift;
-  $self->{stat} = [stat($file)];
+  my @stat = stat($file) or return;
+
+  if ($self->{stat} && @{$self->{stat}}) { # merge #includes so that mtime etc are max age
+      for (8,9,10) {
+	  $self->{stat}[$_] = $stat[$_] if $stat[$_] > $self->{stat}[$_];
+      }
+      $self->{stat}[7] += $stat[7];
+  } else {
+      $self->{stat} = \@stat;
+  }
 }
 
 sub _visible {
@@ -630,6 +724,7 @@ sub parse_file {
 sub parse_fh {
     my $self = shift;
     my $fh   = shift;
+    $self->_stat($fh);
     local $/ = "\n";
     while (<$fh>) {
 	chomp;

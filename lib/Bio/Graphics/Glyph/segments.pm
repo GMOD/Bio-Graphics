@@ -496,7 +496,7 @@ sub draw_multiple_alignment {
     if ($cigar || ($can_realign && $do_realign)) {
 	($ref_dna,$tgt_dna) = ($s->dna,$target->dna);
 	warn "ref/tgt" if DEBUG;
-	warn "$ref_dna\n$tgt_dna";
+	warn "$ref_dna\n$tgt_dna" if DEBUG;
 	
 	my @exact_segments;
 
@@ -813,7 +813,7 @@ sub _gapped_alignment_to_segments {
 
     for my $event (@$cigar) {
 	my ($op,$count) = @$event;
-	warn "op=$op, count=$count";
+	warn "op=$op, count=$count" if DEBUG;
 	if ($op eq 'I' || $op eq 'S') {
 	    $pad_source .= '-' x $count;
 	    $pad_target .= substr($tdna,0,$count,'');
