@@ -730,13 +730,17 @@ sub get_seq {
 
 sub get_dna {
     my $self = shift;
-    my $feat = shift or return;
-    my $key = join(':',(eval{$feat->seq_id}||'',$feat->start,$feat->end,$feat->strand));
+    # could be a PrimarySeq, or some kind of feature
+    my $thing = shift or return;
+    my $key = join ':',
+        map { eval{ $thing->$_->() } || '' }
+        qw( seq_id start end strand );
+
     my $panel = $self->panel;
     if (exists $panel->{_seqcache}{$key}) {
 	return $panel->{_seqcache}{$key};
     } else {
-	my $obj  = $feat->seq;
+	my $obj  = $thing->seq;
 	$obj = $obj->seq if ref $obj;
 	return $panel->{_seqcache}{$key} = $obj;
     }
