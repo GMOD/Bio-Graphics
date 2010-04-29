@@ -21,12 +21,13 @@ sub my_options {
 	    undef,
 	    'The maximum score of the quantitative range.'],
 	bicolor_pivot => [
-	    ['mean','zero','float'],
+	    ['mean','zero','float','max','min'],
 	    undef,
 	    'A value to pivot the display on. Typically this involves changing the color of the',
-	    'glyph depending on whether the feature is above or below the pivot value.',
+	    'glyph (and scale axis) depending on whether the feature is above or below the pivot value.',
 	    'Provide "mean" to pivot on the mean of the data series, "zero" to pivot on the',
-	    'zero value, or any arbitrary integer or floating point number to pivot at that value.'],
+	    'zero value, "min" to pivot on the min and "max" on max of data series, also it is',
+            'possible to use any arbitrary integer or floating point number to pivot at that value.'],
 	pos_color => [
 	    'color',
 	    undef,
@@ -92,6 +93,10 @@ sub midpoint {
 	return 0;
     } elsif ($pivot eq 'mean') {
 	return eval {$self->series_mean} || 0;
+    } elsif ($pivot eq 'min') {
+	return eval {$self->series_min} || 0;
+    } elsif ($pivot eq 'max') {
+        return eval {$self->series_max} || 0;
     } elsif  ($pivot =~ /^[\d.eE+-]+$/){
 	return $pivot;
     } else {

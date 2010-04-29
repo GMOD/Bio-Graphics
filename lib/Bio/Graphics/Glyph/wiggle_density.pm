@@ -397,6 +397,18 @@ sub series_mean {
     return eval {$wig->mean} || undef;
 }
 
+sub series_min {
+    my $self = shift;
+    my $wig = $self->wig or return;
+    return eval {$wig->min} || undef;
+}
+
+sub series_max {
+    my $self = shift;
+    my $wig = $self->wig or return;
+    return eval {$wig->max} || undef;
+}
+
 sub calculate_color {
   my $self = shift;
   my ($s,$rgb,$min_score,$max_score) = @_;

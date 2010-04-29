@@ -186,6 +186,7 @@ sub draw_plot {
     my $self            = shift;
     my $parts           = shift;
     my ($gd,$dx,$dy)    = @_;
+    my $pivot = $self->bicolor_pivot;
 
     $self->panel->startGroup($gd);
 
@@ -216,8 +217,8 @@ sub draw_plot {
     $y += $self->pad_top;
 
     # position of "0" on the scale
-    my $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $y_scale : $bottom;
-    $y_origin    = $top if $max_score < 0;
+    my $y_origin = $min_score <= 0 && $pivot ne 'min' ? $bottom - (0 - $min_score) * $y_scale : $bottom;
+    $y_origin    = $top if $max_score < 0 && $pivot ne 'min' || $pivot eq 'max';
     $y_origin    = int($y_origin+0.5);
 
     $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
@@ -349,6 +350,19 @@ sub series_mean {
     my $wig = $self->wig or return;
     return eval {$wig->mean} || undef;
 }
+
+sub series_min {
+    my $self = shift;
+    my $wig = $self->wig or return;
+    return eval {$wig->min} || undef;
+}
+
+sub series_max {
+    my $self = shift;
+    my $wig = $self->wig or return;
+    return eval {$wig->max} || undef;
+}
+
 
 sub draw_densefile {
     my $self = shift;
