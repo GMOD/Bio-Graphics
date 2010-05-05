@@ -291,6 +291,9 @@ sub draw_segment {
       $max_value ||= $max;
   }
 
+  my $t = 0; for (@$data) {$t+=$_}
+  warn "min=$min_value, max=$max_value, total = $t";
+
   # allocate colors
   # There are two ways to do this. One is a scale from min to max. The other is a
   # bipartite scale using one color range from zero to min, and another color range
@@ -327,7 +330,8 @@ sub draw_segment {
 
     for (my $i = 0; $i <= @$data ; $i++) {
       my $x          = $x1 + $pixels_per_datapoint * $i;
-      my $data_point = $data->[$i] || next;
+      my $data_point = $data->[$i];
+      defined $data_point || next;
       $data_point    = $min_value if $min_value > $data_point;
       $data_point    = $max_value if $max_value < $data_point;
       my ($r,$g,$b)  = $bicolor

@@ -641,9 +641,8 @@ sub render {
 sub _stat {
   my $self = shift;
   my $file = shift;
-  my @stat = do{ no warnings 'unopened'; stat($file) }
-      or return;
-
+  defined fileno($file)  or return;
+  my @stat = stat($file) or return;
   if ($self->{stat} && @{$self->{stat}}) { # merge #includes so that mtime etc are max age
       for (8,9,10) {
 	  $self->{stat}[$_] = $stat[$_] if $stat[$_] > $self->{stat}[$_];

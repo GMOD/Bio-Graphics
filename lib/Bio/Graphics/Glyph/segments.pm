@@ -459,7 +459,7 @@ sub draw_multiple_alignment {
   # subfeatures do. There is total breakage of encapsulation here because sometimes
   # a chado alignment places the aligned segment in the top-level feature, and sometimes
   # in the child feature.
-  unless (@s || $feature->isa('Bio::DB::GFF::Feature')) {
+  unless (@s) {            # || $feature->isa('Bio::DB::GFF::Feature')) {
     @s = ($feature);
   }
 
@@ -495,8 +495,9 @@ sub draw_multiple_alignment {
     my $cigar = $self->_get_cigar($s);
     if ($cigar || ($can_realign && $do_realign)) {
 	($ref_dna,$tgt_dna) = ($s->dna,$target->dna);
-	warn "ref/tgt" if DEBUG;
-	warn "$ref_dna\n$tgt_dna" if DEBUG;
+	warn "$s: ",$s->seq_id,":",$s->start,'..',$s->end if DEBUG;
+	warn "ref/tgt"             if DEBUG;
+	warn "$ref_dna\n$tgt_dna"  if DEBUG;
 	
 	my @exact_segments;
 
@@ -525,6 +526,7 @@ sub draw_multiple_alignment {
 	push @segments,[$target,$src_start,$src_end,$tgt_start,$tgt_end];
     }
   }
+
 
   # get 'em in the right order so that we don't have to worry about
   # where the beginning and end are.
@@ -631,7 +633,6 @@ sub draw_multiple_alignment {
     $ref_dna = $self->reversec($ref_dna) unless eval { $feature->reversed } ;
     $tgt_dna = $self->reversec($tgt_dna);
   }
-
 
   for my $seg (@segments) {
     $seg->[SRC_START] -= $abs_start - 1;
@@ -779,7 +780,7 @@ sub draw_multiple_alignment {
 	for (my $i=0;$i<$delta-1;$i++) {
 	  my $x = $base2pixel->($src_last_end,$i+1);
 	  next if $x > $panel_right;
-	  $self->filled_box($gd,$x-$pixels_per_base/2+2,$y,$x+$pixels_per_base/2+1,$y+$lineheight,$indel,$indel)
+	  $self->filled_box($gd,$x-$pixels_per_base/2+2,$y+1,$x+$pixels_per_base/2+1,$y+$lineheight,$indel,$indel)
 	    if $show_mismatch;
 	  $gd->char($font,$x,$y,'-',$color);
 	}
@@ -796,10 +797,18 @@ sub draw_multiple_alignment {
   # alignment for some reason - THIS SHOULD NOT BE NECESSARY AND INDICATES THAT THIS WHOLE METHOD NEEDS
   # TO BE REWRITTEN!
   if (defined $leftmost && $leftmost-$bl > $pixels_per_base) {
-    $gd->char($font,$_,$top-1,'-',$color) for map {$bl+$_*$pixels_per_base} 0..($leftmost-$bl)/$pixels_per_base-1;
+      for (map {$bl+$_*$pixels_per_base} 0..($leftmost-$bl)/$pixels_per_base-1) {
+	  $self->filled_box($gd,$_,$top+1,$_+$pixels_per_base,$top+$lineheight-1,$indel,$indel)
+	    if $show_mismatch;
+	  $gd->char($font,$_+2,$top-1,'-',$color);
+      }
   }
   if (defined $rightmost && $br-$rightmost > $pixels_per_base) {
-    $gd->char($font,$_,$top-1,'-',$color) for map {$rightmost+$_*$pixels_per_base} (0..($br-$rightmost)/$pixels_per_base);
+      for (map {$rightmost+$_*$pixels_per_base} (0..($br-$rightmost)/$pixels_per_base)) {
+	  $self->filled_box($gd,$_,$top+1,$_+$pixels_per_base,$top+$lineheight-1,$indel,$indel)
+	      if $show_mismatch;
+	  $gd->char($font,$_+2,$top-1,'-',$color);
+      }
   }
 
   return $drew_sequence;
@@ -814,7 +823,7 @@ sub _gapped_alignment_to_segments {
     for my $event (@$cigar) {
 	my ($op,$count) = @$event;
 	warn "op=$op, count=$count" if DEBUG;
-	if ($op eq 'I' || $op eq 'S') {
+	if ($op eq 'I') {
 	    $pad_source .= '-' x $count;
 	    $pad_target .= substr($tdna,0,$count,'');
 	    $pad_match  .= ' ' x $count;
@@ -823,6 +832,12 @@ sub _gapped_alignment_to_segments {
 	    $pad_source .= substr($sdna,0,$count,'');
 	    $pad_target .= '-' x $count;
 	    $pad_match  .= ' ' x $count;
+	}
+	elsif ($op eq 'S') {
+	    $pad_source .= '-' x $count;
+	    $pad_target .= substr($tdna,0,$count,'');
+	    $pad_match  .= ' ' x $count;
+
 	}
 	elsif ($op eq 'H' || $op eq 'P') {
 	    # Nothing to do. This is simply an informational operation.
@@ -841,6 +856,8 @@ sub _gapped_alignment_to_segments {
 sub pads_to_segments {
     my $self = shift;
     my ($gap1,$align,$gap2) = @_;
+    warn "pads_to_segments" if DEBUG;
+    warn "$gap1\n$align\n$gap2\n" if DEBUG;
 
     # create arrays that map residue positions to gap positions
     my @maps;

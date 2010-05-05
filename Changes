@@ -1,4 +1,11 @@
 Revision history for Perl extension Bio::Graphics.
+
+2.06 Wed May  5 00:51:00 EDT 2010
+     - Segments glyph now displays correct mismatch color for sequences that begin or end with soft clips.
+     - Indels displayed in correct color when indel begins or ends outside current visible region.
+
+2.05 Identical to 2.04.
+
 2.04 Sun Apr 18 17:26:01 EDT 2010
      - Segments glyph now smarter about fetching reference sequence; this improves performance
        on multiple alignments.
