@@ -292,7 +292,7 @@ sub draw_segment {
   }
 
   my $t = 0; for (@$data) {$t+=$_}
-  warn "min=$min_value, max=$max_value, total = $t";
+  # warn "min=$min_value, max=$max_value, total = $t";
 
   # allocate colors
   # There are two ways to do this. One is a scale from min to max. The other is a
