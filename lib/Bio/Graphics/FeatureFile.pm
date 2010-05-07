@@ -431,9 +431,8 @@ END
     $Storable::Eval    = 1;
 
     my $file      = $has_libs && $args{-file} or return $self->_new(@_);
-    my $uid       = $<;
     (my $name     = $args{-file}) =~ s!/!_!g;
-    my $cachefile = File::Spec->catfile(File::Spec->tmpdir,"bio_graphics_ff_cache_${uid}",$name);
+    my $cachefile = $self->cachefile($name);
     if (-e $cachefile && (stat(_))[9] >= $self->file_mtime($args{-file})) { # cache is valid
 	return lock_retrieve($cachefile);
     } else {
@@ -443,6 +442,18 @@ END
 	return $parsed;
     }
     
+}
+
+sub cachedir {
+    my $self = shift;
+    my $uid       = $<;
+    return File::Spec->catfile(File::Spec->tmpdir,"bio_graphics_ff_cache_${uid}");
+}
+
+sub cachefile {
+    my $self = shift;
+    my $name = shift;
+    return File::Spec->catfile($self->cachedir,$name);
 }
 
 =item $mtime = Bio::Graphics::FeatureFile->file_mtime($path)
