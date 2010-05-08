@@ -104,10 +104,7 @@ lib/Bio/Graphics/RendererI.pm
 lib/Bio/Graphics/Util.pm
 lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
-lib/Bio/Graphics/WiggleCompressed.pm
-Makefile.PL
 MANIFEST
-META.yml
 README
 README.bioperl
 scripts/contig_draw.pl
