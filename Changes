@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.07 Sun May  9 11:56:10 EDT 2010
+     - Added FeatureFile->cachedir argument to help with GBrowse tests.
+
 2.06 Wed May  5 00:51:00 EDT 2010
      - Segments glyph now displays correct mismatch color for sequences that begin or end with soft clips.
      - Indels displayed in correct color when indel begins or ends outside current visible region.
