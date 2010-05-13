@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.08 Thu May 13 17:06:29 EDT 2010
+     - Fixed init_code so that it is invoked when retrieving a cached copy of parsed featurefiles.
+
 2.07 Sun May  9 11:56:10 EDT 2010
      - Added FeatureFile->cachedir argument to help with GBrowse tests.
 

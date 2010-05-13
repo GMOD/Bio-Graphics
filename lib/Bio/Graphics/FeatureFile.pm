@@ -434,7 +434,9 @@ END
     (my $name     = $args{-file}) =~ s!/!_!g;
     my $cachefile = $self->cachefile($name);
     if (-e $cachefile && (stat(_))[9] >= $self->file_mtime($args{-file})) { # cache is valid
-	return lock_retrieve($cachefile);
+	my $parsed_file = lock_retrieve($cachefile);
+	$parsed_file->initialize_code if $parsed_file->safe;
+	return $parsed_file;
     } else {
 	mkpath(dirname($cachefile));
 	my $parsed = $self->_new(@_);
