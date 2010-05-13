@@ -544,6 +544,69 @@ sub export_to_wif {
     return $data;
 }
 
+sub export_to_bedgraph {
+    my $self = shift;
+    my ($start,$end,$fh) = @_;
+    my $max_range = 100_000;
+
+    $start ||= 1;
+    $end   ||= $self->end;
+
+    my $lines;
+    for (my $s=$start;$s<$end;$s+=$max_range) {
+	my $e      = $s + $max_range - 1;
+	$e         = $end if $e > $end;
+	my $b      = $self->values($s,$e);
+	$lines .= $self->_bedgraph_lines($s,$b,$fh);
+    }
+
+    return $lines;
+}
+
+sub _bedgraph_lines {
+    my $self = shift;
+    my ($start,$values,$fh) = @_;
+    my $seqid        = $self->seqid;
+    my $result;
+
+    my ($last_val,$last_start,$end);
+    $last_start = $start-1; # 0 based indexing
+    for (my $i=0;$i<@$values;$i++) {
+	my $v           = $values->[$i];
+
+	if (!defined $v) {
+	    if (defined $last_val) {
+		$result .= $self->_append_or_print_bedgraph($fh,$seqid,$last_start,$start+$i-1,$last_val);
+		undef $last_val;
+	    }
+	    $last_start = $start+$i;
+	    next;
+	}
+
+	if (defined $last_val && $last_val != $v) {
+	    $result .= $self->_append_or_print_bedgraph($fh,$seqid,$last_start,$start+$i-1,$last_val);
+	    $last_start = $start+$i-1;
+	}
+
+	$last_val = $v;
+	$end      = $start+$i-1;
+    }
+    $result .= $self->_append_or_print_bedgraph($fh,$seqid,$last_start,$end+1,$last_val) if $last_val;
+    return $result;
+}
+
+sub _append_or_print_bedgraph {
+    my $self = shift;
+    my ($fh,$seqid,$start,$end,$val) = @_;
+    my $data = join("\t",$seqid,$start,$end,sprintf("%.2f",$val))."\n";
+    if ($fh) {
+	print $fh $data;
+	return '';
+    } else {
+	return $data;
+    }
+}
+
 sub import_from_wif {
     my $self    = shift;
     my $wifdata = shift;
@@ -599,6 +662,7 @@ sub _retrieve_values {
 							  $step);
 	  my @bases= grep {$_} unpack('C*',$packed_data);
 	  if (@bases) {
+	      local $^W = 0;
 	      my $arry = $self->unscale(\@bases);	 
 	      my $n    = @$arry;
 	      my $total = 0;
@@ -639,6 +703,7 @@ sub _retrieve_values {
       next unless $value;  # ignore 0 values
       @bases[$index..$index+$span-1] = ($value) x $span;
     }
+    $#bases = $length-1;
   }
 
   my $r = $self->unscale(\@bases);

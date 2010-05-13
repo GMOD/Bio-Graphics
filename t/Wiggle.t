@@ -7,7 +7,7 @@ use strict;
 use ExtUtils::MakeMaker;
 use File::Temp qw(tempfile);
 use FindBin '$Bin';
-use constant TEST_COUNT => 10;
+use constant TEST_COUNT => 11;
 
 use lib "$Bin/../lib","$Bin/../blib/lib","$Bin/../blib/arch";
 use Test::More tests => TEST_COUNT;
@@ -35,8 +35,12 @@ ok($wig);
 is($wig->seqid,'I');
 ok(abs($wig->values(87=>87)->[0]-0.22) < 0.01);
 ok(abs($wig->values(173=>173)->[0]-0.52) < 0.01);
-my $h = $wig->values(101=>200);
-is(@$h,100);
+my $h = $wig->values(101=>300);
+is(@$h,200);
+
+my $result = $wig->export_to_bedgraph(1,5000);
+my @lines  = split "\n",$result;
+is(@lines,57);
 
 exit 0;
 
