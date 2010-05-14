@@ -418,6 +418,8 @@ sub calculate_color {
   my ($s,$rgb,$min_score,$max_score) = @_;
   $s ||= $min_score;
 
+  return 0 if $max_score==$min_score; # avoid div by zero
+
   my $relative_score = ($s-$min_score)/($max_score-$min_score);
   $relative_score -= .1 if $relative_score == 1;
   return map { int(254.9 - (255-$_) * min(max( $relative_score, 0), 1)) } @$rgb;
