@@ -1,5 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.10 Mon May 24 13:58:26 PDT 2010
+     - Fixed a long-standing but rarely-seen bug in layout algorithm that
+       caused some features to be displaced downward further than they should
+       be.
+
 2.09 Fri May 14 11:46:51 EDT 2010
      - Fixed Bio::Graphics::FeatureFile cached callbacks so that they are evaluated
        in the same package as they were when the file was originally evaluated and cached.

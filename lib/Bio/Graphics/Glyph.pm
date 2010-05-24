@@ -892,7 +892,9 @@ sub layout {
 	# my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
 	
 	if ($bump_direction > 0) {
-	    $pos += $collision->[3]-$collision->[1] + BUMP_SPACING;    # collision, so bump
+# old bug here
+#	    $pos += $collision->[3]-$collision->[1] + BUMP_SPACING;    # collision, so bump
+	    $pos = $collision->[3] + BUMP_SPACING;    # collision, so bump
 	} else {
 	    $pos -= BUMP_SPACING;
 	}
@@ -902,7 +904,6 @@ sub layout {
     
     $g->move(0,$pos);
     $self->add_collision(\%bin1,CM1,CM2,$left,$g->top,$right,$g->bottom);
-    #$self->add_collision(\%bin2,CM3,CM4,$left,$g->top,$right,$g->bottom);
     
     $recent_pos = $pos;
     $max_pos    = $pos if $pos > $max_pos;

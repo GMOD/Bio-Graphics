@@ -334,8 +334,13 @@ sub draw_label {
 
 sub global_mean_and_variance {
     my $self = shift;
-    my $wig = $self->wig or return;
-    return ($wig->mean,$wig->stdev);
+    if (my $wig = $self->wig) {
+	return ($wig->mean,$wig->stdev);
+    } elsif ($self->feature->can('global_mean')) {
+	my $f = $self->feature;
+	return ($f->global_mean,$f->global_stdev);
+    }
+    return;
 }
 
 sub wig {
