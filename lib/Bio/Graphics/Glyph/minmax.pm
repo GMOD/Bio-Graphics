@@ -112,12 +112,16 @@ sub bicolor_pivot {
 }
 
 sub pos_color {
-    my $self = shift;
+    my $self  = shift;
+    my $pivot = $self->bicolor_pivot || 'none';
+    return $self->bgcolor if $pivot eq 'none';
     return $self->color('pos_color') || $self->bgcolor;
 }
 
 sub neg_color {
     my $self = shift;
+    my $pivot = $self->bicolor_pivot || 'none';
+    return $self->bgcolor if $pivot eq 'none';
     return $self->color('neg_color') || $self->bgcolor;
 }
 

@@ -343,6 +343,16 @@ sub global_mean_and_variance {
     return;
 }
 
+sub global_min_max {
+    my $self = shift;
+    if (my $wig = $self->wig) {
+	return ($wig->min,$wig->max);
+    } elsif (my $stats = eval {$self->feature->global_stats}) {
+	return ($stats->{minVal},$stats->{maxVal});
+    }
+    return;
+}
+
 sub wig {
     my $self = shift;
     my $d = $self->{wig};
@@ -352,8 +362,8 @@ sub wig {
 
 sub series_mean {
     my $self = shift;
-    my $wig = $self->wig or return;
-    return eval {$wig->mean} || undef;
+    my ($mean) = $self->global_mean_and_variance;
+    return $mean;
 }
 
 sub series_min {
