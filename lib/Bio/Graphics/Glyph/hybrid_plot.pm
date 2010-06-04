@@ -57,14 +57,6 @@ sub draw {
   else{$self->configure(-pos_color, POSCOL);}
   
   $self->draw_wigfile($feature,$wiggles[$w],@_) if $wiggles[$w];
-  my @parts = $self->parts;
-  ($min_score,$max_score) = $self->minmax(\@parts);
-  $scale  = $max_score > $min_score ? $height/($max_score-$min_score) : 1;
-  
-  # position of "0" on the scale (We need to draw the scale again due to some glithes with color)
-  $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $scale : $bottom;
-  $y_origin    = $top if $max_score < 0;
-
  }
 }
 
