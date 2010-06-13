@@ -11,6 +11,17 @@ explicitly.
 END
 }
 
+sub my_options {
+    return
+    {
+	label_group => [
+	    'boolean',
+	    undef,
+	    'Attach a label to the group of glyphs.'
+	    ],
+    }
+}
+
 # group sets connector to 'dashed'
 sub connector {
   my $self = shift;
@@ -20,7 +31,28 @@ sub connector {
 }
 
 # we don't label group (yet)
-sub label { 0 }
+sub label { my $self = shift;
+	    return $self->{_group_label} if exists $self->{_group_label};
+	    return $self->{_group_label}  = $self->option('label_group') ? $self->feature->display_name : '' 
+}
+
+sub labelfont {
+  my $self = shift;
+  return $self->getfont('groupfont','gdMediumBoldFont');
+}
+
+sub pad_left { 
+    my $self = shift;
+    $self->SUPER::pad_left + ($self->label ? 5 : 0);
+}
+
+sub draw {
+    my $self = shift;
+    $self->SUPER::draw(@_);
+    $self->draw_label(@_) if $self->option('label_group');
+}
+
+sub label_position { return 'left' } 
 
 sub new {
   my $self = shift;
