@@ -14,10 +14,11 @@ END
 sub my_options {
     return
     {
-	label_group => [
+	group_subtracks => [
 	    'boolean',
 	    undef,
-	    'Attach a label to the group of glyphs.'
+	    'Treat each group as a subtrack, by attaching a left-side label to the group of glyphs',
+	    'and forcing each group to bump vertically'
 	    ],
     }
 }
@@ -33,7 +34,7 @@ sub connector {
 # we don't label group (yet)
 sub label { my $self = shift;
 	    return $self->{_group_label} if exists $self->{_group_label};
-	    return $self->{_group_label}  = $self->option('label_group') ? $self->feature->display_name : '' 
+	    return $self->{_group_label}  = $self->option('group_subtracks') ? $self->feature->display_name : '' 
 }
 
 sub labelfont {
@@ -43,13 +44,14 @@ sub labelfont {
 
 sub pad_left { 
     my $self = shift;
-    $self->SUPER::pad_left + ($self->label ? 5 : 0);
+    return 0 unless $self->option('group_subtracks');
+    return length($self->label||'') * $self->labelfont->width+3;
 }
 
 sub draw {
     my $self = shift;
-    $self->SUPER::draw(@_);
-    $self->draw_label(@_) if $self->option('label_group');
+    $self->SUPER::draw(@_) if $self->feature_has_subparts;
+    $self->draw_label(@_)  if $self->option('group_subtracks');
 }
 
 sub label_position { return 'left' } 
@@ -62,11 +64,11 @@ sub new {
 
 # don't allow simple bumping in groups -- it looks terrible...
 sub bump {
-  my $bump = shift->SUPER::bump(@_);
-  return unless defined $bump;
-  return 1  if $bump >  1;
-  return -1 if $bump < -1;
-  return $bump;
+    my $self = shift;
+    my $bump = $self->SUPER::bump(@_);
+    return 1  if $bump >  1;
+    return -1 if $bump < -1;
+    return $bump;
 }
 
 1;

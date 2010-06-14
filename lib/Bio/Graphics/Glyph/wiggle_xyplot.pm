@@ -64,6 +64,14 @@ sub pad_top {
   $pad;
 }
 
+sub pad_left {
+    my $self = shift;
+    my $pad  = $self->SUPER::pad_left(@_);
+    return $pad unless $self->option('variance_band');
+    $pad    += length('+1sd')/2 * $self->font('gdTinyFont')->width+3;
+    return $pad;
+}
+
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
 sub draw {
@@ -327,8 +335,6 @@ sub draw_label {
     my $self = shift;
     my ($gd,$left,$top,$partno,$total_parts) = @_;
     return $self->SUPER::draw_label(@_) unless $self->option('variance_band');
-    my $font  = $self->font('gdTinyFont');
-    $left -= length('+1sd') * $font->width;
     return $self->SUPER::draw_label($gd,$left,$top,$partno,$total_parts);
 }
 

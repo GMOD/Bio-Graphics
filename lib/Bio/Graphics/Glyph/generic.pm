@@ -185,6 +185,7 @@ sub pad_bottom {
 sub pad_right {
   my $self = shift;
   my $pad = $self->SUPER::pad_right;
+  return $pad unless $self->label;
   my $label_width       = $self->label_position eq 'top' ? $self->labelwidth : 0;
   my $description_width = $self->descriptionwidth;
   my $max = $label_width > $description_width ? $label_width : $description_width;

@@ -41,6 +41,13 @@ sub draw {
 # do nothing for components
 # sub draw_component { }
 
+sub bump { 
+    my $self = shift;
+   return 1 if $self->option('group_subtracks');
+    my $bump = $self->SUPER::bump;
+    return $bump;
+}
+
 1;
 
 

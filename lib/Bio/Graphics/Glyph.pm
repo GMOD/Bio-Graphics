@@ -768,6 +768,7 @@ sub layout_sort {
     my $self = shift;
     my $sortfunc;
 
+
     my $opt = $self->code_option("sort_order");
 
     if (!$opt) {
@@ -816,7 +817,6 @@ sub layout_sort {
 
     # cache this
     # $self->factory->set_option(sort_order => $sortfunc);
-
     my @things = sort $sortfunc @_;
     return @things;
 }
@@ -830,8 +830,10 @@ sub layout {
   return $self->{layout_height} = 
       $self->height + $self->pad_top + $self->pad_bottom unless @parts;
 
+  warn "here 0 ";
+
   my $bump_direction = $self->bump;
-  my $bump_limit = $self->option('bump_limit') || -1;
+  my $bump_limit     = $self->bump_limit || -1;
 
   $_->layout foreach @parts;  # recursively lay out
 
@@ -1042,6 +1044,8 @@ sub draw {
 }
 
 sub connector { return }
+
+sub bump_limit { shift->option('bump_limit') }
 
 # the "level" is the level of testing of the glyph
 # groups are level -1, top level glyphs are level 0, subcomponents are level 1 and so forth.
