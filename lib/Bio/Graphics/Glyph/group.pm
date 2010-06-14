@@ -14,12 +14,17 @@ END
 sub my_options {
     return
     {
-	group_subtracks => [
+	group_label => [
 	    'boolean',
 	    undef,
-	    'Treat each group as a subtrack, by attaching a left-side label to the group of glyphs',
-	    'and forcing each group to bump vertically'
+	    'Attach a label to the group; this is independent of the label option which applies',
+	    'to features within the group'
 	    ],
+	group_label_position => [
+	    [qw(top left)],
+	    'left',
+	    'Position in which to draw the group label.'
+	],
     }
 }
 
@@ -34,7 +39,7 @@ sub connector {
 # we don't label group (yet)
 sub label { my $self = shift;
 	    return $self->{_group_label} if exists $self->{_group_label};
-	    return $self->{_group_label}  = $self->option('group_subtracks') ? $self->feature->display_name : '' 
+	    return $self->{_group_label}  = $self->option('group_label') ? $self->feature->display_name : '' 
 }
 
 sub labelfont {
@@ -44,17 +49,21 @@ sub labelfont {
 
 sub pad_left { 
     my $self = shift;
-    return 0 unless $self->option('group_subtracks');
+    return 0 unless $self->option('group_label');
     return length($self->label||'') * $self->labelfont->width+3;
 }
 
 sub draw {
     my $self = shift;
     $self->SUPER::draw(@_) if $self->feature_has_subparts;
-    $self->draw_label(@_)  if $self->option('group_subtracks');
+    $self->draw_label(@_)  if $self->option('group_label');
 }
 
-sub label_position { return 'left' } 
+sub label_position { 
+    my $self = shift;
+    my $pos  = $self->option('group_label_position') || 'left';
+    return $pos;
+}
 
 sub new {
   my $self = shift;
