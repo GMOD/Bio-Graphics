@@ -830,8 +830,6 @@ sub layout {
   return $self->{layout_height} = 
       $self->height + $self->pad_top + $self->pad_bottom unless @parts;
 
-  warn "here 0 ";
-
   my $bump_direction = $self->bump;
   my $bump_limit     = $self->bump_limit || -1;
 
