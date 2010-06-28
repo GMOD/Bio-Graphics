@@ -146,6 +146,7 @@ sub draw_coverage {
     my $array   = shift;
 
     $array      = [split ',',$array] unless ref $array;
+    return unless @$array;
 
     my ($start,$end)    = $self->effective_bounds($feature);
     my $bases_per_bin   = ($end-$start)/@$array;

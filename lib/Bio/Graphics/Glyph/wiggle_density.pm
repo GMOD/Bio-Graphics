@@ -133,6 +133,7 @@ sub draw_coverage {
     my $array   = shift;
 
     $array      = [split ',',$array] unless ref $array;
+    return unless @$array;
     my ($gd,$left,$top) = @_;
 
     my ($start,$end)    = $self->effective_bounds($feature);

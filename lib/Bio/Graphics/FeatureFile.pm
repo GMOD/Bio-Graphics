@@ -607,6 +607,7 @@ sub render {
 
   for my $label (@labels_to_render) {
 
+
       my @types = shellwords($self->setting($label=>'feature')||'');
       @types    = $label unless @types;
 

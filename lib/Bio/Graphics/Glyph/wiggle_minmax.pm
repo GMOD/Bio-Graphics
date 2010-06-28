@@ -15,17 +15,17 @@ sub minmax {
     my $do_min     = !defined $min_score;
     my $do_max     = !defined $max_score;
 
+
     #warn "wigmin = ",$self->wig->min;
     #warn "wigmax = ",$self->wig->max;
 
-    if ($autoscale eq 'global') {
-	if (my $wig = $self->wig) {	
-	    $min_score = $wig->min if $do_min;
-	    $max_score = $wig->max if $do_max;
-	}
+    if ($autoscale eq 'global' && (my $wig = $self->wig)) {
+	$min_score = $wig->min if $do_min;
+	$max_score = $wig->max if $do_max;
+	return $self->sanity_check($min_score,$max_score);
     }
 
-    if (($do_min or $do_max) and ($autoscale ne 'global')) {
+    if ($do_min or $do_max) {
 	my $first = $parts->[0];
 	for my $part (@$parts) {
 	    my $s   = ref $part ? $part->[2] : $part;
