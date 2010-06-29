@@ -213,8 +213,6 @@ sub new {
   my $level   = $arg{-level} || 0;
   my $flip    = $arg{-flip};
 
-  warn "$class->new(",$feature->type,")";
-
   my $self = bless {},$class;
   $self->{feature} = $feature;
   $self->{factory} = $factory;
@@ -1146,7 +1144,6 @@ sub _connector {
 sub draw_connector {
   my $self   = shift;
   my $gd     = shift;
-
   my $color          = $self->connector_color;
   my $connector_type = $self->connector or return;
 

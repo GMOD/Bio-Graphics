@@ -26,6 +26,7 @@ sub draw {
     my ($lowest,$highest);
 
     my @parts = $self->parts;
+    my $previous = -1;
     for (my $i = 0;$i<@parts;$i++) {
 	my $part      = $parts[$i];
 	my ($l,undef,$xx1,$yy1) = $part->calculate_boundaries(@_);
@@ -36,17 +37,14 @@ sub draw {
 	my $next_part = $parts[$i+1] or last;
 	my ($xx2,$yy2,undef,undef) = $next_part->calculate_boundaries(@_);
 
-	my $middle = ($xx1+$xx2)/2;
-	$self->draw_connector($gd,$xx1,$xx2,$y1,$y2);
+	$self->draw_connector($gd,$xx1,$xx2,$y1,$y2) if $xx1 < $xx2;
     }
 
     if ($lowest && $x1 < $lowest) {
-	my $middle = ($x1+$lowest)/2;
 	$self->draw_connector($gd,$x1,$lowest,$y1,$y2);
     }
 
     if ($highest && $x2 > $highest) {
-	my $middle = ($x2+$highest)/2;
 	$self->draw_connector($gd,$highest,$x2,$y1,$y2);
     }
 
