@@ -1,5 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.11 Tue Jun 29 15:37:03 EDT 2010
+     - Cleaned up stylesheet-based rendering of features when the main glyph has a type of
+     "hat" and subfeatures overlap with each other.  This occurred when rendering certain
+     DAS sources.
+
 2.10 Mon May 24 13:58:26 PDT 2010
      - Fixed a long-standing but rarely-seen bug in layout algorithm that
        caused some features to be displaced downward further than they should
