@@ -35,7 +35,11 @@ sub my_options {
         linewidth => [
             'integer',
             3,
-            "Line width determine the thickness of the line representing a peak."]
+            "Line width determine the thickness of the line representing a peak."],
+        only_show => [
+            'string',
+            'both',
+            "What to show, peaks or signal (both is the default)."]
     };
 }
 
@@ -87,6 +91,7 @@ sub draw {
  my $x = $left;
  my $y = $top + $self->pad_top;
  my $alpha_c = $self->option('alpha') || 0;
+ my $only_show = $self->option('only_show') || 'both';
  
  # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
  my @features = ($feature->attributes('wigfile'),$feature->attributes('peak_type'),$feature->attributes('fasta'));
@@ -94,9 +99,9 @@ sub draw {
  $self->panel->startGroup($gd);
 
  # Signal Graph drawing:
- if ($features[0] && $features[0]=~/\.wi/) {
+ if ($features[0] && $features[0]=~/\.wi/ && ($only_show eq 'signal' || $only_show eq 'both')) {
   $self->draw_wigfile($feature,$features[0],@_);
- }elsif($features[0] && $features[0]=~/\.bw/i && $features[2]) {
+ }elsif($features[0] && $features[0]=~/\.bw/i && $features[2] && ($only_show eq 'signal' || $only_show eq 'both')) {
    use Bio::DB::BigWig 'binMean';
    use Bio::DB::Sam;
    my $wig = Bio::DB::BigWig->new(-bigwig => "$features[0]",
@@ -112,7 +117,7 @@ sub draw {
  }
 
  # Peak drawing:
- if ($features[1])  {
+ if ($features[1] && ($only_show eq 'peaks' || $only_show eq 'both'))  {
   my $p_type = $features[1];
   $db = $feature->object_store;
   my @peaks = $db->features(-seq_id => $feature->segment->ref,
@@ -164,8 +169,8 @@ sub draw {
             $gd->setThickness(0.5);
    }
   }
- $self->panel->endGroup($gd);
 }
+$self->panel->endGroup($gd);
 }
 
 # Adding alpha channel to a color:
@@ -392,10 +397,14 @@ In both cases, the stanza code will look the same (only essential parameters sho
 =head1 OPTIONS
 
 Options are the same as for wiggle_xyplot and heat_map
-exept we also have 
+
+B<Additional parameters:>
+
 B<alpha>
-parameter available to enable
-customization of transparency for peak area.
+set transparency for peak area.
+
+B<only_show>
+display only peaks, signal or both
 
 B<Recommended global settings:>
 
