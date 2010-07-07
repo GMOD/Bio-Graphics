@@ -94,18 +94,18 @@ sub draw {
  my $only_show = $self->option('only_show') || 'both';
  
  # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
- my @features = ($feature->attributes('wigfile'),$feature->attributes('peak_type'),$feature->attributes('fasta'));
+ my %features = (wig=>$feature->attributes('wigfile'),peak=>$feature->attributes('peak_type'),fasta=>$feature->attributes('fasta'));
 
  $self->panel->startGroup($gd);
 
  # Signal Graph drawing:
- if ($features[0] && $features[0]=~/\.wi/ && ($only_show eq 'signal' || $only_show eq 'both')) {
-  $self->draw_wigfile($feature,$features[0],@_);
- }elsif($features[0] && $features[0]=~/\.bw/i && $features[2] && ($only_show eq 'signal' || $only_show eq 'both')) {
+ if ($features{wig} && $features{wig}=~/\.wi/ && ($only_show eq 'signal' || $only_show eq 'both')) {
+  $self->draw_wigfile($feature,$features{wig},@_);
+ }elsif($features{wig} && $features{wig}=~/\.bw/i && $features{fasta} && ($only_show eq 'signal' || $only_show eq 'both')) {
    use Bio::DB::BigWig 'binMean';
    use Bio::DB::Sam;
-   my $wig = Bio::DB::BigWig->new(-bigwig => "$features[0]",
-                                  -fasta  => Bio::DB::Sam::Fai->open("$features[2]"));
+   my $wig = Bio::DB::BigWig->new(-bigwig => "$features{wig}",
+                                  -fasta  => Bio::DB::Sam::Fai->open("$features{fasta}"));
   
    my ($summary) = $wig->features(-seq_id => $feature->segment->ref,
                                   -start  => $self->panel->start,
@@ -117,8 +117,8 @@ sub draw {
  }
 
  # Peak drawing:
- if ($features[1] && ($only_show eq 'peaks' || $only_show eq 'both'))  {
-  my $p_type = $features[1];
+ if ($features{peak} && ($only_show eq 'peaks' || $only_show eq 'both'))  {
+  my $p_type = $features{peak};
   $db = $feature->object_store;
   my @peaks = $db->features(-seq_id => $feature->segment->ref,
                             -start  => $self->panel->start,
@@ -368,6 +368,8 @@ in use. The data file should have the 'bw' extension - it is used to detect the 
 
 3L  chip_seq  vista   1    24543530  .  .  .   Name=ChipSeq Exp 2;wigfile=SomeBigWigFile.bw;peak_type=binding_site:exp2;fasta=YourOrganism.fasta
 
+Note that all attributes should be present in load gff, as the code currently does not handle situation when
+only some of the attributes are in gff. To omit peak or signal drawing use "" (i.e. peak_type="")
 In both cases, the stanza code will look the same (only essential parameters shown):
 
  [VISTA_PLOT]
