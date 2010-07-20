@@ -1045,6 +1045,11 @@ sub draw {
 
 sub connector { return }
 
+sub parts_overlap {
+    my $self = shift;
+    return $self->option('parts_overlap');
+}  
+
 sub bump_limit { shift->option('bump_limit') }
 
 # the "level" is the level of testing of the glyph
@@ -1074,7 +1079,7 @@ sub draw_connectors {
   my @parts = sort { $a->left <=> $b->left } $self->parts;
   for (my $i = 0; $i < @parts-1; $i++) {
     # don't let connectors double-back on themselves
-    next if ($parts[$i]->bounds)[2] > ($parts[$i+1]->bounds)[0];
+    next if ($parts[$i]->bounds)[2] > ($parts[$i+1]->bounds)[0] && !$self->parts_overlap;
     $self->_connector($gd,$dx,$dy,$parts[$i]->bounds,$parts[$i+1]->bounds);
   }
 

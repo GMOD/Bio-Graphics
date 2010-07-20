@@ -23,6 +23,7 @@ my $build = Module::Build->new(
     script_files => ['scripts/contig_draw.pl',
 		     'scripts/feature_draw.pl',
 		     'scripts/frend.pl',
+		     'scripts/glyph_help.pl',
 		     'scripts/search_overview.pl',
 		     'scripts/render_msa.pl',
     ],

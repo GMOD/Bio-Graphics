@@ -6,7 +6,6 @@ use Bio::Location::Simple;
 
 use constant RAGGED_START_FUZZ => 25;  # will show ragged ends of alignments
                                        # up to this many bp.
-
 use constant DEBUG => 0;
 
 # These are just offsets into an array data structure
@@ -191,8 +190,9 @@ sub connector {
 # never allow our components to bump
 sub bump {
   my $self = shift;
-  return $self->SUPER::bump(@_) if $self->all_callbacks;
-  return 0;
+  my $bump = $self->SUPER::bump(@_);
+  return $bump if $self->all_callbacks;
+  return $self->parts_overlap ? $bump : 0;
 }
 
 sub maxdepth {
@@ -319,33 +319,37 @@ sub _split_on_cigar {
 sub draw {
   my $self = shift;
 
-  my $draw_target         = $self->draw_target;
-  return $self->SUPER::draw(@_) unless $draw_target;
-  return $self->SUPER::draw(@_) unless $self->dna_fits;
+  my $draw_target         = $self->draw_target && $self->dna_fits && eval {$self->feature->hit->seq};
+  
+  $self->SUPER::draw(@_);
 
-  $self->draw_label(@_)       if $self->option('label');
-  $self->draw_description(@_) if $self->option('description');
-  $self->draw_part_labels(@_) if $self->option('part_labels');
+  return if $self->feature_has_subparts;
+  return unless $draw_target;
 
   my $drew_sequence;
-
-  if ($draw_target) {
-    return $self->SUPER::draw(@_) unless eval {$self->feature->hit->seq};
-    return $self->SUPER::draw(@_) if $self->feature_has_subparts;
-    $drew_sequence = $self->draw_multiple_alignment(@_);
-  }
+  $drew_sequence = $self->draw_multiple_alignment(@_);
 
   my ($gd,$x,$y) = @_;
   $y  += $self->top + $self->pad_top if $drew_sequence;  # something is wrong - this is a hack/workaround
   my $connector     =  $self->connector;
   $self->draw_connectors($gd,$x,$y)
     if $connector && $connector ne 'none' && $self->level == 0;
-
 }
 
 sub draw_component {
     my $self = shift;
-    $self->SUPER::draw_component(@_);
+    my ($gd,$left,$top,$partno,$total_parts) = @_;
+    my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
+
+    if ($self->draw_target && $self->dna_fits) {
+	my $stranded = $self->stranded;
+	my $strand   = $self->feature->strand;
+	my $bgcolor  = $self->bgcolor;
+	$stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
+	          : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
+    } else {
+	$self->SUPER::draw_component(@_);
+    }
 
     return unless $self->show_mismatch;
     my $mismatch_color = $self->mismatch_color;
@@ -383,9 +387,6 @@ sub draw_component {
 	    push @mismatch_positions,$i+$start;
 	}
     }
-
-    my $gd = shift;
-    my ($x1,$y1,$x2,$y2) = $self->bounds(@_);
 
     my @pixel_positions = $self->map_no_trunc(@mismatch_positions);
 
@@ -427,6 +428,8 @@ sub draw_multiple_alignment {
   my $strand               = $feature->strand;
   my $panel_left           = $self->panel->left;
   my $panel_right          = $self->panel->right;
+  my $bgcolor              = $self->bgcolor;
+
   my $drew_sequence;
 
   if ($tgt_start > $tgt_end) { #correct for data problems
@@ -440,17 +443,17 @@ sub draw_multiple_alignment {
   $top = $bt;
 
   my $stranded = $self->stranded;
-  if (my @p = $self->parts) {
-      for my $p (@p) {
-	  my ($x1,$y1,$x2,$y2) = $p->bounds($left,$top);
-	  $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
-                    : $self->filled_box($gd,$x1,$y1,$x2,$y2,$self->bgcolor,$self->bgcolor);
-      }
-  } else {
-      my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-      $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
-	        : $self->filled_box($gd,$x1,$y1,$x2,$y2,$self->bgcolor,$self->bgcolor);
-  }
+  # if (my @p = $self->parts) {
+  #     for my $p (@p) {
+  # 	  my ($x1,$y1,$x2,$y2) = $p->bounds($left,$top);
+  # 	  $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
+  #                   : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
+  #     }
+  # } else {
+  #     my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
+  #     $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
+  # 	        : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
+  # }
 
   my @s                     = $self->_subfeat($feature);
 
@@ -653,9 +656,9 @@ sub draw_multiple_alignment {
   }
 
   # draw
-  my $color = $self->bgcolor == $self->fgcolor 
-              ? $self->factory->translate_color('white')
-	      : $self->fgcolor;
+  my ($red,$green,$blue)   = Bio::Graphics::Panel->color_name_to_rgb($bgcolor);
+  my $avg         = ($red+$green+$blue)/3;
+  my $color       = $self->translate_color($avg > 128 ? 'black' : 'white');
   my $font  = $self->font;
   my $lineheight = $font->height;
   my $fontwidth  = $font->width;
