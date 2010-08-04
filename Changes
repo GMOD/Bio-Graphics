@@ -1,8 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
  
 2.12 (unreleased)
-     - partial fix for mate-pairs overlap bug; still need to indicate that two parts are connected somehow
-     - must set parts_overlap=1 for this to work
+     - Created a read_pairs glyph that contains the settings most often used for SAM paired end reads/mate pairs;
+       this fixes the mate-pairs overlap bug.
 
 2.11 Tue Jun 29 15:37:03 EDT 2010
      - Cleaned up stylesheet-based rendering of features when the main glyph has a type of
