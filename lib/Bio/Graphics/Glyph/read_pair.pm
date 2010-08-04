@@ -5,8 +5,6 @@ package Bio::Graphics::Glyph::read_pair;
 
 use base 'Bio::Graphics::Glyph::segments';
 
-BEGIN { warn "[$$] compiling Bio::Graphics::Glyph::read_pair" };
-
 sub my_description {
     return <<END;
 This glyph is designed to be used with SAM/BAM paired end read/mate-pair data. It has

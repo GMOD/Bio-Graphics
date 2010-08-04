@@ -362,14 +362,26 @@ sub draw_component {
 	my @match = split '',$matchstr;
 	my @tgt   = split '',$tgt;
 	my $pos   = $start;
+
+	# skip over src padding
+	while ($src[0] eq '-') { 
+	    shift @src; 
+	    shift @tgt; 
+	}
+
 	for (my $i=0;$i<@src;$i++) {
-	    if (($src[$i] eq '-' || $tgt[$i] eq '-') && $i > 0 && $i < length $src) {
+	    if ($src[$i] eq '-') {
 		push @indel_positions,$pos;
-		next if $src[$i] eq '-';
-	    } else {
-		push @mismatch_positions,$pos unless $src[$i] eq $tgt[$i];
 	    }
-	    $pos++;
+	    elsif ($tgt[$i] eq '-') {
+		push @indel_positions,$pos;
+		$pos++;
+	    } elsif ($src[$i] ne $tgt[$i]) {
+		push @mismatch_positions,$pos;
+		$pos++;
+	    } else {
+		$pos++;
+	    }
 	}
     }
 
@@ -388,12 +400,13 @@ sub draw_component {
 	}
     }
 
-    my @pixel_positions = $self->map_no_trunc(@mismatch_positions);
+    my @pixel_positions      = $self->map_no_trunc(@mismatch_positions);
+    my $pixels_per_base      = $self->scale;
 
     foreach (@pixel_positions) {
 	next if $_ < $x1;
 	next if $_ > $x2;
-	$gd->line($_,$y1+1,$_,$y2-1,$mismatch_color);
+	$gd->filledRectangle($_,$y1+1,$_+$pixels_per_base,$y2-1,$mismatch_color);
     }
 
     @pixel_positions = $self->map_no_trunc(@indel_positions);
@@ -401,7 +414,7 @@ sub draw_component {
     foreach (@pixel_positions) {
 	next if $_ < $x1;
 	next if $_ > $x2;
-	$gd->line($_,$y1+1,$_,$y2-1,$indel);
+	$gd->filledRectangle($_,$y1+1,$_+$pixels_per_base,$y2-1,$indel);
     }
 }
 
