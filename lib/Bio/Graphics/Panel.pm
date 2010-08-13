@@ -1185,6 +1185,7 @@ sub make_title {
 sub read_colors {
   my $class = shift;
   local ($/) = "\n";
+  local $_;
   while (<DATA>) {
     chomp;
     last if /^__END__/;

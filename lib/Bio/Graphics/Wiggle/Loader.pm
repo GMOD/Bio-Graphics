@@ -277,6 +277,7 @@ sub load {
   my $infh  = shift;
   my $format = 'none';
 
+  local $_;
  LINE: while (<$infh>) {
     chomp;
     next if /^#/;
