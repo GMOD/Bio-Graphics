@@ -482,7 +482,7 @@ sub file_mtime {
 	my $cwd = getcwd();
 	chdir(dirname($file));
 
-
+        local $_;
 	while (<$fh>) {
 	    if (/^\#exec/) {
 		return time();  # now!
@@ -714,6 +714,7 @@ sub smart_features {
 sub parse_argv {
   my $self = shift;
   local $/ = "\n";
+  local $_;
   while (<>) {
     chomp;
     $self->parse_line($_);
@@ -740,6 +741,7 @@ sub parse_fh {
     my $fh   = shift;
     $self->_stat($fh);
     local $/ = "\n";
+    local $_;
     while (<$fh>) {
 	chomp;
 	$self->parse_line($_) || last;
