@@ -99,9 +99,9 @@ sub draw {
  $self->panel->startGroup($gd);
 
  # Signal Graph drawing:
- if ($features{wig} && $features{wig}=~/\.wi/ && ($only_show eq 'signal' || $only_show eq 'both')) {
+ if ($features{wig} && $features{wig}=~/\.wi\w[1,2]$/ && ($only_show eq 'signal' || $only_show eq 'both')) {
   $self->draw_wigfile($feature,$features{wig},@_);
- }elsif($features{wig} && $features{wig}=~/\.bw/i && $features{fasta} && ($only_show eq 'signal' || $only_show eq 'both')) {
+ }elsif($features{wig} && $features{wig}=~/\.bw$/i && $features{fasta} && ($only_show eq 'signal' || $only_show eq 'both')) {
    use Bio::DB::BigWig 'binMean';
    use Bio::DB::Sam;
    my $wig = Bio::DB::BigWig->new(-bigwig => "$features{wig}",
