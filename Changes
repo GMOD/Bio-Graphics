@@ -1,8 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
  
-2.12 (unreleased)
+2.12 Tue Aug 31 10:42:06 EDT 2010
      - Created a read_pairs glyph that contains the settings most often used for SAM paired end reads/mate pairs;
        this fixes the mate-pairs overlap bug.
+     - xyplot glyph now obeys "flip" setting.
 
 2.11 Tue Jun 29 15:37:03 EDT 2010
      - Cleaned up stylesheet-based rendering of features when the main glyph has a type of

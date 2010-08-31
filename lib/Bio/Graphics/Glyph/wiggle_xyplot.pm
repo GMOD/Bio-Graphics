@@ -237,6 +237,7 @@ sub draw_plot {
     my $positive = $self->pos_color;
     my $negative = $self->neg_color;
     my $midpoint = $self->midpoint;
+    my $flip     = $self->{flip};
 
     my @points = map {
 	my ($start,$end,$score) = @$_;
@@ -249,6 +250,9 @@ sub draw_plot {
 	    $y1        = $bottom if $y1 > $bottom;
 	    $x1        = $left   if $x1 < $left;
 	    $x2        = $right  if $x2 > $right;
+
+	    $x1        = $right - ($x1-$left) if $flip;
+	    $x2        = $right - ($x2-$left) if $flip;
  
 	    my $color = $score > $midpoint ? $positive : $negative;
 	    [int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$color,$lw];
