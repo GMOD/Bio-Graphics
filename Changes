@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.13
+     - Changed default namespace for callbacks to make them portable across freeze/thaw
+       cycles.
+
 2.12 Tue Aug 31 10:42:06 EDT 2010
      - Created a read_pairs glyph that contains the settings most often used for SAM paired end reads/mate pairs;
        this fixes the mate-pairs overlap bug.

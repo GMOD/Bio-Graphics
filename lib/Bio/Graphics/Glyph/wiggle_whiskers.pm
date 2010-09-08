@@ -174,7 +174,7 @@ sub minmax {
 
 sub _draw_whiskers {
     my $self = shift;
-    my ($gd,$left,$top,$origin,$stats) = @_;
+    my ($gd,$dx,$dy,$origin,$stats) = @_;
     my $scale = $self->{_scale};
 
     my $mean_color  = $self->mean_color;
@@ -186,7 +186,9 @@ sub _draw_whiskers {
 
     my $graph_type = $self->graph_type;
 
-    my $pos = $left;
+    my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
+    my $pos = $self->{flip} ? $right : $left;
+
     for my $bin (@$stats) {
 	next unless $bin->{validCount};
 	my $mean  = $bin->{sumData}/$bin->{validCount};
@@ -222,7 +224,7 @@ sub _draw_whiskers {
 	}
 	
     } continue {
-	$pos++;
+	$self->{flip} ? $pos-- : $pos++;
     }
 }
 

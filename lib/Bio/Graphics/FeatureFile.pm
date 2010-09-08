@@ -1735,9 +1735,8 @@ sub initialize_code {
 sub base2package {
   my $self = shift;
   return $self->{base2package} if exists $self->{base2package};
-  (my $package = overload::StrVal($self)) =~ s/[^a-z0-9A-Z_]/_/g;
-  $package     =~ s/^[^a-zA-Z_]/_/g;
-  return $self->{base2package} = $package;
+  my $rand     = int rand(1000000);
+  return $self->{base2package} = "Bio::Graphics::FeatureFile::CallBack::P$rand";
 }
 
 sub split_group {
