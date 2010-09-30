@@ -499,6 +499,30 @@ sub file_mtime {
     return $mtime;
 }
 
+sub file_list {
+    my $self = shift;
+    my @list = ();
+    my $file  = shift;
+
+    for my $f (glob($file)) {
+        open my $fh,'<',$file or next;
+        my $cwd = getcwd();
+        chdir(dirname($file));
+
+
+        while (<$fh>) {
+            if (/^\#include\s+(.+)/i) {  # #include directive
+                my ($include_file) = shellwords($1);
+                my @files = glob($include_file);
+                @files ? @list = (@list,@files) : push(@list,$include_file);
+            }
+        }
+        chdir($cwd);
+    }
+
+    return \@list;
+}
+
 # render our features onto a panel using configuration data
 # return the number of tracks inserted
 
