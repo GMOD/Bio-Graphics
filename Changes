@@ -1,5 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.14
+     - Fixes to the way that "fast bump" works so that tracks never fast bump.
+       This fixes problems when using groups to simulate subtracks, and the
+       groups are of different heights.
+
 2.13
      - Changed default namespace for callbacks to make them portable across freeze/thaw
        cycles.

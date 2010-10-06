@@ -45,6 +45,7 @@ sub bump {
     my $self = shift;
    return 1 if $self->option('group_subtracks');
     my $bump = $self->SUPER::bump;
+    return 1  if $bump eq 'fast' or $bump == 3;
     return $bump;
 }
 
