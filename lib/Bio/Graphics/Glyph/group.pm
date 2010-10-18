@@ -59,6 +59,29 @@ sub draw {
     $self->draw_label(@_)  if $self->option('group_label');
 }
 
+sub draw_label {
+    my $self = shift;
+    my $label = $self->label or return;
+    my $panel= $self->panel;
+
+    $self->SUPER::draw_label(@_) unless $panel->{suppress_key};
+
+    my ($gd,$left,$top,$partno,$total_parts) = @_;
+    my $font = $self->labelfont;
+
+    my $x    = $self->left + $left; # valid for both "top" and "left" because the left-hand side is defined by pad_left
+    my $y;
+    if ($self->label_position eq 'top') {
+	$x += $self->pad_left;  # offset to beginning of the drawn part of the feature
+	$x = $panel->left + 1 if $x <= $panel->left;
+	$y = $self->top + $top - 1;
+    } elsif ($self->label_position eq 'left') {
+	$y    = $self->{top} + ($self->height - $font->height)/2 + $top;
+	$y    = $self->{top} + $top if $y < $self->{top} + $top;
+    }
+    $panel->add_key_box($self,$label,$x,$y);
+}
+
 sub label_position { 
     my $self = shift;
     my $pos  = $self->option('group_label_position') || 'left';

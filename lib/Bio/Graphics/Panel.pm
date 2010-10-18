@@ -42,6 +42,7 @@ sub new {
   my $keyspacing = $options{-key_spacing} || KEYSPACING;
   my $keystyle = $options{-key_style} || KEYSTYLE;
   my $keyalign = $options{-key_align} || KEYALIGN;
+  my $suppress_key = $options{-suppress_key} || 0;
   my $allcallbacks = $options{-all_callbacks} || 0;
   my $gridcolor    = $options{-gridcolor} || GRIDCOLOR;
   my $gridmajorcolor    = $options{-gridmajorcolor} || GRIDMAJORCOLOR;
@@ -95,6 +96,7 @@ sub new {
 		key_spacing => $keyspacing,
 		key_style => $keystyle,
 		key_align => $keyalign,
+		suppress_key => $suppress_key,
 		background => $background,
 		postgrid   => $postgrid,
 		autopad   => $autopad,
@@ -687,7 +689,7 @@ sub draw_between_key {
 
   # Key color hard-coded. Should be configurable for the control freaks.
   my $color = $self->translate_color('black');
-  $gd->string($self->{key_font},$x,$offset,$key,$color);
+  $gd->string($self->{key_font},$x,$offset,$key,$color) unless $self->{suppress_key};
   $self->add_key_box($track,$key,$x,$offset);
   return $self->{key_font}->height;
 }
@@ -700,10 +702,12 @@ sub draw_side_key {
   my $pos = $side eq 'left' ? $self->pad_left - $self->{key_font}->width * CORE::length($key)-3
                             : $self->pad_left + $self->width + EXTRA_RIGHT_PADDING;
   my $color = $self->translate_color('black');
-  $gd->filledRectangle($pos,$offset,
-		 $pos+$self->{key_font}->width*CORE::length($key),$offset,#-$self->{key_font}->height)/2,
-		 $self->bgcolor);
-  $gd->string($self->{key_font},$pos,$offset,$key,$color);
+  unless ($self->{suppress_key}) {
+      $gd->filledRectangle($pos,$offset,
+			   $pos+$self->{key_font}->width*CORE::length($key),$offset,#-$self->{key_font}->height)/2,
+			   $self->bgcolor);
+      $gd->string($self->{key_font},$pos,$offset,$key,$color);
+  }
   $self->add_key_box($track,$key,$pos,$offset);
   return $self->{key_font}->height;
 }
@@ -717,7 +721,7 @@ sub draw_bottom_key {
   my $color = $self->translate_color($self->{key_color});
   $gd->filledRectangle($left,$top,$self->width - $self->pad_right,$self->height-$self->pad_bottom,$color);
   my $text_color = $self->translate_color('black');
-  $gd->string($self->{key_font},$left,KEYPADTOP+$top,"KEY:",$text_color);
+  $gd->string($self->{key_font},$left,KEYPADTOP+$top,"KEY:",$text_color)  unless $self->{suppress_key};
   $top += $self->{key_font}->height + KEYPADTOP;
   $_->draw($gd,$left,$top) foreach @$key_glyphs;
 }

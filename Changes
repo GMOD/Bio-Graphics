@@ -4,6 +4,8 @@ Revision history for Perl extension Bio::Graphics.
      - Fixes to the way that "fast bump" works so that tracks never fast bump.
        This fixes problems when using groups to simulate subtracks, and the
        groups are of different heights.
+     - The group glyph will now add the group labels to the list of track keys
+       stored in the panel and retrieved from the call to $panel->key_boxes().
 
 2.13
      - Changed default namespace for callbacks to make them portable across freeze/thaw
