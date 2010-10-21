@@ -131,7 +131,7 @@ sub my_options {
 	    'for subfeatures. A value of undef allows unlimited traversal. A value of',
 	    '0 suppresses traversal entirely for the same effect as -no_subparts.'],
 	sort_order => [
-	    ['left','right','low_score','high_score','longer','shorter','strand','name'],
+	    ['left','right','low_score','high_score','longest','shortest','strand','name'],
 	    'left',
 	    'Control how features are layed out so that more "important" features sort',
 	    'towards the top. See the Bio::Graphics::Glyph documentation for a description of how this' ,
@@ -2282,7 +2282,7 @@ different built-in values for changing the default sort order (which
 is by "left" position): "low_score" (or "high_score") will cause
 features to be sorted from lowest to highest score (or vice versa).
 "left" (or "default") and "right" values will cause features to be
-sorted by their position in the sequence.  "longer" (or "shorter")
+sorted by their position in the sequence.  "longest" (or "shortest")
 will cause the longest (or shortest) features to be sorted first, and
 "strand" will cause the features to be sorted by strand: "+1"
 (forward) then "0" (unknown, or NA) then "-1" (reverse).  Finally,

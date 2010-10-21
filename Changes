@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.15
+     - Fixed documentation bug: sort_order options to sort by feature length should be
+       "longest" and "shortest" rather than "longer and "shorter".
+
 2.14
      - Fixes to the way that "fast bump" works so that tracks never fast bump.
        This fixes problems when using groups to simulate subtracks, and the
