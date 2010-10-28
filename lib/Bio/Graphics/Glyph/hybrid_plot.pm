@@ -84,7 +84,7 @@ sub draw {
  for(my $w = 0; $w < @wiggles; $w++){
   if($w > 0){$self->configure(-pos_color, NEGCOL);}
   else{$self->configure(-pos_color, POSCOL);}
-  if ($wiggles[$w] =~ /\.wi\w{1,2}$/) {
+  if ($wiggles[$w] =~ /\.wi\w{1,3}$/) {
    $self->draw_wigfile($feature,$wiggles[$w],@_);
   } elsif ($wiggles[$w] =~ /\.bw$/ && $fasta) {
    use Bio::DB::BigWig 'binMean';
