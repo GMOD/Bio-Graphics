@@ -235,7 +235,6 @@ sub map_no_trunc {
 
 sub scale {
   my $self = shift;
-  # $self->{scale} ||= ($self->{width}-$self->pad_left-$self->pad_right)/($self->length);
   $self->{scale} ||= $self->width/($self->length);
 }
 
@@ -248,7 +247,6 @@ sub width {
   my $d = $self->{width};
   $self->{width} = shift if @_;
   $d;
-#  $d + $self->pad_left + $self->pad_right;
 }
 
 sub left {
@@ -463,7 +461,13 @@ sub height {
 		        or  $empty_track_style eq 'key' && $bottom_key);
     $height += $keyheight if $draw_between;
     $height += $self->spacing;
+
+
+    my $time = Time::HiRes::time();
+    warn "layout starting...";
     my $layout_height = $track->layout_height;
+    warn "layout ending...";
+    warn "layout time = ",Time::HiRes::time() - $time,"\n";
     $height += ($side_key && $keyheight > $layout_height) ? $keyheight : $layout_height;
   }
 
@@ -555,7 +559,7 @@ sub gd {
 			 $offset+$track->layout_height
 			 + ($between_key ? $self->{key_font}->height : 0),
 			 $track->tkcolor)
-      if defined $track->tkcolor;
+	if defined $track->tkcolor;
     $offset += $keyheight if $draw_between;
     $offset += $track->layout_height + $spacing;
   }

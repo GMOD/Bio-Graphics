@@ -22,6 +22,8 @@ use constant CM1 => 20; # big bin, x axis
 use constant CM2 => 20; # big bin, y axis
 use constant CM3 => 50;  # small bin, x axis
 use constant CM4 => 50;  # small bin, y axis
+use constant INF  => 1<<16;
+use constant NINF => -INF();
 use constant DEBUG => 0;
 
 use constant QUILL_INTERVAL => 8;  # number of pixels between Jim Kent style intron "quills"
@@ -770,7 +772,6 @@ sub layout_sort {
     my $self = shift;
     my $sortfunc;
 
-
     my $opt = $self->code_option("sort_order");
 
     if (!$opt) {
@@ -850,6 +851,10 @@ sub layout {
   # fast layout requested
   if ($bump_direction eq 'fast' or $bump_direction == 3) {
       return $self->{layout_height} = $self->faster_layout(\@parts);
+  }
+
+  if ($bump_direction eq 'freespace' or $bump_direction == 4) {
+      return $self->{layout_height} = $self->freespace_layout(\@parts);
   }
 
   my (%bin1,%bin2);
@@ -997,8 +1002,74 @@ sub faster_layout {
 	}
     }
 
-    return @rows*$height; #+$self->pad_top+$self->pad_bottom;
+    return @rows*$height;
 }
+
+# newer layout that acts by keeping track of a sorted list of free space
+sub freespace_layout {
+    my $self  = shift;
+    my $parts = shift;
+
+    # initial list contains a single block starting at 0 and going from infinity to infinity
+    # [LEFT,TOP,RIGHT,BOTTOM]
+    my @freespace   = [NINF,0,INF,INF];
+    my $hspacing    = $self->hbumppad;
+    my $max         = 0;
+    my $panel_right = $self->panel->right;
+
+  LAYOUT_PART:
+    for my $part ($self->layout_sort(@$parts)) {  
+	print STDERR "freespace = ",scalar @freespace," blocks\n";
+	
+	my @remaining_free;
+	for (my $i=0;$i<@freespace;$i++) {
+	    my $freeblock = $freespace[$i];
+	    unless ($part->left               >= $freeblock->[0] 
+		    && $part->right           <= $freeblock->[2] 
+		    && $part->{layout_height} <= $freeblock->[3]-$freeblock->[1]
+		) {
+		# PROBLEM: This optimization only works if parts are sorted left to right
+		push @remaining_free,$freeblock unless $part->left > $freeblock->[2];
+		next;
+	    }
+
+	    # if we get here, we fit
+	    $part->move(0,$freeblock->[1]);
+	    my $p_bottom = $part->{top}+$part->{layout_height};
+	    $max = $p_bottom if $max < $p_bottom;
+
+	    # split the block into quadrants
+	    # portion to the left of the placed part
+	    push @remaining_free,[$freeblock->[0],
+				  $freeblock->[1],
+				  $part->left-$hspacing,
+				  $p_bottom+BUMP_SPACING];
+	    # portion to the right of the placed part
+	    push @remaining_free,[$part->right+$hspacing,
+				  $freeblock->[1],
+				  $freeblock->[2],
+				  $p_bottom+BUMP_SPACING];
+	    # portion below the placed part
+	    push @remaining_free,[$freeblock->[0],
+				  $p_bottom+BUMP_SPACING,
+				  $freeblock->[2],
+				  $freeblock->[3]];
+	    @freespace = sort {$a->[1]<=>$b->[1] || $a->[0]<=>$b->[0]} 
+	                 grep {$_->[2]>=0 
+				   && $_->[3]-$_->[1] > 0
+				   && $_->[0] < $panel_right
+			 } 
+	                             (@remaining_free,@freespace[$i+1..$#freespace]);
+	    next LAYOUT_PART;
+	}
+    }
+    print STDERR "freespace = ",scalar @freespace," blocks\n";
+    for my $block (@freespace) {
+	print STDERR '[',join(',',@$block),"]\n";
+    }
+    return $max;
+}
+
 
 sub draw {
   my $self = shift;
