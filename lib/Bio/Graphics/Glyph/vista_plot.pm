@@ -121,7 +121,7 @@ sub draw {
  $self->panel->startGroup($gd);
 
  # Signal Graph drawing:
- if ($features{wig} && $features{wig}=~/\.wi\w{1,2}$/) { 
+ if ($features{wig} && $features{wig}=~/\.wi\w{1,3}$/) { 
    $self->draw_wigfile($feature,$features{wig},@_);
  } elsif ($features{wig} && $features{wig}=~/\.bw$/i && $features{fasta}) { 
    use Bio::DB::BigWig 'binMean';
