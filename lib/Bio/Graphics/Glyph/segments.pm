@@ -406,7 +406,7 @@ sub draw_component {
     foreach (@pixel_positions) {
 	next if $_ < $x1;
 	next if $_ > $x2;
-	$gd->filledRectangle($_,$y1+1,$_+$pixels_per_base,$y2-1,$mismatch_color);
+	$gd->filledRectangle($_,$y1+1,$_+$pixels_per_base/2,$y2-1,$mismatch_color);
     }
 
     @pixel_positions = $self->map_no_trunc(@indel_positions);
@@ -456,17 +456,6 @@ sub draw_multiple_alignment {
   $top = $bt;
 
   my $stranded = $self->stranded;
-  # if (my @p = $self->parts) {
-  #     for my $p (@p) {
-  # 	  my ($x1,$y1,$x2,$y2) = $p->bounds($left,$top);
-  # 	  $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
-  #                   : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
-  #     }
-  # } else {
-  #     my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-  #     $stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
-  # 	        : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
-  # }
 
   my @s                     = $self->_subfeat($feature);
 
@@ -669,7 +658,7 @@ sub draw_multiple_alignment {
   }
 
   # draw
-  my ($red,$green,$blue)   = Bio::Graphics::Panel->color_name_to_rgb($bgcolor);
+  my ($red,$green,$blue)   = $self->panel->rgb($bgcolor);
   my $avg         = ($red+$green+$blue)/3;
   my $color       = $self->translate_color($avg > 128 ? 'black' : 'white');
   my $font  = $self->font;
@@ -679,6 +668,10 @@ sub draw_multiple_alignment {
   my $mismatch = $self->mismatch_color;
   my $indel    = $self->indel_color;
   my $grey     = $self->translate_color('gray');
+  my $mismatch_font_color = eval {
+      my ($r,$g,$b) = $self->panel->rgb($mismatch);
+      $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
+  };
 
   my $base2pixel = 
     $self->flip ?
@@ -744,7 +737,9 @@ sub draw_multiple_alignment {
       }
     
       $tgt_base = $complement{$tgt_base} if $true_target && $strand < 0;
-      $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey : $color)
+      $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey 
+		                     :$is_mismatch        ? $mismatch_font_color
+	                             :$color)
 	  unless $mismatch_only && !$is_mismatch;
       $drew_sequence++;
     }
@@ -796,7 +791,7 @@ sub draw_multiple_alignment {
 	for (my $i=0;$i<$delta-1;$i++) {
 	  my $x = $base2pixel->($src_last_end,$i+1);
 	  next if $x > $panel_right;
-	  $self->filled_box($gd,$x-$pixels_per_base/2+2,$y+1,$x+$pixels_per_base/2+1,$y+$lineheight,$indel,$indel)
+	  $self->filled_box($gd,$x-$pixels_per_base/2,$y+1,$x+$pixels_per_base/2,$y+$lineheight,$indel,$indel)
 	    if $show_mismatch;
 	  $gd->char($font,$x,$y,'-',$color);
 	}

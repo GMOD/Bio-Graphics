@@ -6,6 +6,7 @@ use strict;
 use Carp 'croak','cluck';
 use constant BUMP_SPACING => 2; # vertical distance between bumped glyphs
 use Bio::Root::Version;
+use Bio::Graphics::Layout;
 
 use Memoize 'memoize';
 memoize('options') unless $^O =~ /mswin/i;
@@ -146,11 +147,11 @@ sub my_options {
 	    'integer',
 	    1,
 	    'This option dictates the behavior of the glyph when two features collide horizontally.',
-	    'A value of +1 will bump the colliding feature downward using an algorithm that uses spaces most efficiently.',
+	    'A value of +1 will bump the colliding feature downward using an algorithm that uses spaces efficiently.',
 	    'A value of -1 will bump the colliding feature upward using the same algorithm.',
 	    'Values of +2 and -2 will bump using a simple algorithm that is faster but does not use space as efficiently.',
 	    'A value of 3 or "fast" will turn on a faster collision detection algorithm which',
-	    'only works correctly when all features have the same height.',
+	    'is only compatible with the default "left" sorting order.',
 	    'A value of 0 suppresses collision control entirely.'],
 	bump_limit => [
 	    'integer',
@@ -656,6 +657,7 @@ sub translate_color {
 #              -1   bump up
 #              +2   simple bump down
 #              -2   simple bump up
+#              +3   optimized (fast) bumping
 sub bump {
   my $self = shift;
   return $self->option('bump');
@@ -836,6 +838,11 @@ sub layout {
   my $bump_direction = $self->bump;
   my $bump_limit     = $self->bump_limit || -1;
 
+  $bump_direction = 'fast' if 
+      $bump_direction && 
+      $bump_direction == 1 && 
+      !$self->option('sort_order');
+
   $_->layout foreach @parts;  # recursively lay out
 
   # no bumping requested, or only one part here
@@ -848,13 +855,9 @@ sub layout {
     return $self->{layout_height} = $highest + $self->pad_top + $self->pad_bottom;
   }
 
-  # fast layout requested
   if ($bump_direction eq 'fast' or $bump_direction == 3) {
-      return $self->{layout_height} = $self->faster_layout(\@parts);
-  }
-
-  if ($bump_direction eq 'freespace' or $bump_direction == 4) {
-      return $self->{layout_height} = $self->freespace_layout(\@parts);
+      return $self->{layout_height} = $self->optimized_layout(\@parts)
+	  + $self->pad_bottom + $self->pad_top -1;# - $self->top  + 1;
   }
 
   my (%bin1,%bin2);
@@ -899,8 +902,6 @@ sub layout {
 	# my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
 	
 	if ($bump_direction > 0) {
-# old bug here
-#	    $pos += $collision->[3]-$collision->[1] + BUMP_SPACING;    # collision, so bump
 	    $pos = $collision->[3] + BUMP_SPACING;    # collision, so bump
 	} else {
 	    $pos -= BUMP_SPACING;
@@ -980,96 +981,36 @@ sub _collision_keys {
   @keys;
 }
 
-# a faster layout that only works if all parts have the same height
-sub faster_layout {
-    my $self   = shift;
-    my $parts  = shift;
-    my $height   = $parts->[0]{layout_height}+BUMP_SPACING-1;
-    my $hspacing = $self->hbumppad;
-
-    my @rows;  # each slot is the rightmost position in that row
-    for my $part ($self->layout_sort(@$parts)) {
-	my $placed;
-	my $left = $part->left;
-	for (my $row=0;!$placed;$row++) {
-	    if (!$rows[$row]
-		||
-		$rows[$row] < $left) {
-		$part->move(0,$row*$height);
-		$rows[$row]=$part->right+$hspacing;
-		$placed++;
-	    }
-	}
-    }
-
-    return @rows*$height;
-}
-
-# newer layout that acts by keeping track of a sorted list of free space
-sub freespace_layout {
-    my $self  = shift;
+# jbrowse layout that acts by keeping track of contours of the free space
+sub optimized_layout {
+    my $self = shift;
     my $parts = shift;
 
-    # initial list contains a single block starting at 0 and going from infinity to infinity
-    # [LEFT,TOP,RIGHT,BOTTOM]
-    my @freespace   = [NINF,0,INF,INF];
-    my $hspacing    = $self->hbumppad;
-    my $max         = 0;
-    my $panel_right = $self->panel->right;
+    my $hspacing   = $self->hbumppad;
+    my $bump_limit = $self->bump_limit;
 
-  LAYOUT_PART:
-    for my $part ($self->layout_sort(@$parts)) {  
-	print STDERR "freespace = ",scalar @freespace," blocks\n";
-	
-	my @remaining_free;
-	for (my $i=0;$i<@freespace;$i++) {
-	    my $freeblock = $freespace[$i];
-	    unless ($part->left               >= $freeblock->[0] 
-		    && $part->right           <= $freeblock->[2] 
-		    && $part->{layout_height} <= $freeblock->[3]-$freeblock->[1]
-		) {
-		# PROBLEM: This optimization only works if parts are sorted left to right
-		push @remaining_free,$freeblock unless $part->left > $freeblock->[2];
-		next;
-	    }
-
-	    # if we get here, we fit
-	    $part->move(0,$freeblock->[1]);
-	    my $p_bottom = $part->{top}+$part->{layout_height};
-	    $max = $p_bottom if $max < $p_bottom;
-
-	    # split the block into quadrants
-	    # portion to the left of the placed part
-	    push @remaining_free,[$freeblock->[0],
-				  $freeblock->[1],
-				  $part->left-$hspacing,
-				  $p_bottom+BUMP_SPACING];
-	    # portion to the right of the placed part
-	    push @remaining_free,[$part->right+$hspacing,
-				  $freeblock->[1],
-				  $freeblock->[2],
-				  $p_bottom+BUMP_SPACING];
-	    # portion below the placed part
-	    push @remaining_free,[$freeblock->[0],
-				  $p_bottom+BUMP_SPACING,
-				  $freeblock->[2],
-				  $freeblock->[3]];
-	    @freespace = sort {$a->[1]<=>$b->[1] || $a->[0]<=>$b->[0]} 
-	                 grep {$_->[2]>=0 
-				   && $_->[3]-$_->[1] > 0
-				   && $_->[0] < $panel_right
-			 } 
-	                             (@remaining_free,@freespace[$i+1..$#freespace]);
-	    next LAYOUT_PART;
+    my @rects = map {
+	$_ => [
+	    $_->left,
+	    $_->right + $hspacing,
+	    $_->{layout_height}+BUMP_SPACING
+	    ]
+    } $self->layout_sort(@$parts);
+    
+    my $layout = Bio::Graphics::Layout->new(0,$self->panel->right);
+    my $overbumped;
+    while (@rects) {
+	my ($part,$rect) = splice(@rects,0,2);
+	my $offset = $layout->addRect("$part",@$rect);
+	if ($overbumped && $offset > $overbumped) {
+	    $part->move(0,$overbumped);
+	    next;
 	}
+	$part->move(0,$offset);
+	$overbumped = $offset if $bump_limit > 0 && $offset >= $bump_limit * $rect->[2];
     }
-    print STDERR "freespace = ",scalar @freespace," blocks\n";
-    for my $block (@freespace) {
-	print STDERR '[',join(',',@$block),"]\n";
-    }
-    return $max;
+    return $overbumped && $overbumped < $layout->totalHeight ? $overbumped : $layout->totalHeight;
 }
-
 
 sub draw {
   my $self = shift;

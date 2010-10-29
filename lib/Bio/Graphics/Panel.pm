@@ -461,13 +461,7 @@ sub height {
 		        or  $empty_track_style eq 'key' && $bottom_key);
     $height += $keyheight if $draw_between;
     $height += $self->spacing;
-
-
-    my $time = Time::HiRes::time();
-    warn "layout starting...";
     my $layout_height = $track->layout_height;
-    warn "layout ending...";
-    warn "layout time = ",Time::HiRes::time() - $time,"\n";
     $height += ($side_key && $keyheight > $layout_height) ? $keyheight : $layout_height;
   }
 
@@ -2291,9 +2285,13 @@ value of +2 or -2 to activate a very simple type of collision control
 in which each feature occupies its own line. This is useful for
 showing dense, nearly-full length features such as similarity hits.
 Finally, a bump of 3 or the string "fast" will turn on a faster
-collision-detection algorithm that works well when all features have
-identical height.  The bump argument can also be a code reference; see
+collision-detection algorithm that only works properly with the
+default "left" sort order.  The bump argument can also be a code reference; see
 below.
+
+For convenience and backwards compatibility, if you specify a -bump
+of 1 and use the default sort order, the faster algorithm will be
+used.
 
 If you would like to see more horizontal whitespace between features
 that occupy the same line, you can specify it with the B<-hbumppad>

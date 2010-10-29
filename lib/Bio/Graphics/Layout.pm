@@ -43,6 +43,8 @@ sub new {
     return $self;
 }
 
+sub totalHeight {shift->{totalHeight}}
+
 sub addRect {
     my $self = shift;
     my ($id,$left,$right,$height) = @_;
@@ -108,7 +110,7 @@ sub tryLeftFit {
     while (1) {
         # check if the rectangle fits at curTop
         $fit = $self->{leftContour}->getFit($self->{rightBound} - $right, $height, $curTop);
-        my $curTop = Math::max($self->{leftContour}->getNextTop($fit), $curTop);
+        $curTop = Math::max($self->{leftContour}->getNextTop($fit), $curTop);
         # if the rectangle extends onto the next block to the right;
         if ($self->{rightLayout} && ($right >= $self->{rightBound})) {
             # check if the rectangle fits into that block at this position
@@ -412,7 +414,7 @@ sub unionWith {
     if ((abs($prevSpan->{x} - $x) < 1)
         && (abs(($prevSpan->{top} + $prevSpan->{height}) - $top) < 1) ) {
         $prevSpan->{height} = ($top + $height) - $prevSpan->{top};
-        $prevSpan->{x} = max($prevSpan->{x}, $x);
+        $prevSpan->{x} = Math::max($prevSpan->{x}, $x);
         splice(@$spans,$startIndex, $endIndex - $startIndex);
     } else {
         splice(@$spans,$startIndex, $endIndex - $startIndex,
