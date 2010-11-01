@@ -341,9 +341,11 @@ sub draw_component {
     my ($gd,$left,$top,$partno,$total_parts) = @_;
     my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
 
+    my ($strand,$draw_target);
     if ($self->draw_target && $self->dna_fits) {
+	$draw_target++;
 	my $stranded = $self->stranded;
-	my $strand   = $self->feature->strand;
+	$strand   = $self->feature->strand;
 	my $bgcolor  = $self->bgcolor;
 	$stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
 	          : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
@@ -390,7 +392,7 @@ sub draw_component {
 	my $tdna = eval {$feature->target->dna};  # works with GFF files
 
 	return unless $sdna =~ /[gatc]/i;
-	return unless $tdna =~ /[gatc]/i;
+ 	return unless $tdna =~ /[gatc]/i;
 
 	my @src = split '',$sdna;
 	my @tgt = split '',$tdna;
@@ -400,21 +402,41 @@ sub draw_component {
 	}
     }
 
-    my @pixel_positions      = $self->map_no_trunc(@mismatch_positions);
     my $pixels_per_base      = $self->scale;
+    my $panel_right          = $self->panel->right;
+    
+    for my $a ([\@mismatch_positions,$self->mismatch_color],
+	       [\@indel_positions,$self->indel_color]) {
 
-    foreach (@pixel_positions) {
-	next if $_ < $x1;
-	next if $_ > $x2;
-	$gd->filledRectangle($_,$y1+1,$_+$pixels_per_base/2,$y2-1,$mismatch_color);
-    }
+	my @pixel_positions = $self->map_no_trunc(@{$a->[0]});
+	my $color            = $a->[1];
 
-    @pixel_positions = $self->map_no_trunc(@indel_positions);
-    my $indel = $self->indel_color;
-    foreach (@pixel_positions) {
-	next if $_ < $x1;
-	next if $_ > $x2;
-	$gd->filledRectangle($_,$y1+1,$_+$pixels_per_base,$y2-1,$indel);
+	foreach (@pixel_positions) {
+	    next if $_ < $x1;
+	    next if $_ > $x2;
+	    next if $_ >= $panel_right;
+	    my $left  = $_;
+	    my $right = $left+$pixels_per_base;
+	    my $top   = $y1+1;
+	    my $bottom= $y2-1;
+	    my $middle= ($y1+$y2)/2;
+	    if ($self->stranded && $left<=$x1 && $self->strand < 0) {
+		$self->filled_arrow($gd,$self->strand,
+				    $draw_target ? ($left-4):$left+2,
+				    $top,
+				    $draw_target ? $right:$right+5,$bottom,$color,$color,1);
+	    } elsif ($self->stranded && $right >= $x2-$pixels_per_base+1 && $self->strand > 0) {
+		$self->filled_arrow($gd,$self->strand,
+				    $left,$top,$draw_target ? ($right+4): $right-2,$bottom,$mismatch_color,$mismatch_color,1);
+	    } else {
+		$self->filled_box($gd,
+				  $left,
+				  $top,
+				  $right,
+				  $bottom,
+				  $color,$color);
+	    }
+	}
     }
 }
 
@@ -532,7 +554,6 @@ sub draw_multiple_alignment {
     }
   }
 
-
   # get 'em in the right order so that we don't have to worry about
   # where the beginning and end are.
   @segments = sort {$a->[TGT_START]<=>$b->[TGT_START]} @segments;
@@ -580,7 +601,6 @@ sub draw_multiple_alignment {
 
   # this may not be right if the alignment involves only a portion of the target DNA
   $tgt_dna ||= $feature->hit->dna;
-
 
   # none of these seem to be working properly with BAM alignments
   # my $tgt_len = abs($segments[-1]->[TGT_END] - $segments[0]->[TGT_START]) + 1;
@@ -639,6 +659,32 @@ sub draw_multiple_alignment {
     $tgt_dna = $self->reversec($tgt_dna);
   }
 
+  my ($red,$green,$blue)   = $self->panel->rgb($bgcolor);
+  my $avg         = ($red+$green+$blue)/3;
+  my $color       = $self->translate_color($avg > 128 ? 'black' : 'white');
+  my $font  = $self->font;
+  my $lineheight = $font->height;
+  my $fontwidth  = $font->width;
+
+  my $mismatch = $self->mismatch_color;
+  my $indel    = $self->indel_color;
+  my $grey     = $self->translate_color('gray');
+  my $mismatch_font_color = eval {
+      my ($r,$g,$b) = $self->panel->rgb($mismatch);
+      $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
+  };
+  my $indel_font_color = eval {
+      my ($r,$g,$b) = $self->panel->rgb($indel);
+      $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
+  };
+
+  unless (@segments) { # this will happen if entire region is a target gap
+      for (my $i = $bl;$i<$br-$self->scale;$i+=$self->scale) {
+	  $gd->char($font,$self->flip ? $i+$self->scale-4 : $i+2,$top,'-',$indel_font_color);
+      }
+      return;
+  }
+  
   for my $seg (@segments) {
     $seg->[SRC_START] -= $abs_start - 1;
     $seg->[SRC_END]   -= $abs_start - 1;
@@ -658,21 +704,6 @@ sub draw_multiple_alignment {
   }
 
   # draw
-  my ($red,$green,$blue)   = $self->panel->rgb($bgcolor);
-  my $avg         = ($red+$green+$blue)/3;
-  my $color       = $self->translate_color($avg > 128 ? 'black' : 'white');
-  my $font  = $self->font;
-  my $lineheight = $font->height;
-  my $fontwidth  = $font->width;
-
-  my $mismatch = $self->mismatch_color;
-  my $indel    = $self->indel_color;
-  my $grey     = $self->translate_color('gray');
-  my $mismatch_font_color = eval {
-      my ($r,$g,$b) = $self->panel->rgb($mismatch);
-      $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
-  };
-
   my $base2pixel = 
     $self->flip ?
       sub {
@@ -690,8 +721,8 @@ sub draw_multiple_alignment {
   for my $seg (sort {$a->[SRC_START]<=>$b->[SRC_START]} @segments) {
     my $y = $top-1;
     my $end = $seg->[SRC_END]-$seg->[SRC_START];
-    for (my $i=0; $i<$end+1; $i++) {
 
+    for (my $i=0; $i<$end+1; $i++) {
       my $src_base = $self->_subsequence($ref_dna,$seg->[SRC_START]+$i,$seg->[SRC_START]+$i);
       my $tgt_base = $self->_subsequence($tgt_dna,$seg->[TGT_START]+$i,$seg->[TGT_START]+$i);
       my $x = $base2pixel->($seg->[SRC_START],$i);
@@ -701,46 +732,12 @@ sub draw_multiple_alignment {
       next unless $tgt_base && $x >= $panel_left && $x <= $panel_right;
 
       my $is_mismatch = $show_mismatch && $tgt_base && $src_base ne $tgt_base && $tgt_base !~ /[nN]/;
-
-      if ($show_mismatch && $is_mismatch) {
-	  my $left  = $x-2;
-	  my $right = $left+$pixels_per_base-2;
-	  my $top   = $y+2;
-	  my $bottom= $y+$lineheight   - 1;
-	  my $middle= $y+$lineheight/2 + 1;
-	  my $pkg  = $self->polygon_package;
-
-	  if ($self->stranded && $i==0 && $self->strand < 0) {
-	      my $poly = $pkg->new;
-	      $poly->addPt($right,$top);
-	      $poly->addPt($left+5,$top);
-	      $poly->addPt($left,$middle);
-	      $poly->addPt($left+5,$bottom);
-	      $poly->addPt($right,$bottom);
-	      $gd->filledPolygon($poly,$mismatch);
-	  } elsif ($self->stranded && $i==$end && $strand > 0) {
-	      my $poly = $pkg->new;
-	      $poly->addPt($left,$top);
-	      $poly->addPt($right-5,$top);
-	      $poly->addPt($right,$middle);
-	      $poly->addPt($right-5,$bottom);
-	      $poly->addPt($left,$bottom);
-	      $gd->filledPolygon($poly,$mismatch);
-	  } else {
-	      $self->filled_box($gd,
-				$left,
-				$top,
-				$right,
-				$bottom,
-				$mismatch,$mismatch);
-	  }
-      }
-    
       $tgt_base = $complement{$tgt_base} if $true_target && $strand < 0;
       $gd->char($font,$x,$y,$tgt_base,$tgt_base =~ /[nN]/ ? $grey 
 		                     :$is_mismatch        ? $mismatch_font_color
 	                             :$color)
 	  unless $mismatch_only && !$is_mismatch;
+
       $drew_sequence++;
     }
 
@@ -783,8 +780,6 @@ sub draw_multiple_alignment {
 		$gd->string($font,$center,$y,$length,$color);
 	    }
 	}
-	# stick in a blob
-	# $self->_draw_insertion_point($gd,$gap_left,$gap_right,$y,$y+$lineheight,$mismatch) if $delta > 2;
       }
       # deal with gaps in the alignment
       elsif ( (my $delta = $seg->[SRC_START] - $src_last_end) > 1) {
@@ -793,7 +788,7 @@ sub draw_multiple_alignment {
 	  next if $x > $panel_right;
 	  $self->filled_box($gd,$x-$pixels_per_base/2,$y+1,$x+$pixels_per_base/2,$y+$lineheight,$indel,$indel)
 	    if $show_mismatch;
-	  $gd->char($font,$x,$y,'-',$color);
+	  $gd->char($font,$x,$y,'-',$indel_font_color);
 	}
 	
       }

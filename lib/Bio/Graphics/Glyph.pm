@@ -841,7 +841,7 @@ sub layout {
   $bump_direction = 'fast' if 
       $bump_direction && 
       $bump_direction == 1 && 
-      !$self->option('sort_order');
+      !$self->code_option('sort_order');
 
   $_->layout foreach @parts;  # recursively lay out
 
@@ -1379,7 +1379,7 @@ sub filled_arrow {
   my $self = shift;
   my $gd   = shift;
   my $orientation = shift;
-  my ($x1,$y1,$x2,$y2,$fg,$bg)  = @_;
+  my ($x1,$y1,$x2,$y2,$fg,$bg,$force)  = @_;
 
   $orientation *= -1 if $self->{flip};
 
@@ -1391,15 +1391,14 @@ sub filled_arrow {
   my $offend_right = $x2 > $panel->width + $panel->pad_left;
 
   return $self->filled_box($gd,@_)
-    if ($orientation == 0)
-      or ($x1 < 0 && $orientation < 0)
-        or ($x2 > $width && $orientation > 0)
-	  or ($indent <= 0)
-	    or ($x2 - $x1 < 3)
-  	      or ($offend_left && $orientation < 0)
-	        or ($offend_right && $orientation > 0);
-	    
-
+      if !$force &&
+      (($orientation == 0)
+       or ($x1 < 0 && $orientation < 0)
+       or ($x2 > $width && $orientation > 0)
+       or ($indent <= 0)
+       or ($x2 - $x1 < 3)
+       or ($offend_left && $orientation < 0)
+       or ($offend_right && $orientation > 0));
 
   $fg   ||= $self->fgcolor;
   $bg   ||= $self->bgcolor;
