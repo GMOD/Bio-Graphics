@@ -1,8 +1,9 @@
 package Bio::Graphics::Glyph::wiggle_whiskers;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::xyplot
-            Bio::Graphics::Glyph::minmax);
+use base qw(Bio::Graphics::Glyph::wiggle_minmax
+            Bio::Graphics::Glyph::xyplot
+            );
 
 sub my_description {
     return <<END;
@@ -55,7 +56,13 @@ sub my_options {
 	    'The color drawn from -stdev to min.'
 	],
 	graph_type => [
-	    'string',
+	    ['boxes','whiskers'],
+	    'boxes',
+	    'Type of graph to generate. Options are "boxes" (for a barchart),',
+	    'or "whiskers" (for a whiskerplot showing mean, +/- stdev and max/min.'
+	],
+	glyph_subtype => [
+	    ['boxes','whiskers'],
 	    'boxes',
 	    'Type of graph to generate. Options are "boxes" (for a barchart),',
 	    'or "whiskers" (for a whiskerplot showing mean, +/- stdev and max/min.'
@@ -64,7 +71,12 @@ sub my_options {
 }
 
 sub graph_type {
-    shift->option('graph_type') || 'boxes';
+    shift->glyph_subtype;
+}
+
+sub glyph_subtype {
+    my $self = shift;
+    return $self->option('glyph_subtype') || $self->option('graph_type') || 'boxes';
 }
 
 sub mean_color {
@@ -149,27 +161,6 @@ sub draw {
   $self->draw_description(@_) if $self->option('description');
 
   $self->panel->endGroup($gd);
-}
-
-sub minmax {
-    my $self  = shift;
-    my $stats = shift;
-
-    my $max_score = $self->max_score;
-    my $min_score = $self->min_score;
-
-    my $do_min = !defined $min_score;
-    my $do_max = !defined $max_score;
-
-    if ($do_min || $do_max) {
-	for my $bin (@$stats) {
-	    $min_score = $bin->{minVal} if $do_min && 
-		(!defined $min_score || $min_score > $bin->{minVal});
-	    $max_score = $bin->{maxVal} if $do_max &&
-		(!defined $max_score || $max_score < $bin->{maxVal});
-	}
-    }
-    return ($min_score,$max_score);
 }
 
 sub _draw_whiskers {

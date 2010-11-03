@@ -15,11 +15,17 @@ sub minmax {
     my $do_min     = !defined $min_score;
     my $do_max     = !defined $max_score;
 
+    if ($self->feature->can('statistical_summary')) {
+	my ($min,$max) = $self->bigwig_autoscale($autoscale,$self->feature);
+	$min_score = $min if $do_min;
+	$max_score = $max if $do_max;
+	return $self->sanity_check($min_score,$max_score);
+    }
 
-    #warn "wigmin = ",$self->wig->min;
-    #warn "wigmax = ",$self->wig->max;
-
-    if ($autoscale eq 'global' && (my $wig = $self->wig)) {
+    # wig files don't have genome-wide statistics, so "global" and "chromosome"
+    # are pretty much the same thing.
+    if (($autoscale eq 'global' or $autoscale eq 'chromosome')
+	&& (my $wig = eval{$self->wig})) {
 	$min_score = $wig->min if $do_min;
 	$max_score = $wig->max if $do_max;
 	return $self->sanity_check($min_score,$max_score);
@@ -34,8 +40,23 @@ sub minmax {
 	    $max_score = $s if $do_max && (!defined $max_score or $s > $max_score);
 	}
     }
-
     return $self->sanity_check($min_score,$max_score);
+}
+
+sub bigwig_autoscale {
+    my $self = shift;
+    my ($autoscale,$feature) = @_;
+    my $s;
+
+    if ($autoscale eq 'global') {
+	$s = $feature->global_stats;
+    } elsif ($autoscale eq 'chromosome') {
+	$s = $feature->chr_stats;
+    } else {
+	$s = $feature->score;
+    }
+
+    return ($s->{minVal},$s->{maxVal});
 }
 
 1;

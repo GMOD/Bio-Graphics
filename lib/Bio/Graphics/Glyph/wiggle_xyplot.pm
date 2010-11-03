@@ -44,11 +44,14 @@ sub my_options {
 	    'file is provided.'
         ],
 	autoscale => [
-	    ['local','global'],
+	    ['local','chromosome','global'],
             'local',
 	    'If set to "global" , then the minimum and maximum values of the XY plot',
-	    'will be taken from the wiggle file as a whole. Otherwise, the plot will be',
-	    'scaled to the minimum and maximum values of the region currently on display.'
+	    'will be taken from the wiggle file as a whole. If set to "chromosome", then',
+            'scaling will be to minimum and maximum on the current chromosome.',
+	    'Otherwise, the plot will be',
+	    'scaled to the minimum and maximum values of the region currently on display.',
+	    'min_score and max_score override autoscaling if one or both are defined'
         ],
     };
 }
@@ -261,7 +264,7 @@ sub draw_plot {
 	}
     } @$parts;
 
-    my $type           = $self->option('graph_type') || $self->option('graphtype') || 'boxes';
+    my $type           = $self->graph_type;
     if ($type eq 'boxes') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;

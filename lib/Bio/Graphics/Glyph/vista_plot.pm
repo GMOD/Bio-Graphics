@@ -39,7 +39,7 @@ sub my_options {
             3,
             "Line width determine the thickness of the line representing a peak."],
         glyph_subtype => [
-            'string',
+	    ['peaks','signal','peaks+signal','density'],
             'vista',
             "What to show, peaks or signal, both (vista plot) or density graph."]
     };
@@ -83,7 +83,7 @@ BEGIN {
 # Need to override wiggle_xyplot padding function to enable adequate height control in density mode
 sub pad_top {
   my $self = shift;
-  return 0 if $self->option('glyph_subtype') eq 'density';
+  return 0 if $self->glyph_subtype eq 'density';
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
   if ($pad < ($self->font('gdTinyFont')->height)) {
     $pad = $self->font('gdTinyFont')->height;  # extra room for the scale
@@ -103,6 +103,13 @@ sub global_mean_and_variance {
     return;
 }
 
+sub glyph_subtype {
+    my $self = shift;
+    my $only_show = $self->option('only_show') || $self->option('glyph_subtype') || 'vista';
+    $only_show    = 'vista' if $only_show eq 'both' || $only_show eq 'peaks+signal';
+    return $only_show;
+}
+
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
 sub draw {
@@ -113,8 +120,7 @@ sub draw {
  my $feature  = $self->feature;
  my $db;
  my $alpha_c = $self->option('alpha') || 0;
- my $only_show = $self->option('only_show');
- $only_show = $self->option('glyph_subtype') || 'vista' if ! $only_show;
+ my $only_show = $self->glyph_subtype;
  
  # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
  my %features = (wig=>$feature->attributes('wigfile'),peak=>$feature->attributes('peak_type'),fasta=>$feature->attributes('fasta'));
@@ -316,7 +322,7 @@ sub _isa_color {
 # Need to override this so we have a nice image map for overlayed peaks
 sub boxes {
   my $self = shift;
-  return if $self->option('glyph_subtype') eq 'density'; # No boxes for density plot
+  return if $self->glyph_subtype eq 'density'; # No boxes for density plot
   my($left,$top,$parent) = @_;
   my $feature = $self->feature;
   my @result;
@@ -374,7 +380,7 @@ sub _draw_wigfile {
     my ($gd,$left,$top) = @_;
     my ($start,$end) = $self->effective_bounds($feature); 
 
-    if ($self->option('glyph_subtype') eq 'density') {
+    if ($self->glyph_subtype eq 'density') {
      my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
      $self->draw_segment($gd,
                          $start,$end,
@@ -631,14 +637,21 @@ B<Example:>
 
 2L  chip_seq  vista  5407   23011573  .  .  .  Name=ChipSeq Exp 1;wigfile=SomeWigFile.wigdb;peak_type=binding_site:exp1
 
-The glyph will draw wiggle file first, than overlay the peaks (if there is any)
-over signal graph. Options like 'balloon hover' and 'link' are available to
-customize interaction with peaks in detail view
+The glyph will draw the wiggle file first, than overlay the peaks (if there are any)
+over signal graph. Elsewhere in the GFF3 file, there should be one or more features 
+of type "binding_site:exp1", e.g.:
+
+2L  exp1  binding_site  91934  92005  .  .  .
+
+Options like 'balloon hover' and 'link' are available to customize
+interaction with peaks in detail view.
 
 B<BigWig support:>
 
-Supported bigwig format also requires another attribute to be supplied in load gff file (fasta) which specifies sequence index file for the organism
-in use. The data file should have the 'bw' extension - it is used to detect the BigWig format by vista_plot
+Supported bigwig format also requires another attribute to be supplied
+in load gff file (fasta) which specifies sequence index file for the
+organism in use. The data file should have the 'bw' extension - it is
+used to detect the BigWig format by vista_plot
 
 3L  chip_seq  vista   1    24543530  .  .  .   Name=ChipSeq Exp 2;wigfile=SomeBigWigFile.bw;peak_type=binding_site:exp2;fasta=YourOrganism.fasta
 
@@ -680,7 +693,8 @@ B<alpha>
 set transparency for peak area.
 
 B<glyph_subtype>
-display only peaks, signal or both. May also be set to 'density'
+Display only 'peaks', 'signal', 'density' or 'peaks+signal'. 
+Aliases for 'peaks+signal' include "both" and "vista".
 
 B<Recommended global settings:>
 

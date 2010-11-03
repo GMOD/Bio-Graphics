@@ -40,7 +40,7 @@ sub my_options {
 	     'range to be clipped.'
 	    ],
 	 graph_type => [
-	     'string',
+	     ['histogram','boxes','line','points','linepoints'],
 	     'histogram',
 	     'Type of graph to generate. Options are "histogram", "boxes",',
 	     '"line","points", or "linepoints".'
@@ -63,6 +63,13 @@ sub my_options {
 	     'color',
 	     'fgcolor',
 	     'Color of the X and Y scales. Defaults to the same as fgcolor.',
+	 ],
+
+	 glyph_subtype => [
+	     ['histogram','boxes','line','points','linepoints'],
+	     'histogram',
+	     'Type of graph to generate. Identical to graph_type, but is compliant with the gbrowse2',
+	     'glyph configuration API.',
 	 ]
 	 
     };
@@ -121,6 +128,18 @@ sub scalecolor {
 sub default_scale
 {
   return 'right';
+}
+
+sub glyph_subtype {
+    my $self = shift;
+    return $self->option('glyph_subtype') || 
+	$self->option('graph_type')       || 
+	$self->option('graphtype')        ||
+	'boxes';
+}
+
+sub graph_type {
+    shift->glyph_subtype;
 }
 
 sub draw {

@@ -1,5 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.16
+     - Distinguish between "chromosome" and "global" autoscaling in the xyplot and density glyphs.
+       Global autoscaling only works when underlying database is bigwig.
+     - Regularized options which select glyph subtypes with an option named "glyph_subtype".
+
 2.15
      - Fixed documentation bug: sort_order options to sort by feature length should be
        "longest" and "shortest" rather than "longer and "shorter".
