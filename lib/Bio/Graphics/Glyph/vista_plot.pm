@@ -191,7 +191,8 @@ sub draw_signal {
 					  -start  => $self->panel->start,
 					  -end    => $self->panel->end,
 					  -type   => 'summary');
-	if ($signal_type =~ /signal/ &&  $self->graph_type eq 'whiskers') {
+
+	if ($signal_type ne 'density' and  $self->graph_type eq 'whiskers') {
 	    local $self->{feature} = $summary;
 	    $self->Bio::Graphics::Glyph::wiggle_whiskers::draw(@_);
 	} else {
