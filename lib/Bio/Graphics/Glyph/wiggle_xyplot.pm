@@ -203,7 +203,10 @@ sub draw_plot {
     $self->panel->startGroup($gd);
 
     my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
-    my ($min_score,$max_score)     = $self->minmax($parts);
+
+    # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
+    # rely on Perl's multiple inheritance DFS to find the right one.
+    my ($min_score,$max_score)     = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($parts);
     my $side = $self->_determine_side();
 
     # if a scale is called for, then we adjust the max and min to be even
@@ -268,7 +271,7 @@ sub draw_plot {
     if ($type eq 'boxes') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
-	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$color,$color,$lw) if abs($y2-$y1) > 0;
+	    $gd->filledRectangle($x1,$y1,$x2,$y2,$color) if abs($y2-$y1) > 0;
 	}
     }
 
@@ -300,7 +303,7 @@ sub draw_plot {
 	for (@points) {
 	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
 	    my ($y_start,$y_end) = $y1 < $y_origin ? ($y1,$y_origin) : ($y_origin,$y1);
-	    $self->filled_box($gd,$current->[0],$y_start,$x2,$y_end,$color,$color,1) if $y1-$y2;
+	    $gd->filledRectangle($current->[0],$y_start,$x2,$y_end,$color) if $y1-$y2;
 	    $current = $_;
 	}	
     }

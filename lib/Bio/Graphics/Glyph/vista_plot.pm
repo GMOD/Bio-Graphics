@@ -1,7 +1,13 @@
 package Bio::Graphics::Glyph::vista_plot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_xyplot Bio::Graphics::Glyph::heat_map Bio::Graphics::Glyph::smoothing); 
+use base qw(Bio::Graphics::Glyph::wiggle_minmax
+            Bio::Graphics::Glyph::wiggle_xyplot 
+            Bio::Graphics::Glyph::wiggle_density
+            Bio::Graphics::Glyph::wiggle_whiskers
+            Bio::Graphics::Glyph::heat_map 
+            Bio::Graphics::Glyph::smoothing); 
+
 use Bio::Graphics::Glyph::wiggle_density;
 # qw(draw_segment);
 
@@ -34,14 +40,23 @@ sub my_options {
             'integer',
             undef,
             "Maximum value of the signal graph feature's \"score\" attribute."],
-        linewidth => [
+        peakwidth => [
             'integer',
             3,
             "Line width determine the thickness of the line representing a peak."],
         glyph_subtype => [
-	    ['peaks','signal','peaks+signal','density'],
+	    ['peaks+signal','peaks','signal','density'],
             'vista',
-            "What to show, peaks or signal, both (vista plot) or density graph."]
+            "What to show, peaks or signal, both (vista plot) or density graph."],
+        graph_type => [
+	     ['whiskers','histogram','boxes','line','points','linepoints'],
+            'whiskers',
+            "Type of signal graph to show."],
+	alpha  => [
+	    'integer',
+	    100,
+	    "Alpha transparency of peak regions",
+	],
     };
 }
 
@@ -64,7 +79,7 @@ BEGIN {
   no strict 'refs';
 
   my @subs = qw/ h_start   s_start   v_start h_range s_range  v_range
-                 min_score max_score low_rgb low_hsv high_rgb score_range/;
+                 min_peak_score max_peak_score low_rgb low_hsv high_rgb peak_score_range/;
 
   for my $sub ( @subs ) {
     *{$sub} = sub {
@@ -80,6 +95,15 @@ BEGIN {
   }
 }
 
+sub peakwidth {
+  shift->option('peakwidth') || 3;
+}
+
+sub alpha_c {
+    my $self = shift;
+    return $self->option('alpha') || 100;
+}
+
 # Need to override wiggle_xyplot padding function to enable adequate height control in density mode
 sub pad_top {
   my $self = shift;
@@ -91,14 +115,20 @@ sub pad_top {
   $pad;
 }
 
+sub bigwig_summary {
+    my $self = shift;
+    my $d    = $self->{bigwig_summary};
+    $self->{bigwig_summary} = shift if @_;
+    $d;
+}
+
 # Need to override this too b/c we need unconventional mean and stdev calculation
 sub global_mean_and_variance {
     my $self = shift;
     if (my $wig = $self->wig) {
         return ($wig->mean,$wig->stdev);
-    } elsif ($self->feature->can('global_mean')) {
-        my $f = $self->feature;
-        return ($f->global_mean,$f->global_stdev);
+    } elsif (my $sum = $self->bigwig_summary){
+        return eval{($sum->global_mean,$sum->global_stdev)};
     }
     return;
 }
@@ -110,97 +140,131 @@ sub glyph_subtype {
     return $only_show;
 }
 
+sub graph_type {
+    my $self = shift;
+    return $self->option('graph_type') || 'whiskers';
+}
+
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
 sub draw {
+    my $self = shift;
+    my($gd,$dx,$dy) = @_;
+
+    my $only_show = $self->glyph_subtype;
+    my $feature   = $self->feature;
  
- my $self = shift;
- my($gd,$dx,$dy) = @_;
- my($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
- my $feature  = $self->feature;
- my $db;
- my $alpha_c = $self->option('alpha') || 0;
- my $only_show = $self->glyph_subtype;
- 
- # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
- my %features = (wig=>$feature->attributes('wigfile'),peak=>$feature->attributes('peak_type'),fasta=>$feature->attributes('fasta'));
- $self->panel->startGroup($gd);
+    # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
+    my %features = (wig=>$feature->attributes('wigfile'),
+		    peak=>$feature->attributes('peak_type'),
+		    fasta=>$feature->attributes('fasta'));
+    $self->panel->startGroup($gd);
+    $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
+    $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
+    $self->panel->endGroup($gd);
+}
 
- # Signal Graph drawing:
- if ($features{wig} && $features{wig}=~/\.wi\w{1,3}$/) { 
-   $self->draw_wigfile($feature,$features{wig},@_);
- } elsif ($features{wig} && $features{wig}=~/\.bw$/i && $features{fasta}) { 
-   use Bio::DB::BigWig 'binMean';
-   use Bio::DB::Sam;
-   my $wig = Bio::DB::BigWig->new(-bigwig => "$features{wig}",
-                                  -fasta  => Bio::DB::Sam::Fai->open("$features{fasta}"));
-  
-   my ($summary) = $wig->features(-seq_id => $feature->segment->ref,
-                                  -start  => $self->panel->start,
-                                  -end    => $self->panel->end,
-                                  -type   => 'summary'); 
-   
-   my $stats = $summary->statistical_summary($self->width);
-   my @vals  = map {$_->{validCount} ? binMean($_) : 0} @$stats; 
-   $only_show eq 'density' ? $self->draw_coverage_dense($self,\@vals,@_) : $self->draw_coverage($self,\@vals,@_);
- }
+sub draw_signal {
+    my $self        = shift;
+    my $signal_type = shift;
+    my $paths       = shift;
 
- # Peak drawing:
- if ($features{peak} && ($only_show eq 'peaks' || $only_show eq 'both' || $only_show eq 'vista'))  {
-  my $p_type = $features{peak};
-  $db = $feature->object_store;
-  my @peaks = $db->features(-seq_id => $feature->segment->ref,
-                            -start  => $self->panel->start,
-                            -end    => $self->panel->end,
-                            -type   => $p_type); 
-  my $x_scale     = $self->scale;
-  my $panel_start = $self->panel->start;
-  my $f_start     = $feature->start > $panel_start
-                          ? $feature->start
-                          : $panel_start;  
-  my $lw  = $self->option('linewidth') || 3;
-  my($max_s,$min_s) = ($self->option('max_peak'),$self->option('min_peak'));
-  ($max_s,$min_s) = (255,1) if (!$max_s || !$min_s);
-  my $grad_ok = 0;
-  if ($max_s  && $min_s) {
-     $grad_ok = $self->calculate_gradient($min_s,$max_s);
-  }
+    my $feature  = $self->feature;
 
-  foreach my $peak (@peaks) {
-   my $x1     = $left    + ($peak->{start} - $f_start) * $x_scale;
-   my $x2     = $left    + ($peak->{stop}  - $f_start) * $x_scale;
-        if ($x2 >= $left and $x1 <= $right) {
-            my $y1     = $top;
-            my $y2     = $bottom; 
-            $x1        = $left   if $x1 < $left;
-            $x2        = $right  if $x2 > $right;
-            $alpha_c = $alpha_c <=127 ? $alpha_c : 0; # Reset to zero if illegal value is passed
-            my $score = $peak->{score};
-            if ($score eq "."){$score = 255;} # Set score to 255 if peak is unscored 
-            my $color;
-            if ($grad_ok && defined $score && $score!=255) {
-             my @rgb = $self->calculate_color($score);
-             
-             $color = $self->color_index(@rgb);
-            }else{
-             $color = $self->fgcolor;
-            }
+    # Signal Graph drawing:
+    if ($paths->{wig} && $paths->{wig}=~/\.wi\w{1,3}$/) {
+	eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
+	my $wig = eval { Bio::Graphics::Wiggle->new($paths->{wig}) };
+	$self->wig($paths->{wig});
+	$self->draw_wigfile($feature,$self->wig($wig),@_);
+    } elsif ($paths->{wig} && $paths->{wig}=~/\.bw$/i) { 
+	eval "use Bio::DB::BigWig 'binMean'" unless Bio::DB::BigWig->can('new');
+	my @args = (-bigwig => "$paths->{wig}");
+	if ($paths->{fasta}) {
+	    eval "use Bio::DB::Sam"              unless Bio::DB::Sam::Fai->can('open');
+	    my $fasta_accessor = Bio::DB::Sam::Fai->can('open') ? Bio::DB::Sam::Fai->open("$paths->{fasta}")
+		                                                : Bio::DB::Fasta->new("$paths->{fasta}");
+	    push @args,(-fasta  => $fasta_accessor);
+	}
+	my $bigwig = Bio::DB::BigWig->new(@args);
+	my ($summary) = $bigwig->features(-seq_id => $feature->segment->ref,
+					  -start  => $self->panel->start,
+					  -end    => $self->panel->end,
+					  -type   => 'summary');
+	if ($signal_type =~ /signal/ &&  $self->graph_type eq 'whiskers') {
+	    local $self->{feature} = $summary;
+	    $self->Bio::Graphics::Glyph::wiggle_whiskers::draw(@_);
+	} else {
+	    my $stats = $summary->statistical_summary($self->width);
+	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
+	    $self->bigwig_summary($summary);
+	    $signal_type eq 'density' ? $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($feature,\@vals,@_) 
+		                      : $self->Bio::Graphics::Glyph::wiggle_xyplot::draw_coverage($feature,\@vals,@_);
+	}
+    }
+}
+
+sub draw_peaks {
+    my $self = shift;
+    my $paths = shift;
+    my($gd,$dx,$dy) = @_;
+    my($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
+
+    # Peak drawing:
+    my $alpha_c = $self->alpha_c;
+    my $feature = $self->feature;
+    
+    my $p_type = $paths->{peak};
+    my @peaks = $self->peaks();
+    my $x_scale     = $self->scale;
+    my $panel_start = $self->panel->start;
+    my $f_start     = $feature->start > $panel_start
+	? $feature->start
+	: $panel_start;  
+    my $lw  = $self->peakwidth;
+    my($max_s,$min_s) = ($self->option('max_peak'),$self->option('min_peak'));
+    $max_s          = 255 if !defined $max_s;
+    $min_s          = 1   if !defined $min_s;
+    my $grad_ok = 0;
+    if (defined $max_s && defined $min_s) {
+	$grad_ok = $self->calculate_gradient($min_s,$max_s);
+    }
+
+    foreach my $peak (@peaks) {
+	my $x1     = $left    + ($peak->{start} - $f_start) * $x_scale;
+	my $x2     = $left    + ($peak->{stop}  - $f_start) * $x_scale;
+	if ($x2 >= $left and $x1 <= $right) {
+	    my $y1     = $top;
+	    my $y2     = $bottom; 
+	    $x1        = $left   if $x1 < $left;
+	    $x2        = $right  if $x2 > $right;
+	    $alpha_c = $alpha_c <=127 ? $alpha_c : 0; # Reset to zero if illegal value is passed
+	    my $score = $peak->{score};
+	    if ($score eq "."){$score = 255;} # Set score to 255 if peak is unscored 
+	    my $color;
+	    if ($grad_ok && defined $score && $score!=255) {
+		my @rgb = $self->Bio::Graphics::Glyph::heat_map::calculate_color($score,
+										 $self->min_peak_score,
+										 $self->max_peak_score,
+										 $self->peak_score_range);
+		$color = $self->color_index(@rgb);
+	    }else{
+		$color = $self->fgcolor;
+	    }
 
 	    my $bgcolor = $self->bgcolor;
-
-            if($alpha_c > 0){
-             $gd->alphaBlending(1);
-             $bgcolor = $self->add_alpha($gd,$bgcolor,$alpha_c);
-            }
-
-            $self->filled_box($gd,int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
-            $gd->setThickness($lw);
-            $gd->line(int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y1+0.5),$color);
-            $gd->setThickness(0.5);
-   }
-  }
-}
-$self->panel->endGroup($gd);
+		
+	    if($alpha_c > 0){
+		$gd->alphaBlending(1);
+		$bgcolor = $self->add_alpha($gd,$bgcolor,$alpha_c);
+	    }
+	    
+	    $self->filled_box($gd,int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
+	    $gd->setThickness($lw);
+	    $gd->line(int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y1+0.5),$color);
+	    $gd->setThickness(1);
+	}
+    }
 }
 
 # Adding alpha channel to a color:
@@ -221,8 +285,8 @@ sub calculate_gradient {
   my ($h_start,$s_start,$v_start) = @$hsv_start;
   my ($h_stop,$s_stop,$v_stop )   = @$hsv_stop;
 
-  my $s_range = $s_stop - $s_start;
-  my $v_range = $v_stop - $v_start;
+  my $s_range = abs($s_stop - $s_start);
+  my $v_range = abs($v_stop - $v_start);
 
   my $h_range;
   # special case: if start hue = end hue, we want to go round
@@ -298,9 +362,9 @@ sub calculate_gradient {
   $self->v_range($v_range);
 
   # store score info
-  $self->score_range($max - $min);
-  $self->min_score($min);
-  $self->max_score($max);
+  $self->peak_score_range($max - $min);
+  $self->min_peak_score($min);
+  $self->max_peak_score($max);
 
   # store color extremes
   my @low_rgb  = $self->HSVtoRGB(@$hsv_start);
@@ -317,13 +381,15 @@ sub _isa_color {
   return $color =~ /white|black|FFFFFF|000000/i ? 0 : 1;
 }
 
-
+sub level { -1 }
 
 # Need to override this so we have a nice image map for overlayed peaks
 sub boxes {
   my $self = shift;
+
   return if $self->glyph_subtype eq 'density'; # No boxes for density plot
   my($left,$top,$parent) = @_;
+  
   my $feature = $self->feature;
   my @result;
   my($handle) = $feature->attributes('peak_type');
@@ -332,16 +398,11 @@ sub boxes {
    return wantarray ? () : \();
   }
 
-  my $db      = $feature->object_store;
-  
   $parent ||=$self;
   $top  += 0; $left += 0;
   
   if ($handle)  {
-   my @peaks = $db->features(-seq_id=>$feature->segment->ref,
-                             -start=>$self->panel->start,
-                             -end=>$self->panel->end,
-                             -type=>$handle);
+   my @peaks = $self->peaks;
    $self->add_feature(@peaks);
  
    my $x_scale = $self->scale;
@@ -396,42 +457,6 @@ sub _draw_wigfile {
      $self->draw_plot($parts,@_);
     }
 }
-
-# Subroutines copied from wiggle_density
-sub draw_coverage_dense {
-    my $self    = shift;
-    my $feature = shift;
-    my $array   = shift;
-
-    $array      = [split ',',$array] unless ref $array;
-    return unless @$array;
-    my ($gd,$left,$top) = @_;
-    #$top = $self->height if $top > $self->height;
-
-    my ($start,$end)    = $self->effective_bounds($feature);
-    my $length          = $end - $start + 1;
-    my $bases_per_bin   = ($end-$start)/@$array;
-    my @parts;
-    my $samples = $length < $self->panel->width ? $length
-                                                : $self->panel->width;
-    my $samples_per_base = $samples/$length;
-
-    for (my $i=0;$i<$samples;$i++) {
-        my $offset = $i/$samples_per_base;
-        my $v      = $array->[$offset/$bases_per_bin];
-        push @parts,$v;
-    }
-    my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-    $self->draw_segment($gd,
-                        $start,$end,
-                        \@parts,
-                        $start,$end,
-                        1,1,
-                        $x1,$y1,$x2,$y2);
-    $self->draw_label(@_)       if $self->option('label');
-    $self->draw_description(@_) if $self->option('description');
-}
-
 
 sub draw_segment {
   my $self = shift;
@@ -489,15 +514,7 @@ sub draw_segment {
 
   return unless $data && ref $data && @$data > 0;
 
-  my $min_value = $self->min_score;
-  my $max_value = $self->max_score;
-
-  my ($min,$max) = $self->minmax($data);
-  unless (defined $min_value && defined $max_value) {
-      $min_value ||= $min;
-      $max_value ||= $max;
-  }
-
+  my ($min_value,$max_value) = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($data);
   my $t = 0; for (@$data) {$t+=$_}
 
   # allocate colors
@@ -519,7 +536,8 @@ sub draw_segment {
       $rgb_pos = [$self->panel->rgb($poscolor)];
       $rgb_neg = [$self->panel->rgb($negcolor)];
   } else {
-      $rgb = $max > $min_value ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
+      $rgb = $max_value > $min_value ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) 
+                                     : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
   }
 
 
@@ -613,6 +631,28 @@ sub parse_color {
   return map { int(254.9 - (255-$_) * min(max( $relative_score, 0), 1)) } @$rgb;
 }
 
+sub peaks {
+    my $self = shift;
+    return @{$self->{_peaks}} if $self->{_peaks};
+
+    my $feature = $self->feature;
+    my $db = $feature->object_store;
+    my ($p_type) = $feature->attributes('peak_type');
+
+    unless ($db && $p_type) {
+	$self->{_peaks}	 = [];
+	return;
+    }
+
+    my @peaks = $db->features(-seq_id => $feature->segment->ref,
+			      -start  => $self->panel->start,
+			      -end    => $self->panel->end,
+			      -type   => $p_type); 
+
+    $self->{_peaks} = \@peaks;
+    return @{$self->{_peaks}};
+}
+
 sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
 sub max { $_[0] > $_[1] ? $_[0] : $_[1] }
 
@@ -670,7 +710,7 @@ In both cases, the stanza code will look the same (only essential parameters sho
  variance_band   = 1
  max_peak        = 255
  min_peak        = 1
- linewidth       = 3
+ peakwidth       = 3
  start_color     = lightgray
  end_color       = black
  pos_color       = blue

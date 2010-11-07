@@ -162,8 +162,8 @@ sub calculate_gradient {
   my ($h_start,$s_start,$v_start) = @$hsv_start;
   my ($h_stop,$s_stop,$v_stop )   = @$hsv_stop;
 
-  my $s_range = $s_stop - $s_start;
-  my $v_range = $v_stop - $v_start;
+  my $s_range = abs($s_stop - $s_start);
+  my $v_range = abs($v_stop - $v_start);
 
   my $h_range;
   # special case: if start hue = end hue, we want to go round
@@ -279,13 +279,13 @@ sub _isa_color {
 }
 
 sub calculate_color {
-  my ($self,$score) = @_;
+  my ($self,$score,$min,$max,$range) = @_;
   $score ||= 0;
 
   # relative score
-  my $min   = $self->min_score;
-  my $max   = $self->max_score;
-  my $range = $self->score_range;
+  $min   = $self->min_score      unless defined $min;
+  $max   = $self->max_score      unless defined $max;
+  $range = $self->score_range||1 unless $range;
 
   # reset off-scale scores
   $score = $min if $score < $min;
@@ -307,7 +307,6 @@ sub calculate_color {
   my $bri = $self->v_start;
   $bri += $score_diff * $self->v_range;
   $bri = int($bri + 0.5);
-
   return $self->HSVtoRGB($hue,$sat,$bri);
 }
 

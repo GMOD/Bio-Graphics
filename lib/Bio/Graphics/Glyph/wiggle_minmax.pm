@@ -9,8 +9,8 @@ sub minmax {
     my $parts  = shift;
 
     my $autoscale  = $self->option('autoscale') || '';
-    my $min_score  = $self->option('min_score');
-    my $max_score  = $self->option('max_score');
+    my $min_score  = $self->min_score;
+    my $max_score  = $self->max_score;
 
     my $do_min     = !defined $min_score;
     my $do_max     = !defined $max_score;

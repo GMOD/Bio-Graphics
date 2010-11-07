@@ -64,14 +64,6 @@ sub my_options {
 	     'fgcolor',
 	     'Color of the X and Y scales. Defaults to the same as fgcolor.',
 	 ],
-
-	 glyph_subtype => [
-	     ['histogram','boxes','line','points','linepoints'],
-	     'histogram',
-	     'Type of graph to generate. Identical to graph_type, but is compliant with the gbrowse2',
-	     'glyph configuration API.',
-	 ]
-	 
     };
 }
 
@@ -130,16 +122,11 @@ sub default_scale
   return 'right';
 }
 
-sub glyph_subtype {
+sub graph_type {
     my $self = shift;
-    return $self->option('glyph_subtype') || 
 	$self->option('graph_type')       || 
 	$self->option('graphtype')        ||
 	'boxes';
-}
-
-sub graph_type {
-    shift->glyph_subtype;
 }
 
 sub draw {
@@ -346,9 +333,9 @@ sub _draw_boxes {
     # prevent boxes from being less than 1 pixel
     $x2 = $x1+1 if $x2-$x1 < 1;
     if ($part->{_y_position} < $midpoint) {
-      $self->filled_box($gd,$x1,$part->{_y_position},$x2,$y_origin,$color,$color,$lw);
+	$gd->filledRectangle($x1,$part->{_y_position},$x2,$y_origin,$color);
     } else {
-      $self->filled_box($gd,$x1,$y_origin,$x2,$part->{_y_position},$negcolor,$negcolor,$lw);
+	$gd->filledRectangle($x1,$y_origin,$x2,$part->{_y_position},$negcolor);
     }
   }
 
