@@ -8,9 +8,6 @@ use base qw(Bio::Graphics::Glyph::wiggle_minmax
             Bio::Graphics::Glyph::heat_map 
             Bio::Graphics::Glyph::smoothing); 
 
-use Bio::Graphics::Glyph::wiggle_density;
-# qw(draw_segment);
-
 our $VERSION = '1.0';
 
 sub my_options {
@@ -50,7 +47,7 @@ sub my_options {
             "What to show, peaks or signal, both (vista plot) or density graph."],
         graph_type => [
 	     ['whiskers','histogram','boxes','line','points','linepoints'],
-            'whiskers',
+            'histogram',
             "Type of signal graph to show."],
 	alpha  => [
 	    'integer',
@@ -128,7 +125,9 @@ sub global_mean_and_variance {
     if (my $wig = $self->wig) {
         return ($wig->mean,$wig->stdev);
     } elsif (my $sum = $self->bigwig_summary){
-        return eval{($sum->global_mean,$sum->global_stdev)};
+        use Bio::DB::BigWig qw(binMean binStdev);
+        my $stats = $sum->statistical_summary(1);
+        return eval{(binMean($stats->[0]),binStdev($stats->[0]))};
     }
     return;
 }
@@ -142,7 +141,7 @@ sub glyph_subtype {
 
 sub graph_type {
     my $self = shift;
-    return $self->option('graph_type') || 'whiskers';
+    return $self->option('graph_type') || 'histogram';
 }
 
 # we override the draw method so that it dynamically creates the parts needed
@@ -181,7 +180,7 @@ sub draw_signal {
 	eval "use Bio::DB::BigWig 'binMean'" unless Bio::DB::BigWig->can('new');
 	my @args = (-bigwig => "$paths->{wig}");
 	if ($paths->{fasta}) {
-	    eval "use Bio::DB::Sam"              unless Bio::DB::Sam::Fai->can('open');
+	    eval "use Bio::DB::Sam" unless Bio::DB::Sam::Fai->can('open');
 	    my $fasta_accessor = Bio::DB::Sam::Fai->can('open') ? Bio::DB::Sam::Fai->open("$paths->{fasta}")
 		                                                : Bio::DB::Fasta->new("$paths->{fasta}");
 	    push @args,(-fasta  => $fasta_accessor);
@@ -199,8 +198,13 @@ sub draw_signal {
 	    my $stats = $summary->statistical_summary($self->width);
 	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
 	    $self->bigwig_summary($summary);
-	    $signal_type eq 'density' ? $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($feature,\@vals,@_) 
-		                      : $self->Bio::Graphics::Glyph::wiggle_xyplot::draw_coverage($feature,\@vals,@_);
+	    if ($signal_type eq 'density') {
+              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($feature,\@vals,@_);
+              $self->draw_label(@_)       if $self->option('label');
+    	      $self->draw_description(@_) if $self->option('description');
+            } else {
+	      $self->Bio::Graphics::Glyph::wiggle_xyplot::draw_coverage($feature,\@vals,@_);
+            }
 	}
     }
 }
@@ -459,179 +463,6 @@ sub _draw_wigfile {
     }
 }
 
-sub draw_segment {
-  my $self = shift;
-  my ($gd,
-      $start,$end,
-      $seg_data,
-      $seg_start,$seg_end,
-      $step,$span,
-      $x1,$y1,$x2,$y2) = @_;
-
-  # clip, because wig files do no clipping
-  $seg_start = $start      if $seg_start < $start;
-  $seg_end   = $end        if $seg_end   > $end;
-
-  # figure out where we're going to start
-  my $scale           = $self->scale;  # pixels per base pair
-  my $pixels_per_span = $scale * $span + 1;
-  my $pixels_per_step = 1;
-  my $length          = $end-$start+1;
-
-  # if the feature starts before the data starts, then we need to draw
-  # a line indicating missing data (this only happens if something went
-  # wrong upstream)
-  if ($seg_start > $start) {
-    my $terminus = $self->map_pt($seg_start);
-    $start = $seg_start;
-    $x1    = $terminus;
-  }
-  # if the data ends before the feature ends, then we need to draw
-  # a line indicating missing data (this only happens if something went
-  # wrong upstream)
-  if ($seg_end < $end) {
-    my $terminus = $self->map_pt($seg_end);
-    $end = $seg_end;
-    $x2    = $terminus;
-  }
-
-  return unless $start < $end;
-
-  # get data values across the area
-  my $samples = $length < $self->panel->width ? $length
-                                              : $self->panel->width;
-  my $data    = ref $seg_data eq 'ARRAY' ? $seg_data
-                                         : $seg_data->values($start,$end,$samples);
-
-  # scale the glyph if the data end before the panel does
-  my $data_width = $end - $start;
-  my $data_width_ratio;
-  if ($data_width < $self->panel->length) {
-    $data_width_ratio = $data_width/$self->panel->length;
-  }
-  else {
-    $data_width_ratio = 1;
-  }
-
-  return unless $data && ref $data && @$data > 0;
-
-  my ($min_value,$max_value) = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($data);
-  my $t = 0; for (@$data) {$t+=$_}
-
-  # allocate colors
-  # There are two ways to do this. One is a scale from min to max. The other is a
-  # bipartite scale using one color range from zero to min, and another color range
-  # from 0 to max. The latter behavior is triggered when the config file contains
-  # entries for "pos_color" and "neg_color" and the data ranges from < 0 to > 0.
-
-  my $poscolor       = $self->pos_color;
-  my $negcolor       = $self->neg_color;
-
-  my $data_midpoint  =   $self->midpoint;
-  my $bicolor   = $poscolor != $negcolor
-                       && $min_value < $data_midpoint
-                       && $max_value > $data_midpoint;
-
-  my ($rgb_pos,$rgb_neg,$rgb);
-  if ($bicolor) {
-      $rgb_pos = [$self->panel->rgb($poscolor)];
-      $rgb_neg = [$self->panel->rgb($negcolor)];
-  } else {
-      $rgb = $max_value > $min_value ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) 
-                                     : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
-  }
-
-
-  my %color_cache;
-
-  @$data = reverse @$data if $self->flip;
-
-  if (@$data <= $self->panel->width) { # data fits in width, so just draw it
-
-    $pixels_per_step = $scale * $step;
-    $pixels_per_step = 1 if $pixels_per_step < 1;
-    my $datapoints_per_base  = @$data/$length;
-    my $pixels_per_datapoint = $self->panel->width/@$data * $data_width_ratio;
-
-    for (my $i = 0; $i <= @$data ; $i++) {
-      my $x          = $x1 + $pixels_per_datapoint * $i;
-      my $data_point = $data->[$i];
-      defined $data_point || next;
-      $data_point    = $min_value if $min_value > $data_point;
-      $data_point    = $max_value if $max_value < $data_point;
-      my ($r,$g,$b)  = $bicolor
-          ? $data_point > $data_midpoint ? $self->parse_color($data_point,$rgb_pos,
-                                                              $data_midpoint,$max_value)
-                                         : $self->parse_color($data_point,$rgb_neg,
-                                                              $data_midpoint,$min_value)
-          : $self->parse_color($data_point,$rgb,
-                               $min_value,$max_value);
-      my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
-      $self->filled_box($gd,$x,$y1,$x+$pixels_per_datapoint,$y2,$idx,$idx);
-    }
-
-  } else {     # use Sheldon's code to subsample data
-      $pixels_per_step = $scale * $step;
-      my $pixels = 0;
-
-      # only draw boxes 2 pixels wide, so take the mean value
-      # for n data points that span a 2 pixel interval
-      my $binsize = 2/$pixels_per_step;
-      my $pixelstep = $pixels_per_step;
-      $pixels_per_step *= $binsize;
-      $pixels_per_step *= $data_width_ratio;
-      $pixels_per_span = 2;
-
-      my $scores = 0;
-      my $defined;
-
-      for (my $i = $start; $i < $end ; $i += $step) {
-        # draw the box if we have accumulated >= 2 pixel's worth of data.
-        if ($pixels >= 2) {
-          my $data_point = $defined ? $scores/$defined : 0;
-          $scores  = 0;
-          $defined = 0;
-
-          $data_point    = $min_value if $min_value > $data_point;
-          $data_point    = $max_value if $max_value < $data_point;
-          my ($r,$g,$b)  = $bicolor
-              ? $data_point > $data_midpoint ? $self->parse_color($data_point,$rgb_pos,
-                                                                  $data_midpoint,$max_value)
-                                             : $self->parse_color($data_point,$rgb_neg,
-                                                                  $data_midpoint,$min_value)
-              : $self->parse_color($data_point,$rgb,
-                                   $min_value,$max_value);
-          my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
-          $self->filled_box($gd,$x1,$y1,$x1+$pixels_per_span,$y2,$idx,$idx);
-          $x1 += $pixels;
-          $pixels = 0;
-        }
-
-        my $val = shift @$data;
-        # don't include undef scores in the mean calculation
-        # $scores is the numerator; $defined is the denominator
-        $scores += $val if defined $val;
-        $defined++ if defined $val;
-
-        # keep incrementing until we exceed 2 pixels
-        # the step is a fraction of a pixel, not an integer
-        $pixels += $pixelstep;
-      }
-  }
-}
-
-sub parse_color {
-  my $self = shift;
-  my ($s,$rgb,$min_score,$max_score) = @_;
-  $s ||= $min_score;
-
-  return 0 if $max_score==$min_score; # avoid div by zero
-
-  my $relative_score = ($s-$min_score)/($max_score-$min_score);
-  $relative_score -= .1 if $relative_score == 1;
-  return map { int(254.9 - (255-$_) * min(max( $relative_score, 0), 1)) } @$rgb;
-}
-
 sub peaks {
     my $self = shift;
     return @{$self->{_peaks}} if $self->{_peaks};
@@ -653,9 +484,6 @@ sub peaks {
     $self->{_peaks} = \@peaks;
     return @{$self->{_peaks}};
 }
-
-sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
-sub max { $_[0] > $_[1] ? $_[0] : $_[1] }
 
 1;
 
