@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.17
+     - In segments glyph, fixed bleedover of "deletion" color when a deletion is followed by an insertion.
+     
 2.16
      - Distinguish between "chromosome" and "global" autoscaling in the xyplot and density glyphs.
        Global autoscaling only works when underlying database is bigwig.

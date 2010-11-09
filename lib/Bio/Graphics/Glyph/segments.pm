@@ -71,6 +71,14 @@ sub my_options {
 	      'color',
 	      'lightgrey',
 	      'The color to use for indels when displaying alignments.'],
+	  insertion_color => [
+	      'color',
+	      'green',
+	      'The color to use for insertions when displaying alignments; overrides indel_color'],
+	  deletion_color => [
+	      'color',
+	      'red',
+	      'The color to use for deletions when displaying alignments; overrides indel_color'],
 	  mismatch_only => [
 	      'boolean',
 	      undef,
@@ -105,6 +113,22 @@ sub indel_color {
     my $self = shift;
     my $c    = $self->option('indel_color');
     return $self->mismatch_color unless $c;
+    return $self->translate_color($c);
+}
+
+sub insertion_color {
+    my $self = shift;
+    my $c    = $self->option('insertion_color');
+    $c     ||= $self->indel_color;
+    $c     ||= $self->my_options->{insertion_color}[1];
+    return $self->translate_color($c);
+}
+
+sub deletion_color {
+    my $self = shift;
+    my $c    = $self->option('deletion_color');
+    $c     ||= $self->indel_color;
+    $c     ||= $self->my_options->{deletion_color}[1];
     return $self->translate_color($c);
 }
 
@@ -347,8 +371,13 @@ sub draw_component {
 	my $stranded = $self->stranded;
 	$strand   = $self->feature->strand;
 	my $bgcolor  = $self->bgcolor;
-	$stranded ? $self->filled_arrow($gd,$strand,$x1-6,$y1,$x2+6,$y2)
-	          : $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
+	if ($stranded) {
+	    $x1 -= 6 if $strand < 0 && $x1 >= $self->panel->left;
+	    $x2 += 6 if $strand > 0 && $x2 <= $self->panel->right;
+	    $self->filled_arrow($gd,$strand,$x1,$y1,$x2,$y2)
+	} else {
+	    $self->filled_box($gd,$x1,$y1,$x2,$y2,$bgcolor,$bgcolor);
+	}
     } else {
 	$self->SUPER::draw_component(@_);
     }
@@ -357,7 +386,7 @@ sub draw_component {
     my $mismatch_color = $self->mismatch_color;
     my $feature = $self->feature;
     my $start = $self->feature->start;
-    my (@mismatch_positions,@indel_positions);
+    my (@mismatch_positions,@del_positions,@in_positions);
 
     if (my ($src,$matchstr,$tgt) = eval{$feature->padded_alignment}) {
 	my @src   = split '',$src;
@@ -373,10 +402,10 @@ sub draw_component {
 
 	for (my $i=0;$i<@src;$i++) {
 	    if ($src[$i] eq '-') {
-		push @indel_positions,$pos;
+		push @in_positions,$pos;
 	    }
 	    elsif ($tgt[$i] eq '-') {
-		push @indel_positions,$pos;
+		push @del_positions,$pos;
 		$pos++;
 	    } elsif ($src[$i] ne $tgt[$i]) {
 		push @mismatch_positions,$pos;
@@ -406,17 +435,21 @@ sub draw_component {
     my $panel_right          = $self->panel->right;
     
     for my $a ([\@mismatch_positions,$self->mismatch_color],
-	       [\@indel_positions,$self->indel_color]) {
+	       [\@del_positions,$self->deletion_color],
+	       [\@in_positions,$self->insertion_color,0.5,0.5]
+	) {
 
-	my @pixel_positions = $self->map_no_trunc(@{$a->[0]});
 	my $color            = $a->[1];
+	my $offset           = $a->[2]||0;
+	my $width            = $a->[3]||1;
+	my @pixel_positions = $self->map_no_trunc(@{$a->[0]});
 
 	foreach (@pixel_positions) {
 	    next if $_ < $x1;
 	    next if $_ > $x2;
 	    next if $_ >= $panel_right;
-	    my $left  = $_;
-	    my $right = $left+$pixels_per_base;
+	    my $left  = $_ - $pixels_per_base*$offset;
+	    my $right = $left+($width*$pixels_per_base);
 	    my $top   = $y1+1;
 	    my $bottom= $y2-1;
 	    my $middle= ($y1+$y2)/2;
@@ -456,6 +489,7 @@ sub draw_multiple_alignment {
 
   my $pixels_per_base      = $self->scale;
   my $feature              = $self->feature;
+
   my $panel                = $self->panel;
   my ($abs_start,$abs_end)     = ($feature->start,$feature->end);
   my ($tgt_start,$tgt_end)     = ($feature->hit->start,$feature->hit->end);
@@ -667,20 +701,26 @@ sub draw_multiple_alignment {
   my $fontwidth  = $font->width;
 
   my $mismatch = $self->mismatch_color;
-  my $indel    = $self->indel_color;
+  my $insertion= $self->insertion_color;
+  my $deletion = $self->deletion_color;
   my $grey     = $self->translate_color('gray');
   my $mismatch_font_color = eval {
       my ($r,$g,$b) = $self->panel->rgb($mismatch);
       $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
   };
-  my $indel_font_color = eval {
-      my ($r,$g,$b) = $self->panel->rgb($indel);
+  my $insertion_font_color = eval {
+      my ($r,$g,$b) = $self->panel->rgb($insertion);
+      $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
+  };
+  my $deletion_font_color = eval {
+      my ($r,$g,$b) = $self->panel->rgb($deletion);
       $self->translate_color(($r+$g+$b)>128 ? 'black' : 'white');
   };
 
+
   unless (@segments) { # this will happen if entire region is a target gap
       for (my $i = $bl;$i<$br-$self->scale;$i+=$self->scale) {
-	  $gd->char($font,$self->flip ? $i+$self->scale-4 : $i+2,$top,'-',$indel_font_color);
+	  $gd->char($font,$self->flip ? $i+$self->scale-4 : $i+2,$top,'-',$deletion_font_color);
       }
       return;
   }
@@ -691,8 +731,6 @@ sub draw_multiple_alignment {
     $seg->[TGT_START] -= $tgt_start - 1;
     $seg->[TGT_END]   -= $tgt_start - 1;
 
-    warn "src segment = $seg->[SRC_START]", "..",$seg->[SRC_END] if DEBUG;
-    warn "tgt segment = $seg->[TGT_START]", "..",$seg->[TGT_END] if DEBUG;
     if ($strand < 0) {
       ($seg->[TGT_START],$seg->[TGT_END]) = (length($tgt_dna)-$seg->[TGT_END]+1,length($tgt_dna)-$seg->[TGT_START]+1);
     }
@@ -758,10 +796,6 @@ sub draw_multiple_alignment {
 
 	next if $gap_left <= $panel_left || $gap_right >= $panel_right;
 
-	$self->filled_box($gd,$gap_left,$y+1,
-			      $gap_right-2,$y+$lineheight,$indel,$indel) if
-				$show_mismatch && $gap_left >= $panel_left && $gap_right <= $panel_right;
-
 
 	my $gap_distance             = $gap_right - $gap_left + 1;
 	my $pixels_per_inserted_base = $gap_distance/($delta-1);
@@ -786,9 +820,7 @@ sub draw_multiple_alignment {
 	for (my $i=0;$i<$delta-1;$i++) {
 	  my $x = $base2pixel->($src_last_end,$i+1);
 	  next if $x > $panel_right;
-	  $self->filled_box($gd,$x-$pixels_per_base/2,$y+1,$x+$pixels_per_base/2,$y+$lineheight,$indel,$indel)
-	    if $show_mismatch;
-	  $gd->char($font,$x,$y,'-',$indel_font_color);
+	  $gd->char($font,$x,$y,'-',$deletion_font_color);
 	}
 	
       }
@@ -804,15 +836,11 @@ sub draw_multiple_alignment {
   # TO BE REWRITTEN!
   if (defined $leftmost && $leftmost-$bl > $pixels_per_base) {
       for (map {$bl+$_*$pixels_per_base} 0..($leftmost-$bl)/$pixels_per_base-1) {
-	  $self->filled_box($gd,$_,$top+1,$_+$pixels_per_base,$top+$lineheight-1,$indel,$indel)
-	    if $show_mismatch;
 	  $gd->char($font,$_+2,$top-1,'-',$color);
       }
   }
   if (defined $rightmost && $br-$rightmost > $pixels_per_base) {
-      for (map {$rightmost+$_*$pixels_per_base} (0..($br-$rightmost)/$pixels_per_base)) {
-	  $self->filled_box($gd,$_,$top+1,$_+$pixels_per_base,$top+$lineheight-1,$indel,$indel)
-	      if $show_mismatch;
+      for (map {$rightmost+$_*$pixels_per_base} (1..($br-$rightmost)/$pixels_per_base)) {
 	  $gd->char($font,$_+2,$top-1,'-',$color);
       }
   }
