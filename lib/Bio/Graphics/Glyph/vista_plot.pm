@@ -160,6 +160,8 @@ sub draw {
     $self->panel->startGroup($gd);
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
     $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
+    $self->draw_label(@_)       if $self->option('label');
+    $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
 }
 
@@ -200,8 +202,6 @@ sub draw_signal {
 	    $self->bigwig_summary($summary);
 	    if ($signal_type eq 'density') {
               $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($feature,\@vals,@_);
-              $self->draw_label(@_)       if $self->option('label');
-    	      $self->draw_description(@_) if $self->option('description');
             } else {
 	      $self->Bio::Graphics::Glyph::wiggle_xyplot::draw_coverage($feature,\@vals,@_);
             }
