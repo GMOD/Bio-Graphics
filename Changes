@@ -2,6 +2,11 @@ Revision history for Perl extension Bio::Graphics.
  
 2.17
      - In segments glyph, fixed bleedover of "deletion" color when a deletion is followed by an insertion.
+     - In segments glyph, fixed the display of inserted bases such that they will not bleed into a
+       preceding deletion.
+     - In segments glyph, fixed the mismatch color highlighting when the alignment is to the negative
+       strand.
+     - In segments glyph, fixed the default colors for mismatch, insertion and deletion.
      - In gene glyph, fixed occasional linking of two neighboring transcripts.
      
 2.16
