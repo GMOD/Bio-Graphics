@@ -136,7 +136,7 @@ sub draw_connectors {
   my $self = shift;
   if ($self->feature->primary_tag eq 'gene') {
       my @parts = $self->parts;
-      return if @parts && $parts[0] =~ /rna|transcript|pseudogene/i;
+      return if @parts && $parts[0]->feature->primary_tag =~ /rna|transcript|pseudogene/i;
   }
   $self->SUPER::draw_connectors(@_);
 }
