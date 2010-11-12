@@ -193,17 +193,17 @@ sub draw_signal {
 					  -end    => $self->panel->end,
 					  -type   => 'summary');
 
+	local $self->{feature} = $summary;
 	if ($signal_type ne 'density' and  $self->graph_type eq 'whiskers') {
-	    local $self->{feature} = $summary;
 	    $self->Bio::Graphics::Glyph::wiggle_whiskers::draw(@_);
 	} else {
 	    my $stats = $summary->statistical_summary($self->width);
 	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
 	    $self->bigwig_summary($summary);
 	    if ($signal_type eq 'density') {
-              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($feature,\@vals,@_);
+              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($summary,\@vals,@_);
             } else {
-	      $self->Bio::Graphics::Glyph::wiggle_xyplot::draw_coverage($feature,\@vals,@_);
+	      $self->Bio::Graphics::Glyph::wiggle_xyplot::draw_coverage($summary,\@vals,@_);
             }
 	}
     }

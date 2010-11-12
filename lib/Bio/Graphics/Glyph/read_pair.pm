@@ -31,7 +31,7 @@ sub stranded {
 sub bgcolor {
     my $self = shift;
     my $bg   = $self->option('bgcolor');
-    $bg      = $self->feature->strand > 0  ? 'red' : 'blue';# unless defined $bg;
+    $bg      = $self->feature->strand > 0  ? 'red' : 'blue' unless defined $bg;
     return $self->factory->translate_color($bg);
 }
 
