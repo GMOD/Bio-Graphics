@@ -415,9 +415,8 @@ sub boxes {
    my $f_start     = $feature->start > $panel_start
                       ? $feature->start
                       : $panel_start;
-
    for my $part ($self->parts) { 
-    my $x1 = int(($part->{start} - $f_start) * $x_scale);
+    my $x1 = $f_start < $part->{start} ? int(($part->{start} - $f_start) * $x_scale) : 1;
     my $x2 = int(($part->{stop}  - $f_start) * $x_scale);
     my $y1 = 0;
     my $y2 = $part->height + $self->pad_top;
