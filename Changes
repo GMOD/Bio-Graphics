@@ -7,6 +7,8 @@ Revision history for Perl extension Bio::Graphics.
      - In segments glyph, fixed the mismatch color highlighting when the alignment is to the negative
        strand.
      - In segments glyph, fixed the default colors for mismatch, insertion and deletion.
+     - In segments glyph, fixed treatment of soft clipping as an "insertion"; this will avoid the insertion
+       color from appearing at the ends of soft-clipped reads.
      - In gene glyph, fixed occasional linking of two neighboring transcripts.
      
 2.16

@@ -396,10 +396,14 @@ sub draw_component {
 	my @tgt   = split '',$tgt;
 	my $pos   = $start;
 
-	# skip over src padding
+	# skip over src padding (probably soft clipped)
 	while ($src[0] eq '-') { 
 	    shift @src; 
 	    shift @tgt; 
+	}
+	while ($src[-1] eq '-') {
+	    pop @src;
+	    pop @tgt;
 	}
 
 	for (my $i=0;$i<@src;$i++) {
@@ -805,7 +809,7 @@ sub draw_multiple_alignment {
     my $delta     = $seg->[TGT_START] - $tgt_last_end;
     my $src_delta = $seg->[SRC_START] - $src_last_end;
 
-    if ($delta && ($delta > $src_delta-$gaps)) {  # an insertion in the target relative to the source
+    if ($segment && $delta && ($delta > $src_delta-$gaps)) {  # an insertion in the target relative to the source
 	my $gap_left  = $base2pixel->($pos+0.5,0);
 	my $gap_right = $base2pixel->($seg->[SRC_START],0);
 	($gap_left,$gap_right) = ($gap_right+$fontwidth,$gap_left-$fontwidth) if $self->flip;
@@ -834,6 +838,7 @@ sub draw_multiple_alignment {
   } continue {
     $tgt_last_end  = $seg->[TGT_END];
     $src_last_end  = $seg->[SRC_END];
+    $segment++;
   }
 
   return $drew_sequence;
