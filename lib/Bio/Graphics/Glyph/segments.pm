@@ -818,7 +818,7 @@ sub draw_multiple_alignment {
 	next if $gap_left <= $panel_left || $gap_right >= $panel_right;
 	    
 	my $length = $delta-1;
-	$length    = 1 if $delta <= 0;  # workaround
+	$length    = 1 if $length <= 0;  # workaround
 	my $gap_distance   = $gap_right - $gap_left;
 	my $pixels_per_inserted_base = $gap_distance/$length;
 
