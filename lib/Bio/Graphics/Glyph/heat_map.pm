@@ -162,8 +162,8 @@ sub calculate_gradient {
   my ($h_start,$s_start,$v_start) = @$hsv_start;
   my ($h_stop,$s_stop,$v_stop )   = @$hsv_stop;
 
-  my $s_range = abs($s_stop - $s_start);
-  my $v_range = abs($v_stop - $v_start);
+  my $s_range = $s_stop - $s_start;
+  my $v_range = $v_stop - $v_start;
 
   my $h_range;
   # special case: if start hue = end hue, we want to go round
@@ -283,30 +283,29 @@ sub calculate_color {
   $score ||= 0;
 
   # relative score
-  $min   = $self->min_score      unless defined $min;
-  $max   = $self->max_score      unless defined $max;
-  $range = $self->score_range||1 unless $range;
-
+  $min   = $self->min_score   || 0 unless defined $min;
+  $max   = $self->max_score unless defined $max;
+  $range = $self->score_range || 1 unless defined $range;
   # reset off-scale scores
-  $score = $min if $score < $min;
-  $score = $max if $score > $max;
+  $score = $min if $score < $min && $min;
+  $score = $max if $score > $max && $max;
   my $score_diff = ($score - $min)/$range;
 
   # Hue 
   my $hue    = $self->h_start;
   my $h_diff = $score_diff * $self->h_range;
   $hue += $h_diff;
-  $hue = int($hue+0.5);
+  $hue = $hue < 255 ? int($hue+0.5) : 255; 
 
   # Saturation
   my $sat = $self->s_start;
   $sat += $score_diff * $self->s_range; 
-  $sat = int($sat+0.5);
+  $sat = $sat < 255 ? int($sat+0.5) : 255;
 
   # Brightness
   my $bri = $self->v_start;
   $bri += $score_diff * $self->v_range;
-  $bri = int($bri + 0.5);
+  $bri = $bri < 255 ? int($bri + 0.5) : 255;
   return $self->HSVtoRGB($hue,$sat,$bri);
 }
 
