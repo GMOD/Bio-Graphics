@@ -255,6 +255,7 @@ use Bio::Graphics::Feature;
 use Bio::DB::GFF::Util::Rearrange;
 use Carp 'cluck','carp','croak';
 use IO::File;
+use File::Glob ':glob';
 use Text::ParseWords 'shellwords';
 use Bio::DB::SeqFeature::Store;
 use File::Basename 'dirname';
