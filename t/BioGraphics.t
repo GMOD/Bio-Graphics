@@ -4,6 +4,7 @@
 use strict;
 use File::Spec;
 use FindBin '$Bin';
+use File::Glob ':glob';
 
 # In order to properly run the image comparison tests the images may need to be
 # regenerated from scratch; this is primarily due to changes in GD versions, OS,
@@ -143,6 +144,7 @@ is eval{ref $data->code_setting(SwissProt=>'fill')},undef;
 $data  = Bio::Graphics::FeatureFile->new(-file => File::Spec->catfile($Bin,'data', 'feature_data.txt'),
 					 -safe => 1,
     ) or die;
+
 is $data->safe,1;
 is ref $data->setting(SwissProt=>'fill'),'CODE';
 is eval{ref $data->code_setting(SwissProt=>'fill')},'CODE';
