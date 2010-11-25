@@ -584,9 +584,10 @@ sub symbols {
 sub draw_label {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
-  
-  return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
+
   my $label = $self->label or return;
+  $self->panel->add_key_box($self,$label,$left,$top);
+  return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
 
   my $font = $self->labelfont;
   my $x    = $self->left + $left;

@@ -160,7 +160,7 @@ sub draw {
     $self->panel->startGroup($gd);
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
     $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
-    $self->draw_label(@_)       if $self->option('label');
+    $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
 }
@@ -452,7 +452,7 @@ sub _draw_wigfile {
                          $wig,$start,$end,
                          1,1,
                          $x1,$y1,$x2,$y2);
-     $self->draw_label(@_)       if $self->option('label');
+     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
      $self->draw_description(@_) if $self->option('description');
     } else {
      my ($start,$end) = $self->effective_bounds($feature);
