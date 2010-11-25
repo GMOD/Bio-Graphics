@@ -236,7 +236,9 @@ sub draw_plot {
     $y_origin    = $top if $max_score < 0 && $pivot ne 'min' || $pivot eq 'max';
     $y_origin    = int($y_origin+0.5);
 
+    $self->panel->startGroup($gd);
     $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
+    $self->panel->endGroup($gd);
     return unless $max_score > $min_score;
 
     my $lw       = $self->linewidth;
@@ -336,7 +338,7 @@ sub draw_plot {
 	$gd->string($font,$x2,$y -$font->height/2,'mn',  $variance_color);
     }
 
-    $self->draw_label(@_)       if $self->option('label');
+    $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
 
   $self->panel->endGroup($gd);

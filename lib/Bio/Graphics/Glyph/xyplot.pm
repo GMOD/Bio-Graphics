@@ -9,6 +9,7 @@ use Bio::Root::Version;
 our $VERSION = ${Bio::Root::Version::VERSION};
 
 use constant DEBUG=>0;
+use constant EXTRA_LABEL_PAD=>10;
 
 sub my_description { 
     return <<'END';
@@ -54,9 +55,10 @@ sub my_options {
 	 ],
 	 scale => [
 	     'string',
-	     'right',
+	     'three',
 	     'Position where the Y axis scale is drawn, if any.',
-	     'Options are one of "left", "right", "both" or "none".',
+	     'Options are one of "left", "right", "both", "three" or "none".',
+	     '"three" will cause the scale to be drawn in the left, right and center.',
 	 ],
 
 	 scale_color => [
@@ -79,7 +81,10 @@ my %SYMBOLS = (
 sub pad_left {
   my $self = shift;
   return 0 unless $self->level == 0;
-  return $self->SUPER::pad_left(@_);
+  my $left = $self->SUPER::pad_left(@_);
+  my $side = $self->_determine_side;
+  $left += EXTRA_LABEL_PAD if $self->label_position eq 'left' && $side =~ /left|both|three/;
+  return $left;
 }
 
 # Default pad_left is recursive through all parts. We certainly
@@ -119,7 +124,7 @@ sub scalecolor {
 
 sub default_scale
 {
-  return 'right';
+  return 'three';
 }
 
 sub graph_type {
@@ -413,8 +418,6 @@ sub _draw_scale {
   my ($gd,$scale,$min,$max,$dx,$dy,$y_origin) = @_;
   my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries($dx,$dy);
 
-  # this is wrong
-  #  $y2 -= $self->pad_bottom - 1;
   my $crosses_origin = $min < 0 && $max > 0;
 
   my $side = $self->_determine_side();
@@ -422,38 +425,7 @@ sub _draw_scale {
   my $fg    = $self->scalecolor;
   my $font  = $self->font('gdTinyFont');
 
-  $gd->line($x1,$y1,$x1,$y2,$fg) if $side eq 'left'  || $side eq 'both';
-  $gd->line($x2,$y1,$x2,$y2,$fg) if $side eq 'right' || $side eq 'both';
-
-  $gd->line($x1,$y_origin,$x2,$y_origin,$fg);
-
-  my @points = ([$y1,$max],[$y2,$min]);
-  push @points,$crosses_origin ? [$y_origin,0] : [($y1+$y2)/2,($min+$max)/2];
-
-  my $last_font_pos = -99999999999;
-
-  for (sort {$a->[0]<=>$b->[0]} @points) {
-    $gd->line($x1-3,$_->[0],$x1,$_->[0],$fg) if $side eq 'left'  || $side eq 'both';
-    $gd->line($x2,$_->[0],$x2+3,$_->[0],$fg) if $side eq 'right' || $side eq 'both';
-
-    my $font_pos = $_->[0]-($font->height/2);
-    $font_pos-=2 if $_->[1] < 0;  # jog a little bit for neg sign
-
-    next unless $font_pos > $last_font_pos + $font->height/2; # prevent labels from clashing
-    if ($side eq 'left' or $side eq 'both') {
-      $gd->string($font,
-		  $x1 - $font->width * length($_->[1]) - 3,$font_pos,
-		  $_->[1],
-		  $fg);
-    }
-    if ($side eq 'right' or $side eq 'both') {
-      $gd->string($font,
-		  $x2 + 5,$font_pos,
-		  $_->[1],
-		  $fg);
-    }
-    $last_font_pos = $font_pos;
-  }
+  my $middle = ($x1+$x2)/2;
 
   # minor ticks - multiples of 10
   my $interval = 1;
@@ -464,12 +436,60 @@ sub _draw_scale {
       $y_scale = $height/(($max-$min)/$interval);
   }
 
+  my $p  = $self->panel;
+  my $gc = $p->translate_color($p->gridcolor);
+  my $mgc= $p->translate_color($p->gridmajorcolor);
+
   for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
       my $yr = int($y+0.5);
-      $gd->line($x1-1,$yr,$x1,$yr,$fg) if $side eq 'left'  || $side eq 'both';
-      $gd->line($x2,$yr,$x2+1,$yr,$fg) if $side eq 'right' || $side eq 'both';
+      $gd->line($x1-1,$yr,$x2,$yr,$gc) if $side ne 'none';
   }
-  
+  if ($side ne 'none') {
+      $gd->line($x1,$y1,$x2,$y1,$gc);
+      $gd->line($x1,$y2,$x2,$y2,$gc);
+  }
+
+  $gd->line($x1,$y1,$x1,$y2,$fg) if $side eq 'left'  || $side eq 'both' || $side eq 'three';
+  $gd->line($x2,$y1,$x2,$y2,$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
+  $gd->line($middle,$y1,$middle,$y2,$fg) if $side eq 'three';
+
+  $gd->line($x1,$y_origin,$x2,$y_origin,$mgc);
+
+  my @points = ([$y1,$max],[$y2,$min]);
+  push @points,$crosses_origin ? [$y_origin,0] : [($y1+$y2)/2,($min+$max)/2];
+
+  my $last_font_pos = -99999999999;
+
+  for (sort {$a->[0]<=>$b->[0]} @points) {
+    $gd->line($x1-3,$_->[0],$x1,$_->[0],$fg) if $side eq 'left'  || $side eq 'both' || $side eq 'three';
+    $gd->line($x2,$_->[0],$x2+3,$_->[0],$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
+    $gd->line($middle,$_->[0],$middle+3,$_->[0],$fg) if $side eq 'three';
+
+    my $font_pos = $_->[0]-($font->height/2);
+    $font_pos-=2 if $_->[1] < 0;  # jog a little bit for neg sign
+
+    next unless $font_pos > $last_font_pos + $font->height/2; # prevent labels from clashing
+    if ($side eq 'left' or $side eq 'both' or $side eq 'three') {
+      $gd->string($font,
+		  $x1 - $font->width * length($_->[1]) - 3,$font_pos,
+		  $_->[1],
+		  $fg);
+    }
+    if ($side eq 'right' or $side eq 'both' or $side eq 'three') {
+      $gd->string($font,
+		  $x2 + 5,$font_pos,
+		  $_->[1],
+		  $fg);
+    }
+    if ($side eq 'three') {
+      $gd->string($font,
+		  $middle + 5,$font_pos,
+		  $_->[1],
+		  $fg);
+    }
+    $last_font_pos = $font_pos;
+  }
+
 }
 
 # we are unbumpable!
@@ -559,6 +579,24 @@ sub keyglyph {
 sub symbols {
     my $self = shift;
     return \%SYMBOLS;
+}
+
+sub draw_label {
+  my $self = shift;
+  my ($gd,$left,$top,$partno,$total_parts) = @_;
+  
+  return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
+  my $label = $self->label or return;
+
+  my $font = $self->labelfont;
+  my $x    = $self->left + $left;
+  my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
+  $y    = $self->{top} + $top if $y < $self->{top} + $top;
+  $gd->string($font,
+	      $x - EXTRA_LABEL_PAD,
+	      $y,
+	      $label,
+	      $self->labelcolor);
 }
 
 

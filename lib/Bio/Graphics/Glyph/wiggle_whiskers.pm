@@ -157,7 +157,7 @@ sub draw {
   $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
-  $self->draw_label(@_)       if $self->option('label');
+  $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
   $self->draw_description(@_) if $self->option('description');
 
   $self->panel->endGroup($gd);
