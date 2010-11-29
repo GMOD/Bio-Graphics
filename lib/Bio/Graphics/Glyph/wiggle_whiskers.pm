@@ -5,6 +5,7 @@ use base qw(Bio::Graphics::Glyph::wiggle_minmax
             Bio::Graphics::Glyph::xyplot
             );
 
+
 sub my_description {
     return <<END;
 This glyph draws quantitative data as an xyplot in which the interval
@@ -61,13 +62,11 @@ sub my_options {
 	    'Type of graph to generate. Options are "boxes" (for a barchart),',
 	    'or "whiskers" (for a whiskerplot showing mean, +/- stdev and max/min.'
 	],
-	glyph_subtype => [
-	    ['boxes','whiskers'],
-	    'boxes',
-	    'Type of graph to generate. Options are "boxes" (for a barchart),',
-	    'or "whiskers" (for a whiskerplot showing mean, +/- stdev and max/min.'
-	],
     }
+}
+
+sub extra_label_pad {
+    return 16
 }
 
 sub graph_type {
@@ -151,13 +150,19 @@ sub draw {
   $self->{_top}       = $top;
   $self->{_bottom}    = $bottom;
 
+  $self->panel->startGroup($gd);
+  $self->_draw_grid($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
+  $self->panel->endGroup($gd);
+
+  $self->panel->startGroup($gd);
   $self->_draw_whiskers($gd,$dx,$dy,$y_origin,$stats);
+  $self->panel->endGroup($gd);
 
   $self->panel->startGroup($gd);
   $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
-  $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
+  $self->draw_label(@_)       if $self->option('label');
   $self->draw_description(@_) if $self->option('description');
 
   $self->panel->endGroup($gd);

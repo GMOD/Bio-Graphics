@@ -660,7 +660,8 @@ sub translate_color {
 #              +3   optimized (fast) bumping
 sub bump {
   my $self = shift;
-  return $self->option('bump');
+  my $bump = $self->option('bump');
+  return $bump;
 }
 
 # control horizontal and vertical collision control

@@ -98,11 +98,15 @@ sub pad_top {
 
 sub bump {
   my $self = shift;
-  return 1 # top level bumps, other levels don't unless specified in config
-    if $self->{level} == 0
+  my $bump;
+  if ($self->{level} == 0
       && lc $self->feature->primary_tag eq 'gene'
-      && eval {($self->subfeat($self->feature))[0]->type =~ /RNA|pseudogene/i};
-  return $self->SUPER::bump;
+      && eval {($self->subfeat($self->feature))[0]->type =~ /RNA|pseudogene/i}) {
+      $bump = 1;
+  } else {
+      $bump = $self->SUPER::bump;
+  }
+  return $bump;
 }
 
 sub label {

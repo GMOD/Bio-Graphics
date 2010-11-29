@@ -237,8 +237,9 @@ sub draw_plot {
     $y_origin    = int($y_origin+0.5);
 
     $self->panel->startGroup($gd);
-    $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
+    $self->_draw_grid($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
     $self->panel->endGroup($gd);
+
     return unless $max_score > $min_score;
 
     my $lw       = $self->linewidth;
@@ -269,6 +270,7 @@ sub draw_plot {
 	}
     } @$parts;
 
+    $self->panel->startGroup($gd);
     my $type           = $self->graph_type;
     if ($type eq 'boxes') {
 	for (@points) {
@@ -337,6 +339,11 @@ sub draw_plot {
 	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor) unless $clip_bottom;
 	$gd->string($font,$x2,$y -$font->height/2,'mn',  $variance_color);
     }
+    $self->panel->endGroup($gd);
+
+    $self->panel->startGroup($gd);
+    $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
+    $self->panel->endGroup($gd);
 
     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
@@ -347,8 +354,8 @@ sub draw_plot {
 sub draw_label {
     my $self = shift;
     my ($gd,$left,$top,$partno,$total_parts) = @_;
-    return $self->SUPER::draw_label(@_) unless $self->option('variance_band');
-    return $self->SUPER::draw_label($gd,$left,$top,$partno,$total_parts);
+    return $self->Bio::Graphics::Glyph::xyplot::draw_label(@_) unless $self->option('variance_band');
+    return $self->Bio::Graphics::Glyph::xyplot::draw_label($gd,$left,$top,$partno,$total_parts);
 }
 
 sub global_mean_and_variance {

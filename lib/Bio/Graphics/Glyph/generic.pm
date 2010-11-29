@@ -86,7 +86,7 @@ sub my_options {
 	    0,
 	    'Additional whitespace (in pixels) to add to the left of this glyph.'],
         labelcolor => [
-	    'color',
+ 	    'color',
 	    'black',
 	    'The color to use for drawing label text in this glyph (also known as fontcolor).'],
         fontcolor => [
@@ -119,6 +119,12 @@ sub my_options {
 	    'color',
 	    'black',
 	    'Color to use for lines connecting discontinuous pieces of the feature.'],
+	record_label_positions => [
+	    'boolean',
+	    undef,
+	    'If true, remember the coordinates of the glyph label and return it',
+	    'by calling $panel->key_boxes.'
+	]
     }
 
 }
@@ -153,6 +159,8 @@ sub basecolor {
 
 sub labelcolor       {shift->fontcolor}
 sub descriptioncolor {shift->font2color}
+
+sub record_label_positions { shift->option('record_label_positions') }
 
 sub height {
   my $self = shift;
@@ -455,28 +463,36 @@ sub draw_label {
   if ($self->label_position eq 'top') {
     $x += $self->pad_left;  # offset to beginning of the drawn part of the feature
     $x = $self->panel->left + 1 if $x <= $self->panel->left;
-    $gd->string($font,
-		$x,
-		$self->top + $top - 1,
-		$label,
-		$self->labelcolor);
+    $self->render_label($gd,
+			$font,
+			$x,
+			$self->top + $top - 1,
+			$label);
   } elsif ($self->label_position eq 'left') {
       my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
       $y    = $self->{top} + $top if $y < $self->{top} + $top;
-      $gd->string($font,
-		  $x,
-		  $y,
-		  $label,
-		  $self->labelcolor);
+      $self->render_label($gd,
+			  $font,
+			  $x,
+			  $y,
+			  $label);
       # used for alignments, doesn't account for padding, viewer discretion is advised...
   } elsif ($self->label_position eq 'alignment_left') {
       my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
-      $gd->string($font,
-		  1,
-		  $y,
-		  $label,
-		  $self->labelcolor);
+      $self->render_label($gd,
+			  $font,
+			  1,
+			  $y,
+			  $label);
   }
+}
+
+sub render_label {
+    my $self = shift;
+    my ($gd,$font,$x,$y,$label) = @_;
+    $gd->string($font,$x,$y,$label,$self->labelcolor);
+    $self->panel->add_key_box($self,$label,$x,$y)
+	if $self->record_label_positions;
 }
 
 sub draw_description {

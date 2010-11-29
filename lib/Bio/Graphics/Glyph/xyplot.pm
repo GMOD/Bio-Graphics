@@ -3,13 +3,13 @@ package Bio::Graphics::Glyph::xyplot;
 use strict;
 #use GD 'gdTinyFont';
 
-use base qw(Bio::Graphics::Glyph::minmax);
+use base qw(Bio::Graphics::Glyph::segments Bio::Graphics::Glyph::minmax);
 use constant DEFAULT_POINT_RADIUS=>4;
 use Bio::Root::Version;
 our $VERSION = ${Bio::Root::Version::VERSION};
 
 use constant DEBUG=>0;
-use constant EXTRA_LABEL_PAD=>10;
+use constant EXTRA_LABEL_PAD=>8;
 
 sub my_description { 
     return <<'END';
@@ -76,6 +76,10 @@ my %SYMBOLS = (
 	       point    => \&draw_point,
 	      );
 
+sub extra_label_pad {
+    return EXTRA_LABEL_PAD;
+}
+
 # Default pad_left is recursive through all parts. We certainly
 # don't want to do this for all parts in the graph.
 sub pad_left {
@@ -83,7 +87,7 @@ sub pad_left {
   return 0 unless $self->level == 0;
   my $left = $self->SUPER::pad_left(@_);
   my $side = $self->_determine_side;
-  $left += EXTRA_LABEL_PAD if $self->label_position eq 'left' && $side =~ /left|both|three/;
+  $left += $self->extra_label_pad if $self->label_position eq 'left' && $side =~ /left|both|three/;
   return $left;
 }
 
@@ -125,6 +129,13 @@ sub scalecolor {
 sub default_scale
 {
   return 'three';
+}
+
+sub record_label_positions { 
+    my $self = shift;
+    my $rlp  = $self->option('record_label_positions');
+    return $rlp if defined $rlp;
+    return 1;
 }
 
 sub graph_type {
@@ -184,12 +195,16 @@ sub draw {
   $self->throw("Invalid graph type '$type'") unless @draw_methods;
 
   $self->panel->startGroup($gd);
-  $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
+  $self->_draw_grid($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
   for my $draw_method (@draw_methods) {
     $self->$draw_method($gd,$dx,$dy,$y_origin);
   }
+
+  $self->panel->startGroup($gd);
+  $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
+  $self->panel->endGroup($gd);
 
   $self->draw_label(@_)       if $self->option('label');
   $self->draw_description(@_) if $self->option('description');
@@ -428,27 +443,21 @@ sub _draw_scale {
   my $middle = ($x1+$x2)/2;
 
   # minor ticks - multiples of 10
-  my $interval = 1;
-  my $height   = $y2-$y1;
-  my $y_scale  = 1;
-  if ($max > $min) {
-      while ($height/(($max-$min)/$interval) < 2) { $interval *= 10 }
-      $y_scale = $height/(($max-$min)/$interval);
-  }
+  my $y_scale = $self->minor_ticks($min,$max,$y1,$y2);
 
   my $p  = $self->panel;
   my $gc = $p->translate_color($p->gridcolor);
   my $mgc= $p->translate_color($p->gridmajorcolor);
 
-  for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
-      my $yr = int($y+0.5);
-      $gd->line($x1-1,$yr,$x2,$yr,$gc) if $side ne 'none';
-  }
-  if ($side ne 'none') {
-      $gd->line($x1,$y1,$x2,$y1,$gc);
-      $gd->line($x1,$y2,$x2,$y2,$gc);
-  }
-
+  # if ($side ne 'none') {
+  #     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
+  # 	  my $yr = int($y+0.5);
+  # 	  $gd->line($x1-1,$yr,$x2,$yr,$gc);
+  #     }
+  #     $gd->line($x1,$y1,$x2,$y1,$gc);
+  #     $gd->line($x1,$y2,$x2,$y2,$gc);
+  # }
+  
   $gd->line($x1,$y1,$x1,$y2,$fg) if $side eq 'left'  || $side eq 'both' || $side eq 'three';
   $gd->line($x2,$y1,$x2,$y2,$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
   $gd->line($middle,$y1,$middle,$y2,$fg) if $side eq 'three';
@@ -489,6 +498,39 @@ sub _draw_scale {
     }
     $last_font_pos = $font_pos;
   }
+
+}
+
+sub _draw_grid {
+    my $self = shift;
+    my ($gd,$scale,$min,$max,$dx,$dy,$y_origin) = @_;
+    my $side = $self->_determine_side();
+    return if $side eq 'none';
+
+    my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries($dx,$dy);
+    my $p  = $self->panel;
+    my $gc = $p->translate_color($p->gridcolor);
+    my $y_scale = $self->minor_ticks($min,$max,$y1,$y2);
+
+    for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
+	my $yr = int($y+0.5);
+	$gd->line($x1-1,$yr,$x2,$yr,$gc);
+    }
+    $gd->line($x1,$y1,$x2,$y1,$gc);
+    $gd->line($x1,$y2,$x2,$y2,$gc);
+}
+
+sub minor_ticks {
+    my $self = shift;
+    my ($min,$max,$top,$bottom) = @_;
+
+    my $interval = 1;
+    my $height   = $bottom-$top;
+    my $y_scale  = 1;
+    if ($max > $min) {
+	while ($height/(($max-$min)/$interval) < 2) { $interval *= 10 }
+	$y_scale = $height/(($max-$min)/$interval);
+    }
 
 }
 
@@ -586,18 +628,17 @@ sub draw_label {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
 
   my $label = $self->label or return;
-  $self->panel->add_key_box($self,$label,$left,$top);
   return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
 
   my $font = $self->labelfont;
-  my $x    = $self->left + $left;
-  my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
-  $y    = $self->{top} + $top if $y < $self->{top} + $top;
-  $gd->string($font,
-	      $x - EXTRA_LABEL_PAD,
-	      $y,
-	      $label,
-	      $self->labelcolor);
+  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+  my $y = $self->{top} + $top;
+
+  $self->render_label($gd,
+		      $font,
+		      $x,
+		      $y,
+		      $label);
 }
 
 
