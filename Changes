@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.18
+     - Made handling of min/max scale calculations consistent across all xyplot glyphs and their derivatives.
+
 2.17
      - In segments glyph, fixed bleedover of "deletion" color when a deletion is followed by an insertion.
      - In segments glyph, fixed the display of inserted bases such that they will not bleed into a

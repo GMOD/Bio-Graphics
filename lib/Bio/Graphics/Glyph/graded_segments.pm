@@ -2,7 +2,7 @@ package Bio::Graphics::Glyph::graded_segments;
 #$Id: graded_segments.pm,v 1.2 2009-03-20 13:03:01 lstein Exp $
 
 use strict;
-use base qw(Bio::Graphics::Glyph::minmax Bio::Graphics::Glyph::merge_parts);
+use base qw(Bio::Graphics::Glyph::segments Bio::Graphics::Glyph::minmax Bio::Graphics::Glyph::merge_parts);
 
 sub my_description {
     return
