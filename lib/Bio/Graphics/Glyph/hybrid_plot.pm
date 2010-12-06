@@ -73,8 +73,14 @@ sub draw {
  my $t_id = $feature->method;
  if($t_id && $t_id eq $self->_check_uni){return Bio::Graphics::Glyph::generic::draw_component($self,@_);}
 
- #Draw dual graph if we don't have a score
- my @wiggles = ($feature->attributes('wigfileA'),$feature->attributes('wigfileB'));
+ #Draw multiple graph if we don't have a score
+ my @wiggles = ();
+ foreach ('A'..'Z') {
+   my $filename = 'wigfile'.$_;
+   my ($wiggle) = $feature->attributes('wigfile'.$_);
+   push (@wiggles, $wiggle);
+ }
+
  my ($fasta)   = $feature->attributes('fasta');
  my($scale,$y_origin,$min_score,$max_score);
 
@@ -82,8 +88,12 @@ sub draw {
 
  #Depending on what we have (wiggle or BigWig) pick the way to paint the signal graph
  for(my $w = 0; $w < @wiggles; $w++){
-  if($w > 0){$self->configure(-pos_color, NEGCOL);}
-  else{$self->configure(-pos_color, POSCOL);}
+  if ($w > 0) {
+    $self->configure(-pos_color, NEGCOL);
+    $self->configure(-no_grid, 1);
+  } else {
+    $self->configure(-pos_color, POSCOL);
+  }
   if ($wiggles[$w] =~ /\.wi\w{1,3}$/) {
    $self->draw_wigfile($feature,$wiggles[$w],@_);
   } elsif ($wiggles[$w] =~ /\.bw$/ && $fasta) {
