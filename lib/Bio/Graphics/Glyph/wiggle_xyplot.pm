@@ -237,7 +237,7 @@ sub draw_plot {
     $y_origin    = int($y_origin+0.5);
 
     $self->panel->startGroup($gd);
-    $self->_draw_grid($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin) unless $self->option('no_grid');
+    $self->_draw_grid($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
     $self->panel->endGroup($gd);
 
     return unless $max_score > $min_score;
