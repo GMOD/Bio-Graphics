@@ -17,7 +17,11 @@ sub my_options {
         max_score => [
             'integer',
             undef,
-            "Maximum value of the signal graph feature's \"score\" attribute."]
+            "Maximum value of the signal graph feature's \"score\" attribute."],
+        flip_sign => [
+            'boolean',
+            0,
+            "Optionally flip the signal for wigfileB (if the scores are positive but we wish to paint the signal along negative y-axis)"]
     };
 }
 
@@ -67,9 +71,10 @@ sub draw {
  my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
  my $height   = $bottom - $top;
  my $feature  = $self->feature;
+ my $set_flip = $self->option('flip_sign') | 0;
  
  
- #Draw individual features for reads (they unlike wiggle features will have scores)
+ #Draw individual features for reads (unlike wiggle features reads will have scores)
  my $t_id = $feature->method;
  if($t_id && $t_id eq $self->_check_uni){return Bio::Graphics::Glyph::generic::draw_component($self,@_);}
 
@@ -97,6 +102,7 @@ sub draw {
   if ($wiggles[$w] =~ /\.wi\w{1,3}$/) {
    $self->draw_wigfile($feature,$wiggles[$w],@_);
   } elsif ($wiggles[$w] =~ /\.bw$/ && $fasta) {
+   my $flip = ($w > 0 && $set_flip) ? -1 : 1;
    use Bio::DB::BigWig 'binMean';
    use Bio::DB::Sam;
    my $wig = Bio::DB::BigWig->new(-bigwig => "$wiggles[$w]",
@@ -106,6 +112,7 @@ sub draw {
                                   -start  => $self->panel->start,
                                   -end    => $self->panel->end,
                                   -type   => 'summary');
+   
    my $stats = $summary->statistical_summary($self->width);
    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
    $self->draw_coverage($self,\@vals,@_);
@@ -177,8 +184,10 @@ recognized:
 
  wigfileB    path name    Path to a Bio::Graphics::Wiggle file for max values in 10-base bins
 
+ fasta       path name    Path to fasta file to enable BigWig drawing
+
  u_method    method name  Use method of [method name] to identify individual features (like alignment matches) 
-                          to show at high zoom level. By default it is set to 'match'
+                          to show at high zoom level. By default it is set to 'match'    
 
 =head1 BUGS
 
