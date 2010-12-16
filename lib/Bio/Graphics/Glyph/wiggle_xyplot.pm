@@ -307,8 +307,12 @@ sub draw_plot {
 	for (@points) {
 	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
 	    my ($y_start,$y_end) = $y1 < $y_origin ? ($y1,$y_origin) : ($y_origin,$y1);
-	    $gd->filledRectangle($current->[0],$y_start,$x2,$y_end,$color) if $y1-$y2;
-	    $current = $_;
+	    if ($y1-$y2) {
+		my $delta = abs($x2-$current->[0]);
+		$gd->filledRectangle($current->[0],$y_start,$x2,$y_end,$color) if $delta > 1;
+		$gd->line($current->[0],$y_start,$current->[0],$y_end,$color)       if $delta == 1;
+		$current = $_;
+	    }
 	}	
     }
 
@@ -316,6 +320,8 @@ sub draw_plot {
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
 	my $y1             = $bottom - ($mean+$variance - $min_score) * $y_scale;
 	my $y2             = $bottom - ($mean-$variance - $min_score) * $y_scale;
+	my $yy1             = $bottom - ($mean+$variance*2 - $min_score) * $y_scale;
+	my $yy2             = $bottom - ($mean-$variance*2 - $min_score) * $y_scale;
 	my ($clip_top,$clip_bottom);
 	if ($y1 < $top) {
 	    $y1                = $top;
@@ -327,17 +333,20 @@ sub draw_plot {
 	}
 	my $y              = $bottom - ($mean - $min_score) * $y_scale;
 	my $mean_color     = $self->panel->translate_color('yellow:0.80');
-	my $variance_color = $self->panel->translate_color('grey:0.30');
-	$gd->filledRectangle($left,$y1,$right,$y2,$variance_color);
+	my $onesd_color = $self->panel->translate_color('grey:0.30');
+	my $twosd_color = $self->panel->translate_color('grey:0.20');
+	$gd->filledRectangle($left,$y1,$right,$y2,$onesd_color);
+	$gd->filledRectangle($left,$yy1,$right,$yy2,$twosd_color);
 	$gd->line($left,$y,$right,$y,$mean_color);
 
+	my $side = $self->_determine_side();
 	my $fcolor=$self->panel->translate_color('grey:0.50');
 	my $font  = $self->font('gdTinyFont');
-	my $x1    = $left - length('+1sd') * $font->width;
-	my $x2    = $left - length('mn')   * $font->width;
-	$gd->string($font,$x1,$y1-$font->height/2,'+1sd',$fcolor) unless $clip_top;
-	$gd->string($font,$x1,$y2-$font->height/2,'-1sd',$fcolor) unless $clip_bottom;
-	$gd->string($font,$x2,$y -$font->height/2,'mn',  $variance_color);
+	my $x1    = $left - length('+2sd') * $font->width - ($side=~/left|three/ ? 15 : 0);
+	my $x2    = $left - length('mn')   * $font->width - ($side=~/left|three/ ? 15 : 0);
+	$gd->string($font,$x1,$yy1-$font->height/2,'+2sd',$fcolor) unless $clip_top;
+	$gd->string($font,$x1,$yy2-$font->height/2,'-2sd',$fcolor) unless $clip_bottom;
+	$gd->string($font,$x2,$y -$font->height/2,'mn',  $fcolor);
     }
     $self->panel->endGroup($gd);
 

@@ -490,7 +490,7 @@ sub _draw_scale {
 		  $_->[1],
 		  $fg);
     }
-    if ($side eq 'three') {
+    if ($side eq 'three' && $_->[1] != 0) {
       $gd->string($font,
 		  $middle + 5,$font_pos,
 		  $_->[1],
@@ -498,6 +498,14 @@ sub _draw_scale {
     }
     $last_font_pos = $font_pos;
   }
+
+  for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
+      my $yr = int($y+0.5);
+      $gd->line($x1-3,$yr,$x1,$yr,$fg) if $side eq 'left' or $side eq 'both' or $side eq 'three';
+      $gd->line($x2,$yr,$x2+3,$yr,$fg) if $side eq 'right' or $side eq 'both' or $side eq 'three';
+      $gd->line($middle-1,$yr,$middle+2,$yr,$fg) if $side eq 'three';
+  }
+
 
 }
 
