@@ -21,7 +21,7 @@ sub my_options {
 	    undef,
 	    'The maximum score of the quantitative range.'],
 	bicolor_pivot => [
-	    ['mean','zero','float','max','min'],
+	    ['mean','zero','float','max','min','1SD','2SD','3SD'],
 	    undef,
 	    'A value to pivot the display on. Typically this involves changing the color of the',
 	    'glyph (and scale axis) depending on whether the feature is above or below the pivot value.',
@@ -72,15 +72,17 @@ sub minmax {
 
 sub sanity_check {
     my $self = shift;
-    my ($min_score,$max_score) = @_;
-    return ($min_score,$max_score) if $max_score > $min_score;
+    my ($min_score,$max_score,$mean) = @_;
+    warn "sanity_check(@_)";
+    return ($min_score,$max_score,$mean) if $max_score > $min_score;
 
     if ($max_score > 0) {
 	$min_score = 0;
     } else {
 	$max_score = 0;
     }
-    return ($min_score,$max_score);
+
+    return ($min_score,$max_score,$mean);
 }
 
 sub midpoint {
@@ -97,6 +99,9 @@ sub midpoint {
 	return eval {$self->series_min} || 0;
     } elsif ($pivot eq 'max') {
         return eval {$self->series_max} || 0;
+    } elsif ($pivot =~ /^(\d+)SD/i) {
+	my $stdevs = $1;
+	return eval {$self->series_mean + $self->series_stdev * $stdevs} || 0;
     } elsif  ($pivot =~ /^[\d.eE+-]+$/){
 	return $pivot;
     } else {
@@ -123,6 +128,13 @@ sub neg_color {
     my $pivot = $self->bicolor_pivot || 'none';
     return $self->bgcolor if $pivot eq 'none';
     return $self->color('neg_color') || $self->bgcolor;
+}
+
+# change the scaling of the y axis
+sub rescale {
+    my $self = shift;
+    my ($min,$max) = @_;
+    return ($min,$max);  # don't do anything here
 }
 
 

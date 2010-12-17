@@ -121,37 +121,47 @@ sub draw {
       return;
   }
 
-  my ($min_score,$max_score) = $self->minmax($stats);
+  my ($min_score,$max_score,$mean,$stdev) = $self->minmax($stats);
+  my $rescale  = $self->option('autoscale') eq 'z_score';
 
   my $side = $self->_determine_side();
 
   # if a scale is called for, then we adjust the max and min to be even
   # multiples of a power of 10.
-  if ($side) {
-    $max_score = Bio::Graphics::Glyph::xyplot::max10($max_score);
-    $min_score = Bio::Graphics::Glyph::xyplot::min10($min_score);
+  my ($scaled_min,$scaled_max);
+  if ($rescale) {
+      my $bound  = $self->z_score_bound;
+      $scaled_min = -$bound;
+      $scaled_max = +$bound;
+      $self->{_stdev}     = $stdev;
+      $self->{_mean}      = $mean;
+      $self->{_zfold}     = $bound;
   }
-
+  elsif ($side) {
+      $scaled_min = Bio::Graphics::Glyph::xyplot::max10($min_score);
+      $scaled_max = Bio::Graphics::Glyph::xyplot::min10($max_score);
+  }
+  
   my $height = $bottom - $top;
-  my $scale  = $max_score > $min_score ? $height/($max_score-$min_score)
-                                       : 1;
+  my $scale  = $scaled_max > $scaled_min ? $height/($scaled_max-$scaled_min)
+                                         : 1;
   my $x = $left;
   my $y = $top + $self->pad_top;
 
   # position of "0" on the scale
-  my $y_origin = $min_score <= 0 ? $bottom - (0 - $min_score) * $scale : $bottom;
-  $y_origin    = $top if $max_score < 0;
+  my $y_origin = $scaled_min <= 0 ? $bottom - (0 - $scaled_min) * $scale : $bottom;
+  $y_origin    = $top if $scaled_max < 0;
 
   my $clip_ok = $self->option('clip');
   $self->{_clip_ok}   = $clip_ok;
   $self->{_scale}     = $scale;
-  $self->{_min_score} = $min_score;
-  $self->{_max_score} = $max_score;
+  $self->{_min_score} = $scaled_min;
+  $self->{_max_score} = $scaled_max;
   $self->{_top}       = $top;
   $self->{_bottom}    = $bottom;
 
   $self->panel->startGroup($gd);
-  $self->_draw_grid($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
+  $self->_draw_grid($gd,$scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
   $self->panel->startGroup($gd);
@@ -159,7 +169,7 @@ sub draw {
   $self->panel->endGroup($gd);
 
   $self->panel->startGroup($gd);
-  $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
+  $self->_draw_scale($gd,$scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
   $self->draw_label(@_)       if $self->option('label');
@@ -194,10 +204,17 @@ sub _draw_whiskers {
 	my $max   = $bin->{maxVal};
 	my $min   = $bin->{minVal};
 
-	my $mean_pos = $self->score2position($mean);
-	my $plus_one = $self->score2position($mean+$stdev);
+	if (my $fold = $self->{_zfold}) {
+	    $mean  = ($mean - $self->{_mean})  / $self->{_stdev};
+	    $max   = ($max  - $self->{_mean})  / $self->{_stdev};
+	    $min   = ($min  - $self->{_mean})  / $self->{_stdev};
+	    $stdev /= $self->{_stdev};
+	}
+
+	my $mean_pos  = $self->score2position($mean);
+	my $plus_one  = $self->score2position($mean+$stdev);
 	my $minus_one = $self->score2position($mean-$stdev);
-	my $max_pos  = $self->score2position($max);
+	my $max_pos   = $self->score2position($max);
 	my $min_pos   = $self->score2position($min);
 
 	if ($graph_type eq 'boxes') {

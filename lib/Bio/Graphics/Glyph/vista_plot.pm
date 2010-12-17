@@ -47,7 +47,7 @@ sub my_options {
             "What to show, peaks or signal, both (vista plot) or density graph."],
         graph_type => [
 	     ['whiskers','histogram','boxes','line','points','linepoints'],
-            'histogram',
+            'boxes',
             "Type of signal graph to show."],
 	alpha  => [
 	    'integer',
@@ -141,7 +141,7 @@ sub glyph_subtype {
 
 sub graph_type {
     my $self = shift;
-    return $self->option('graph_type') || 'histogram';
+    return $self->option('graph_type') || $self->options->{graph_type}[1];
 }
 
 # we override the draw method so that it dynamically creates the parts needed

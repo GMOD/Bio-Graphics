@@ -206,18 +206,27 @@ sub draw_plot {
 
     # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
-    my ($min_score,$max_score)     = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($parts);
-    my $side = $self->_determine_side();
+    my ($min_score,$max_score,$mean,$stdev)     = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($parts);
+    my $rescale  = $self->option('autoscale') eq 'z_score';
+    my $side    = $self->_determine_side();
 
     # if a scale is called for, then we adjust the max and min to be even
     # multiples of a power of 10.
-    if ($side) {
-	$max_score = Bio::Graphics::Glyph::xyplot::max10($max_score);
-	$min_score = Bio::Graphics::Glyph::xyplot::min10($min_score);
+    my ($scaled_min,$scaled_max);
+    if ($rescale) {
+	my $bound  = $self->z_score_bound;
+	$scaled_min = -$bound;
+	$scaled_max = +$bound;
+    }
+    elsif ($side) {
+	$scaled_min = Bio::Graphics::Glyph::xyplot::max10($min_score);
+	$scaled_max = Bio::Graphics::Glyph::xyplot::min10($max_score);
+    } else {
+	($scaled_min,$scaled_max) = ($min_score,$max_score);
     }
 
     my $height = $bottom - $top;
-    my $y_scale  = $max_score > $min_score ? $height/($max_score-$min_score)
+    my $y_scale  = $scaled_max > $scaled_min ? $height/($scaled_max-$scaled_min)
 	                                   : 1;
     my $x = $left;
     my $y = $top;
@@ -232,28 +241,31 @@ sub draw_plot {
     $y += $self->pad_top;
 
     # position of "0" on the scale
-    my $y_origin = $min_score <= 0 && $pivot ne 'min' ? $bottom - (0 - $min_score) * $y_scale : $bottom;
-    $y_origin    = $top if $max_score < 0 && $pivot ne 'min' || $pivot eq 'max';
+    my $y_origin = $scaled_min <= 0 && $pivot ne 'min' ? $bottom - (0 - $scaled_min) * $y_scale : $bottom;
     $y_origin    = int($y_origin+0.5);
 
     $self->panel->startGroup($gd);
-    $self->_draw_grid($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
+    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
     $self->panel->endGroup($gd);
 
-    return unless $max_score > $min_score;
+    return unless $scaled_max > $scaled_min;
 
     my $lw       = $self->linewidth;
     my $positive = $self->pos_color;
     my $negative = $self->neg_color;
     my $midpoint = $self->midpoint;
     my $flip     = $self->{flip};
+    $midpoint    = ($midpoint - $mean)/$stdev if $rescale;
+
+    warn "midpoint = $midpoint";
 
     my @points = map {
 	my ($start,$end,$score) = @$_;
+	$score     = ($score-$mean)/$stdev if $rescale;
 	my $x1     = $left    + ($start - $f_start) * $x_scale;
 	my $x2     = $left    + ($end   - $f_start) * $x_scale;
 	if ($x2 >= $left and $x1 <= $right) {
-	    my $y1     = $bottom  - ($score - $min_score) * $y_scale;
+	    my $y1     = $bottom  - ($score - $scaled_min) * $y_scale;
 	    my $y2     = $y_origin;
 	    $y1        = $top    if $y1 < $top;
 	    $y1        = $bottom if $y1 > $bottom;
@@ -310,7 +322,7 @@ sub draw_plot {
 	    if ($y1-$y2) {
 		my $delta = abs($x2-$current->[0]);
 		$gd->filledRectangle($current->[0],$y_start,$x2,$y_end,$color) if $delta > 1;
-		$gd->line($current->[0],$y_start,$current->[0],$y_end,$color)       if $delta == 1;
+		$gd->line($current->[0],$y_start,$current->[0],$y_end,$color)  if $delta == 1;
 		$current = $_;
 	    }
 	}	
@@ -318,10 +330,14 @@ sub draw_plot {
 
     if ($self->option('variance_band') && 
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
-	my $y1             = $bottom - ($mean+$variance - $min_score) * $y_scale;
-	my $y2             = $bottom - ($mean-$variance - $min_score) * $y_scale;
-	my $yy1             = $bottom - ($mean+$variance*2 - $min_score) * $y_scale;
-	my $yy2             = $bottom - ($mean-$variance*2 - $min_score) * $y_scale;
+	if ($rescale) {
+	    $mean     = 0;
+	    $variance = 1;
+	}
+	my $y1             = $bottom - ($mean+$variance   - $scaled_min) * $y_scale;
+	my $y2             = $bottom - ($mean-$variance   - $scaled_min) * $y_scale;
+	my $yy1            = $bottom - ($mean+$variance*2 - $scaled_min) * $y_scale;
+	my $yy2            = $bottom - ($mean-$variance*2 - $scaled_min) * $y_scale;
 	my ($clip_top,$clip_bottom);
 	if ($y1 < $top) {
 	    $y1                = $top;
@@ -331,7 +347,7 @@ sub draw_plot {
 	    $y2                = $bottom;
 	    $clip_bottom++;
 	}
-	my $y              = $bottom - ($mean - $min_score) * $y_scale;
+	my $y              = $bottom - ($mean - $scaled_min) * $y_scale;
 	my $mean_color     = $self->panel->translate_color('yellow:0.80');
 	my $onesd_color = $self->panel->translate_color('grey:0.30');
 	my $twosd_color = $self->panel->translate_color('grey:0.20');
@@ -351,7 +367,7 @@ sub draw_plot {
     $self->panel->endGroup($gd);
 
     $self->panel->startGroup($gd);
-    $self->_draw_scale($gd,$x_scale,$min_score,$max_score,$dx,$dy,$y_origin);
+    $self->_draw_scale($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
     $self->panel->endGroup($gd);
 
     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
@@ -393,6 +409,12 @@ sub wig {
     my $d = $self->{wig};
     $self->{wig} = shift if @_;
     $d;
+}
+
+sub series_stdev {
+    my $self = shift;
+    my ($mean,$stdev) = $self->global_mean_and_variance;
+    return $stdev;
 }
 
 sub series_mean {

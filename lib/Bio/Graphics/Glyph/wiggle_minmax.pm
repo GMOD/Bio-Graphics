@@ -17,19 +17,17 @@ sub minmax {
     my $do_max     = !defined $max_score;
 
     if ($self->feature->can('statistical_summary')) {
-	my ($min,$max) = $self->bigwig_autoscale($autoscale,$self->feature);
+	my ($min,$max,$mean,$stdev) = $self->bigwig_stats($autoscale,$self->feature);
+	my $folds = $self->z_score_bound;
 	$min_score = $min if $do_min;
 	$max_score = $max if $do_max;
-	return $self->sanity_check($min_score,$max_score);
-    }
-
-    # wig files don't have genome-wide statistics, so "global" and "chromosome"
-    # are pretty much the same thing.
-    if (($autoscale eq 'global' or $autoscale eq 'chromosome')
-	&& (my $wig = eval{$self->wig})) {
-	$min_score = $wig->min if $do_min;
-	$max_score = $wig->max if $do_max;
-	return $self->sanity_check($min_score,$max_score);
+	return ($min_score,$max_score,$mean,$stdev);
+    } elsif (eval {$self->wig}) {
+	if (my ($min,$max,$mean,$stdev) = $self->wig_stats($autoscale,$self->wig)) {
+	    $min_score = $min if $do_min;
+	    $max_score = $max if $do_max;
+	    return ($min_score,$max_score,$mean,$stdev);
+	}
     }
 
     if ($do_min or $do_max) {
@@ -44,12 +42,12 @@ sub minmax {
     return $self->sanity_check($min_score,$max_score);
 }
 
-sub bigwig_autoscale {
+sub bigwig_stats {
     my $self = shift;
     my ($autoscale,$feature) = @_;
     my $s;
 
-    if ($autoscale eq 'global') {
+    if ($autoscale eq 'global' or $autoscale eq 'z_score') {
 	$s = $feature->global_stats;
     } elsif ($autoscale eq 'chromosome') {
 	$s = $feature->chr_stats;
@@ -57,7 +55,42 @@ sub bigwig_autoscale {
 	$s = $feature->score;
     }
 
-    return ($s->{minVal},$s->{maxVal});
+    return ($s->{minVal},$s->{maxVal},Bio::DB::BigWig::binMean($s),Bio::DB::BigWig::binStdev($s));
 }
+
+sub wig_stats {
+    my $self = shift;
+    my ($autoscale,$wig) = @_;
+
+    if ($autoscale =~ /global|chromosome|z_score/) {
+	my $min_score = $wig->min;
+	my $max_score = $wig->max;
+	my $mean  = $wig->mean;
+	my $stdev = $wig->stdev;
+	return ($min_score,$max_score,$mean,$stdev);
+    }  else {
+	return;
+    }
+}
+
+
+sub z_score_bound {
+    my $self = shift;
+    return $self->option('z_score_bound') || 4;
+}
+
+# change the scaling of the data points if z-score autoscaling requested
+sub rescale {
+    my $self   = shift;
+    my $points = shift;
+    return $points unless $self->option('autoscale') eq 'z_score';
+
+    my ($min,$max,$mean,$stdev)  = $self->minmax($points);
+    foreach (@$points) {
+	$_ = ($_ - $mean) / $stdev;
+    }
+    return $points;
+}
+
 
 1;
