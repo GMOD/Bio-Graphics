@@ -73,7 +73,6 @@ sub minmax {
 sub sanity_check {
     my $self = shift;
     my ($min_score,$max_score,$mean) = @_;
-    warn "sanity_check(@_)";
     return ($min_score,$max_score,$mean) if $max_score > $min_score;
 
     if ($max_score > 0) {
