@@ -31,6 +31,28 @@ sub my_options {
 	    'If a relative path is used for "wigfile", then this option provides',
 	    'the base directory on which to resolve the path.'
 	    ],
+        z_score_bounds => [
+	    'integer',
+	    4,
+	    'When using z_score autoscaling, this option controls how many standard deviations',
+	    'above and below the mean to show.'
+	],
+	autoscale => [
+	    ['local','chromosome','global','z_score','clipped_global'],
+            'clipped_global',
+	    'If set to "global" , then the minimum and maximum values of the XY plot',
+	    'will be taken from the wiggle file as a whole. If set to "chromosome", then',
+            'scaling will be to minimum and maximum on the current chromosome.',
+	    '"clipped_global" is similar to "global", but clips the top and bottom values',
+	    'to the multiples of standard deviations indicated by "z_score_bounds"',
+	    'If set to "z_score", then the whole plot will be rescaled to z-scores in which',
+	    'the "0" value corresponds to the mean across the genome, and the units correspond',
+	    'to standard deviations above and below the mean. The number of SDs to show are',
+	    'controlled by the "z_score_bound" option.',
+	    'Otherwise, the plot will be',
+	    'scaled to the minimum and maximum values of the region currently on display.',
+	    'min_score and max_score override autoscaling if one or both are defined'
+        ],
     };
 }
 
@@ -84,13 +106,6 @@ sub draw {
   }
 
   return $self->SUPER::draw(@_);
-}
-
-sub wig {
-  my $self = shift;
-  my $d = $self->{wig};
-  $self->{wig} = shift if @_;
-  $d;
 }
 
 sub draw_wigfile {
@@ -286,14 +301,23 @@ sub draw_segment {
   my $min_value = $self->min_score;
   my $max_value = $self->max_score;
 
-  my ($min,$max) = $self->minmax($data);
+  my ($min,$max,$mean,$stdev) = $self->minmax($data);
   unless (defined $min_value && defined $max_value) {
       $min_value ||= $min;
       $max_value ||= $max;
   }
 
+  my $rescale  = $self->option('autoscale') eq 'z_score';
+  my ($scaled_min,$scaled_max);
+  if ($rescale) {
+      my $bound  = $self->z_score_bound;
+      $scaled_min = -$bound;
+      $scaled_max = +$bound;
+  } else {
+      ($scaled_min,$scaled_max) = ($min_value,$max_value);
+  }
+
   my $t = 0; for (@$data) {$t+=$_}
-  # warn "min=$min_value, max=$max_value, total = $t";
 
   # allocate colors
   # There are two ways to do this. One is a scale from min to max. The other is a
@@ -305,16 +329,18 @@ sub draw_segment {
   my $negcolor       = $self->neg_color;
 
   my $data_midpoint  =   $self->midpoint;
+  $data_midpoint     =   0 if $rescale;
   my $bicolor   = $poscolor != $negcolor
-                       && $min_value < $data_midpoint
-		       && $max_value > $data_midpoint;
+                       && $scaled_min < $data_midpoint
+		       && $scaled_max > $data_midpoint;
 
   my ($rgb_pos,$rgb_neg,$rgb);
   if ($bicolor) {
       $rgb_pos = [$self->panel->rgb($poscolor)];
       $rgb_neg = [$self->panel->rgb($negcolor)];
   } else {
-      $rgb = $max > $min_value ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
+      $rgb = $scaled_max > $scaled_min ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) 
+                                       : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
   }
 
 
@@ -328,20 +354,21 @@ sub draw_segment {
     $pixels_per_step = 1 if $pixels_per_step < 1;
     my $datapoints_per_base  = @$data/$length;
     my $pixels_per_datapoint = $self->panel->width/@$data * $data_width_ratio;
-
     for (my $i = 0; $i <= @$data ; $i++) {
       my $x          = $x1 + $pixels_per_datapoint * $i;
       my $data_point = $data->[$i];
       defined $data_point || next;
-      $data_point    = $min_value if $min_value > $data_point;
-      $data_point    = $max_value if $max_value < $data_point;
+      $data_point    = ($data_point-$mean)/$stdev if $rescale;
+      $data_point    = $scaled_min if $scaled_min > $data_point;
+      $data_point    = $scaled_max if $scaled_max < $data_point;
+
       my ($r,$g,$b)  = $bicolor
 	  ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
-								  $data_midpoint,$max_value)
+								  $data_midpoint,$scaled_max)
 	                                 : $self->calculate_color($data_point,$rgb_neg,
-								  $data_midpoint,$min_value)
+								  $data_midpoint,$scaled_min)
           : $self->calculate_color($data_point,$rgb,
-				   $min_value,$max_value);
+				   $scaled_min,$scaled_max);
       my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
       $self->filled_box($gd,$x,$y1,$x+$pixels_per_datapoint,$y2,$idx,$idx);
     }
@@ -368,15 +395,15 @@ sub draw_segment {
 	  $scores  = 0;
 	  $defined = 0;
 
-	  $data_point    = $min_value if $min_value > $data_point;
-	  $data_point    = $max_value if $max_value < $data_point;
+	  $data_point    = $scaled_min if $scaled_min > $data_point;
+	  $data_point    = $scaled_max if $scaled_max < $data_point;
 	  my ($r,$g,$b)  = $bicolor
 	      ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
-								      $data_midpoint,$max_value)
+								      $data_midpoint,$scaled_max)
 	                                     : $self->calculate_color($data_point,$rgb_neg,
-								      $data_midpoint,$min_value)
+								      $data_midpoint,$scaled_min)
 	      : $self->calculate_color($data_point,$rgb,
-				       $min_value,$max_value);
+				       $scaled_min,$max_value);
 	  my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
 	  $self->filled_box($gd,$x1,$y1,$x1+$pixels_per_span,$y2,$idx,$idx);
 	  $x1 += $pixels;
@@ -394,24 +421,6 @@ sub draw_segment {
 	$pixels += $pixelstep;
       }
   }
-}
-
-sub series_mean {
-    my $self = shift;
-    my $wig = $self->wig or return;
-    return eval {$wig->mean} || undef;
-}
-
-sub series_min {
-    my $self = shift;
-    my $wig = $self->wig or return;
-    return eval {$wig->min} || undef;
-}
-
-sub series_max {
-    my $self = shift;
-    my $wig = $self->wig or return;
-    return eval {$wig->max} || undef;
 }
 
 sub calculate_color {

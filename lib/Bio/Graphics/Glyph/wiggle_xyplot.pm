@@ -222,8 +222,6 @@ sub draw_plot {
     my $rescale  = $self->option('autoscale') eq 'z_score';
     my $side    = $self->_determine_side();
 
-    # if a scale is called for, then we adjust the max and min to be even
-    # multiples of a power of 10.
     my ($scaled_min,$scaled_max);
     if ($rescale) {
 	my $bound  = $self->z_score_bound;
@@ -231,8 +229,6 @@ sub draw_plot {
 	$scaled_max = +$bound;
     }
     elsif ($side) {
-#	$scaled_min = Bio::Graphics::Glyph::xyplot::max10($min_score);
-#	$scaled_max = Bio::Graphics::Glyph::xyplot::min10($max_score);
 	$scaled_min = int($min_score - 0.5);
 	$scaled_max = int($max_score + 0.5);
     } else {
@@ -393,58 +389,6 @@ sub draw_label {
     my ($gd,$left,$top,$partno,$total_parts) = @_;
     return $self->Bio::Graphics::Glyph::xyplot::draw_label(@_) unless $self->option('variance_band');
     return $self->Bio::Graphics::Glyph::xyplot::draw_label($gd,$left,$top,$partno,$total_parts);
-}
-
-sub global_mean_and_variance {
-    my $self = shift;
-    if (my $wig = $self->wig) {
-	return ($wig->mean,$wig->stdev);
-    } elsif ($self->feature->can('global_mean')) {
-	my $f = $self->feature;
-	return ($f->global_mean,$f->global_stdev);
-    }
-    return;
-}
-
-sub global_min_max {
-    my $self = shift;
-    if (my $wig = $self->wig) {
-	return ($wig->min,$wig->max);
-    } elsif (my $stats = eval {$self->feature->global_stats}) {
-	return ($stats->{minVal},$stats->{maxVal});
-    }
-    return;
-}
-
-sub wig {
-    my $self = shift;
-    my $d = $self->{wig};
-    $self->{wig} = shift if @_;
-    $d;
-}
-
-sub series_stdev {
-    my $self = shift;
-    my ($mean,$stdev) = $self->global_mean_and_variance;
-    return $stdev;
-}
-
-sub series_mean {
-    my $self = shift;
-    my ($mean) = $self->global_mean_and_variance;
-    return $mean;
-}
-
-sub series_min {
-    my $self = shift;
-    my $wig = $self->wig or return;
-    return eval {$wig->min} || undef;
-}
-
-sub series_max {
-    my $self = shift;
-    my $wig = $self->wig or return;
-    return eval {$wig->max} || undef;
 }
 
 

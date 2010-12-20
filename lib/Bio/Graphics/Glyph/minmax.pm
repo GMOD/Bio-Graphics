@@ -119,14 +119,14 @@ sub pos_color {
     my $self  = shift;
     my $pivot = $self->bicolor_pivot || 'none';
     return $self->bgcolor if $pivot eq 'none';
-    return $self->color('pos_color') || $self->bgcolor;
+    return defined $self->color('pos_color')  ? $self->color('pos_color') : $self->bgcolor;
 }
 
 sub neg_color {
     my $self = shift;
     my $pivot = $self->bicolor_pivot || 'none';
     return $self->bgcolor if $pivot eq 'none';
-    return $self->color('neg_color') || $self->bgcolor;
+    return defined $self->color('neg_color') ? $self->color('neg_color') : $self->bgcolor;
 }
 
 # change the scaling of the y axis

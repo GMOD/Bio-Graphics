@@ -68,7 +68,7 @@ sub wig_stats {
 	my $max_score = $wig->max;
 	my $mean  = $wig->mean;
 	my $stdev = $wig->stdev;
-	return $self->clip($min_score,$max_score,$mean,$stdev);
+	return $self->clip($autoscale,$min_score,$max_score,$mean,$stdev);
     }  else {
 	return;
     }
@@ -103,6 +103,55 @@ sub rescale {
 	$_ = ($_ - $mean) / $stdev;
     }
     return $points;
+}
+
+sub global_mean_and_variance {
+    my $self = shift;
+    if (my $wig = $self->wig) {
+	return ($wig->mean,$wig->stdev);
+    } elsif ($self->feature->can('global_mean')) {
+	my $f = $self->feature;
+	return ($f->global_mean,$f->global_stdev);
+    }
+    return;
+}
+
+sub global_min_max {
+    my $self = shift;
+    if (my $wig = $self->wig) {
+	return ($wig->min,$wig->max);
+    } elsif (my $stats = eval {$self->feature->global_stats}) {
+	return ($stats->{minVal},$stats->{maxVal});
+    }
+    return;
+}
+sub series_stdev {
+    my $self = shift;
+    my ($mean,$stdev) = $self->global_mean_and_variance;
+    return $stdev;
+}
+
+sub series_mean {
+    my $self = shift;
+    my ($mean) = $self->global_mean_and_variance;
+    return $mean;
+}
+
+sub series_min {
+    my $self = shift;
+    return ($self->global_min_max)[0];
+}
+
+sub series_max {
+    my $self = shift;
+    return ($self->global_min_max)[1];
+}
+
+sub wig {
+  my $self = shift;
+  my $d = $self->{wig};
+  $self->{wig} = shift if @_;
+  $d;
 }
 
 
