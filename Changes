@@ -2,6 +2,12 @@ Revision history for Perl extension Bio::Graphics.
  
 2.18
      - Made handling of min/max scale calculations consistent across all xyplot glyphs and their derivatives.
+     - Added following autoscale options to wiggle_xyplot and wiggle_whiskers: "z-score" to rescale data such
+       that mean is zero and values are standard deviation-fold change; and "clipped_global" to scale to
+       global mean +/- some number of standard deviations indicated by "z_score_bounds".
+     - Added "z_score_bounds" option to wiggle_xyplot and wiggle_whiskers to control how many standard
+       deviations to show.
+       
 
 2.17
      - In segments glyph, fixed bleedover of "deletion" color when a deletion is followed by an insertion.

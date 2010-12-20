@@ -8,7 +8,7 @@ sub minmax {
     my $self   = shift;
     my $parts  = shift;
 
-    my $autoscale  = $self->option('autoscale') || '';
+    my $autoscale  = $self->option('autoscale') || 'local';
 
     my $min_score  = $self->min_score;
     my $max_score  = $self->max_score;
@@ -18,11 +18,12 @@ sub minmax {
 
     if ($self->feature->can('statistical_summary')) {
 	my ($min,$max,$mean,$stdev) = $self->bigwig_stats($autoscale,$self->feature);
-	my $folds = $self->z_score_bound;
 	$min_score = $min if $do_min;
 	$max_score = $max if $do_max;
 	return ($min_score,$max_score,$mean,$stdev);
-    } elsif (eval {$self->wig}) {
+    }
+
+    elsif (eval {$self->wig}) {
 	if (my ($min,$max,$mean,$stdev) = $self->wig_stats($autoscale,$self->wig)) {
 	    $min_score = $min if $do_min;
 	    $max_score = $max if $do_max;
@@ -47,15 +48,15 @@ sub bigwig_stats {
     my ($autoscale,$feature) = @_;
     my $s;
 
-    if ($autoscale eq 'global' or $autoscale eq 'z_score') {
+    if ($autoscale =~ /global/ or $autoscale eq 'z_score') {
 	$s = $feature->global_stats;
     } elsif ($autoscale eq 'chromosome') {
 	$s = $feature->chr_stats;
     } else {
 	$s = $feature->score;
     }
-
-    return ($s->{minVal},$s->{maxVal},Bio::DB::BigWig::binMean($s),Bio::DB::BigWig::binStdev($s));
+    return $self->clip($autoscale,
+		       $s->{minVal},$s->{maxVal},Bio::DB::BigWig::binMean($s),Bio::DB::BigWig::binStdev($s));
 }
 
 sub wig_stats {
@@ -67,10 +68,22 @@ sub wig_stats {
 	my $max_score = $wig->max;
 	my $mean  = $wig->mean;
 	my $stdev = $wig->stdev;
-	return ($min_score,$max_score,$mean,$stdev);
+	return $self->clip($min_score,$max_score,$mean,$stdev);
     }  else {
 	return;
     }
+}
+
+sub clip {
+    my $self = shift;
+    my ($autoscale,$min,$max,$mean,$stdev) = @_;
+    return ($min,$max,$mean,$stdev) unless $autoscale =~ /clipped/;
+    my $fold = $self->z_score_bound;
+    my $clip_max = $mean + $stdev*$fold;
+    my $clip_min = $mean - $stdev*$fold;
+    $min = $clip_min if $min < $clip_min;
+    $max = $clip_max if $max > $clip_max;
+    return ($min,$max,$mean,$stdev);
 }
 
 

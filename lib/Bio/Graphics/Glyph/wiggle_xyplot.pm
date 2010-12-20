@@ -43,12 +43,24 @@ sub my_options {
 	    'the mean and standard deviation of the data set. Only of use when a wig',
 	    'file is provided.'
         ],
+	z_score_bounds => [
+	    'integer',
+            4,
+	    'When using z_score autoscaling, this option controls how many standard deviations',
+	    'above and below the mean to show.'
+	],
 	autoscale => [
-	    ['local','chromosome','global'],
-            'local',
+	    ['local','chromosome','global','z_score','clipped_global'],
+            'clipped_global',
 	    'If set to "global" , then the minimum and maximum values of the XY plot',
 	    'will be taken from the wiggle file as a whole. If set to "chromosome", then',
             'scaling will be to minimum and maximum on the current chromosome.',
+	    '"clipped_global" is similar to "global", but clips the top and bottom values',
+	    'to the multiples of standard deviations indicated by "z_score_bounds"',
+	    'If set to "z_score", then the whole plot will be rescaled to z-scores in which',
+	    'the "0" value corresponds to the mean across the genome, and the units correspond',
+	    'to standard deviations above and below the mean. The number of SDs to show are',
+	    'controlled by the "z_score_bound" option.',
 	    'Otherwise, the plot will be',
 	    'scaled to the minimum and maximum values of the region currently on display.',
 	    'min_score and max_score override autoscaling if one or both are defined'
@@ -219,8 +231,10 @@ sub draw_plot {
 	$scaled_max = +$bound;
     }
     elsif ($side) {
-	$scaled_min = Bio::Graphics::Glyph::xyplot::max10($min_score);
-	$scaled_max = Bio::Graphics::Glyph::xyplot::min10($max_score);
+#	$scaled_min = Bio::Graphics::Glyph::xyplot::max10($min_score);
+#	$scaled_max = Bio::Graphics::Glyph::xyplot::min10($max_score);
+	$scaled_min = int($min_score - 0.5);
+	$scaled_max = int($max_score + 0.5);
     } else {
 	($scaled_min,$scaled_max) = ($min_score,$max_score);
     }
@@ -256,8 +270,6 @@ sub draw_plot {
     my $midpoint = $self->midpoint;
     my $flip     = $self->{flip};
     $midpoint    = ($midpoint - $mean)/$stdev if $rescale;
-
-    warn "midpoint = $midpoint";
 
     my @points = map {
 	my ($start,$end,$score) = @$_;
@@ -471,7 +483,6 @@ sub create_parts_for_dense_feature {
 
     my $span = $self->scale> 1 ? $end - $start : $self->width;
     my $data = $dense->values($start,$end,$span);
-    # warn join ' ',map{int($_+0.5)} @$data;
     my $points_per_span = ($end-$start+1)/$span;
     my @parts;
 
