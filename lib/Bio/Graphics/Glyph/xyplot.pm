@@ -542,6 +542,13 @@ sub minor_ticks {
 
 }
 
+# Let the feature attributes override the labelcolor
+sub labelcolor {
+  my $self = shift;
+  return $self->feature->attributes('labelcolor') ? $self->translate_color($self->feature->attributes('labelcolor'))
+    : $self->SUPER::labelcolor;
+}
+
 # we are unbumpable!
 sub bump {
   return 0;

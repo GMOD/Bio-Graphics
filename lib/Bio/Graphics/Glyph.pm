@@ -700,7 +700,7 @@ sub fillcolor {
 # we also look for the "fillcolor" option for Ace::Graphics compatibility
 sub bgcolor {
   my $self = shift;
-  my $bgcolor = $self->option('bgcolor');
+  my $bgcolor = $self->feature->attributes('bgcolor') || $self->option('bgcolor'); # Let feature attribute override color
   my $index = defined $bgcolor ? $bgcolor : $self->option('fillcolor');
   $index = 'white' unless defined $index;
 

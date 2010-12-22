@@ -355,18 +355,21 @@ sub _do_add_track {
       my $feature = shift;
       return 'track' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'track' };
       return 'group' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'group' };
+      return 'scale' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'scale' };
       return $map->($feature,'glyph',$self);
     }
    : ref($map) eq 'HASH' ? sub {
      my $feature = shift;
      return 'track' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'track' };
      return 'group' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'group' };
+     return 'scale' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'scale' };
      return eval {$map->{$feature->primary_tag}} || 'generic';
    }
    : sub {
      my $feature = shift;
      return 'track' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'track' };
      return 'group' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'group' };
+     return 'scale' if eval { defined $feature->primary_tag && $feature->primary_tag  eq 'scale' };
      return $glyph_name;
    };
   $self->_add_track($position,$features,-map=>$panel_map,-stylesheet=>$ss,-options=>\%options);
