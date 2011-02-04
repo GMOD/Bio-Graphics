@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.19
+     - Made "record_label_positions" default to "true" for wiggle_density plot. This activates
+       a fixed-position floating label when density plots are being shown in GBrowse.
+
 2.18
      - Made handling of min/max scale calculations consistent across all xyplot glyphs and their derivatives.
      - Added following autoscale options to wiggle_xyplot and wiggle_whiskers: "z-score" to rescale data such

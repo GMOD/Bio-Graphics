@@ -447,6 +447,13 @@ sub rel2abs {
     return File::Spec->rel2abs($wig,$path);
 }
 
+sub record_label_positions { 
+    my $self = shift;
+    my $rlp  = $self->option('record_label_positions');
+    return $rlp if defined $rlp;
+    return 1;
+}
+
 1;
 
 __END__
