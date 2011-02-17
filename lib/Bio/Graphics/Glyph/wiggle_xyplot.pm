@@ -290,12 +290,19 @@ sub draw_plot {
 	}
     } @$parts;
 
+    my $svg_workaround = $gd->isa('GD::SVG::Image');
+
     $self->panel->startGroup($gd);
     my $type           = $self->graph_type;
     if ($type eq 'boxes') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
-	    $gd->filledRectangle($x1,$y1,$x2,$y2,$color) if abs($y2-$y1) > 0;
+	    next unless abs($y2-$y1) > 0;
+	    if ($svg_workaround && $x1==$x2) {
+		$gd->line($x1,$y1,$x2,$y2,$color);
+	    } else {
+		$gd->filledRectangle($x1,$y1,$x2,$y2,$color);
+	    }
 	}
     }
 
