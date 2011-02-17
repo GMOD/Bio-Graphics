@@ -74,12 +74,10 @@ sub new {
   $length   ||= $options{-stop}-$options{-start}+1 
      if defined $options{-start} && defined $options{-stop};
 
-  # bring in the image generator class, since we will need it soon anyway
-  #eval "require $image_class; 1" or $class->throw($@);
-  #{
-  #local $^W = 0;
-  #eval "GD::Image->useFontConfig(1)";
-  #}
+  unless ($image_class->can('new')) {
+      eval "require $image_class; 1" or $class->throw($@);
+  }
+  $keyfont     = eval {$image_class->$keyfont} || $image_class->gdMediumBoldFont;
 
   return bless {
 		tracks => [],
@@ -489,11 +487,6 @@ sub get_gd {
     my $self        = shift;
     my $existing_gd = shift;
     return $self->{gd} if $self->{gd};
-
-    unless ($existing_gd) {
-	my $image_class = $self->image_class;
-	eval "require $image_class; 1" or $self->throw($@);
-    }
 
     my $height = $self->height;
     my $width  = $self->width + $self->pad_left + $self->pad_right;
