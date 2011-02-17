@@ -368,7 +368,7 @@ sub unionWith {
     
     my ($startBottom, $startIndex, $endIndex, $startSpan, $endSpan);
     my $bottom = $top + $height;
-    my $spans = $self->spans;
+    my $spans  = $self->spans;
 
   START: 
     for ($startIndex = 0; $startIndex < @$spans; $startIndex++) {
@@ -411,6 +411,7 @@ sub unionWith {
     # if the previous span and the current span have the same x-coord,
     # and are vertically contiguous, merge them.
     my $prevSpan = $spans->[$startIndex - 1];
+    $endIndex ||= 0;
     if ((abs($prevSpan->{x} - $x) < 1)
         && (abs(($prevSpan->{top} + $prevSpan->{height}) - $top) < 1) ) {
         $prevSpan->{height} = ($top + $height) - $prevSpan->{top};

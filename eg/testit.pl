@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-use lib '.','..','./blib/lib','../blib/lib';
+use lib '.','..','./lib','./blib/lib','../blib/lib';
 use strict;
 
 use Bio::Graphics::Panel;

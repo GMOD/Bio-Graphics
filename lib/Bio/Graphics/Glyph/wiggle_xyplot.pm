@@ -73,8 +73,8 @@ sub my_options {
 sub pad_top {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height)) {
-    $pad = $self->font('gdTinyFont')->height;  # extra room for the scale
+  if ($pad < ($self->font_height('gdTinyFont'))) {
+      $pad = $self->font_height('gdTinyFont');  # extra room for the scale
   }
   $pad;
 }
@@ -83,7 +83,7 @@ sub pad_left {
     my $self = shift;
     my $pad  = $self->SUPER::pad_left(@_);
     return $pad unless $self->option('variance_band');
-    $pad    += length('+1sd')/2 * $self->font('gdTinyFont')->width+3;
+    $pad    += length('+1sd')/2 * $self->font_width('gdTinyFont')+3;
     return $pad;
 }
 
@@ -92,6 +92,8 @@ sub pad_left {
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
+
+  my $key = $self->label;
 
   my $feature     = $self->feature;
   my ($wigfile)   = $feature->attributes('wigfile');
@@ -112,7 +114,6 @@ sub draw {
       my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
       return $self->draw_coverage($feature,\@vals,@_);
   }
-
   return $self->SUPER::draw(@_);
 }
 
@@ -174,7 +175,7 @@ sub draw_coverage {
 	my $v      = $array->[$offset/$bases_per_bin];
 	push @parts,[$s,$s,$v];
     }
-    $self->draw_plot(\@parts,@_);
+    return $self->draw_plot(\@parts,@_);
 }
 
 sub _draw_wigfile {
@@ -219,8 +220,8 @@ sub draw_plot {
     # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
     my ($min_score,$max_score,$mean,$stdev)     = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($parts);
-    my $rescale  = $self->option('autoscale') eq 'z_score';
-    my $side    = $self->_determine_side();
+    my $rescale  = ($self->option('autoscale')||'') eq 'z_score';
+    my $side     = $self->_determine_side();
 
     my ($scaled_min,$scaled_max);
     if ($rescale) {
@@ -235,9 +236,11 @@ sub draw_plot {
 	($scaled_min,$scaled_max) = ($min_score,$max_score);
     }
 
-    my $height = $bottom - $top;
+    my $height   = $bottom - $top;
     my $y_scale  = $scaled_max > $scaled_min ? $height/($scaled_max-$scaled_min)
 	                                   : 1;
+
+    $scaled_max = $scaled_min + 1 if $scaled_max <= $scaled_min;
     my $x = $left;
     my $y = $top;
     
@@ -250,12 +253,13 @@ sub draw_plot {
 
     $y += $self->pad_top;
 
+
     # position of "0" on the scale
     my $y_origin = $scaled_min <= 0 && $pivot ne 'min' ? $bottom - (0 - $scaled_min) * $y_scale : $bottom;
     $y_origin    = int($y_origin+0.5);
 
     $self->panel->startGroup($gd);
-    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
+    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless $self->option('no_grid');
     $self->panel->endGroup($gd);
 
     return unless $scaled_max > $scaled_min;
@@ -267,6 +271,7 @@ sub draw_plot {
     my $flip     = $self->{flip};
     $midpoint    = ($midpoint - $mean)/$stdev if $rescale;
 
+    local $^W = 0;  # prevent uninit warnings
     my @points = map {
 	my ($start,$end,$score) = @$_;
 	$score     = ($score-$mean)/$stdev if $rescale;
@@ -336,6 +341,7 @@ sub draw_plot {
 	}	
     }
 
+
     if ($self->option('variance_band') && 
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
 	if ($rescale) {
@@ -366,11 +372,13 @@ sub draw_plot {
 	my $side = $self->_determine_side();
 	my $fcolor=$self->panel->translate_color('grey:0.50');
 	my $font  = $self->font('gdTinyFont');
-	my $x1    = $left - length('+2sd') * $font->width - ($side=~/left|three/ ? 15 : 0);
-	my $x2    = $left - length('mn')   * $font->width - ($side=~/left|three/ ? 15 : 0);
-	$gd->string($font,$x1,$yy1-$font->height/2,'+2sd',$fcolor) unless $clip_top;
-	$gd->string($font,$x1,$yy2-$font->height/2,'-2sd',$fcolor) unless $clip_bottom;
-	$gd->string($font,$x2,$y -$font->height/2,'mn',  $fcolor);
+	my $fontwidth  = $self->font_width($font);
+	my $fontheight = $self->font_height($font);
+	my $x1    = $left - length('+2sd') * $fontwidth - ($side=~/left|three/ ? 15 : 0);
+	my $x2    = $left - length('mn')   * $fontwidth - ($side=~/left|three/ ? 15 : 0);
+	$self->string($gd,$font,$x1,$yy1-$fontheight/2,'+2sd',$fcolor) unless $clip_top;
+	$self->string($gd,$font,$x1,$yy2-$fontheight/2,'-2sd',$fcolor) unless $clip_bottom;
+	$self->string($gd,$font,$x2,$y -$fontheight/2,'mn',  $fcolor);
     }
     $self->panel->endGroup($gd);
 
@@ -381,7 +389,8 @@ sub draw_plot {
     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
 
-  $self->panel->endGroup($gd);
+    $self->panel->endGroup($gd);
+
 }
 
 sub draw_label {

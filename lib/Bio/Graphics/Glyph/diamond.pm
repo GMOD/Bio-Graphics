@@ -62,11 +62,12 @@ sub draw_component {
   # Have to draw TWO polygons for fills in order to get an outline
   # because filledPolygon in GD croaks with extra parameters (and
   # doesn't support drawing of stroke anyways).
+  $gd->fgcolor($fg);
   if (my $c = $self->bgcolor) {
       $gd->filledPolygon($polygon,$c);
-      $gd->polygon($polygon,$fg);
+      $gd->polygon($polygon);
   } else {
-    $gd->polygon($polygon,$fg);
+      $gd->polygon($polygon);
   }
 }
 

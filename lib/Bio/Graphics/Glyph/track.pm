@@ -2,6 +2,7 @@ package Bio::Graphics::Glyph::track;
 
 use strict;
 use base qw(Bio::Graphics::Glyph);
+use Carp 'cluck';
 
 # track sets connector to empty
 sub connector {

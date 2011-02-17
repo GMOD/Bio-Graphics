@@ -140,7 +140,6 @@ sub font {
   my $self = shift;
   return $self->getfont('font','gdSmallFont');
 }
-
 sub fontcolor {
   my $self = shift;
   my $fontcolor = $self->color('labelcolor') || $self->color('fontcolor');
@@ -169,7 +168,7 @@ sub height {
     $self->option('draw_translation') && $self->protein_fits
       or
 	$self->option('draw_dna') && $self->dna_fits;
-  my $fh = $self->font->height + 2;
+  my $fh = $self->font_height($self->font) + 2;
   return $h > $fh ? $h : $fh;
 }
 
@@ -217,15 +216,22 @@ sub descfont {
 }
 sub labelwidth {
   my $self = shift;
-  return $self->{labelwidth} ||= length($self->label||'') * $self->font->width;
+  my $font  = $self->font;
+  return $self->{labelwidth} ||= $self->string_width($self->label,$font);
 }
 sub descriptionwidth {
   my $self = shift;
-  return $self->{descriptionwidth} ||= length($self->description||'') * $self->font->width;
+  my $description = $self->description ||'';
+  return 0 unless length $description;
+  my $font  = $self->font;
+  return $self->{descriptionwidth} ||= $self->string_width($description,$font);
 }
 sub labelheight {
   my $self = shift;
-  return $self->{labelheight} ||= $self->font->height;
+  my $label = $self->label || 'dj';
+  return 0 unless length($label);
+  my $font  = $self->font;
+  return $self->{labelheight} ||= $self->string_height($label,$font);
 }
 sub label_position {
   my $self = shift;
@@ -458,8 +464,10 @@ sub draw_label {
 
   my $label = $self->label or return;
 
-  my $x    = $self->left + $left; # valid for both "top" and "left" because the left-hand side is defined by pad_left
-  my $font = $self->labelfont;
+  my $x        = $self->left + $left; # valid for both "top" and "left" because the left-hand side is defined by pad_left
+  my $font     = $self->labelfont;
+  my $l_height = $self->string_height($label,$font);
+
   if ($self->label_position eq 'top') {
     $x += $self->pad_left;  # offset to beginning of the drawn part of the feature
     $x = $self->panel->left + 1 if $x <= $self->panel->left;
@@ -469,7 +477,7 @@ sub draw_label {
 			$self->top + $top - 1,
 			$label);
   } elsif ($self->label_position eq 'left') {
-      my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
+      my $y = $self->{top} + ($self->height - $l_height)/2 + $top;
       $y    = $self->{top} + $top if $y < $self->{top} + $top;
       $self->render_label($gd,
 			  $font,
@@ -478,7 +486,7 @@ sub draw_label {
 			  $label);
       # used for alignments, doesn't account for padding, viewer discretion is advised...
   } elsif ($self->label_position eq 'alignment_left') {
-      my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
+      my $y = $self->{top} + ($self->height - $l_height)/2 + $top;
       $self->render_label($gd,
 			  $font,
 			  1,
@@ -490,7 +498,7 @@ sub draw_label {
 sub render_label {
     my $self = shift;
     my ($gd,$font,$x,$y,$label) = @_;
-    $gd->string($font,$x,$y,$label,$self->labelcolor);
+    $self->string($gd,$font,$x,$y,$label,$self->labelcolor);
     $self->panel->add_key_box($self,$label,$x,$y)
 	if $self->record_label_positions;
 }
@@ -504,11 +512,12 @@ sub draw_description {
   $bottom  -= $self->labelheight;
   $bottom  -= $self->labelheight if $self->part_labels && $self->label_position eq 'top';
 
-  $gd->string($self->descfont,
-	      $left,
-	      $bottom,
-	      $label,
-	      $self->descriptioncolor);
+  $self->string($gd,
+		$self->descfont,
+		$left,
+		$bottom+2,
+		$label,
+		$self->descriptioncolor);
 }
 
 sub draw_part_labels {
@@ -557,7 +566,8 @@ sub draw_part_labels {
     my $x    = $left + $x1 + ($x2 - $x1 - $width*length($string))/2;
     my $w    = $width * length($string);
     next if defined $last_x && $self->flip ?  $x + $w > $last_x : $x < $last_x;
-    $gd->string($font,
+    $self->string($gd,
+		  $font,
 		$x,$y,
 		$string,
 		$color);
@@ -581,31 +591,27 @@ sub dna_fits {
   my $self = shift;
 
   my $pixels_per_base = $self->scale;
-  my $font            = $self->font;
+  my $font            = GD->gdSmallFont;
   my $font_width      = $font->width;
-
   return $pixels_per_base >= $font_width;
 }
 
 sub protein_fits {
   my $self = shift;
-  my $font               = $self->font;
-
-  # return unless $font->height <= $self->height;
-
+  my $font               = GD->gdSmallFont;
   my $font_width         = $font->width;
   my $pixels_per_residue = $self->scale * 3;
-
   return $pixels_per_residue >= $font_width;
 }
 
 sub arrowhead {
-  my $self = shift;
+  my $self  = shift;
   my $image = shift;
   my ($x,$y,$height,$orientation) = @_;
 
-  my $fg = $self->set_pen;
+  my $fg    = $self->set_pen;
   my $style = $self->option('arrowstyle') || 'regular';
+  $image->fgcolor($fg);
 
   if ($style eq 'filled') {
     my $poly_pkg = $self->polygon_package;
@@ -623,11 +629,15 @@ sub arrowhead {
   }
   else {
     if ($orientation >= 0) {
-      $image->line($x,$y,$x-$height,$y-$height,$fg);
-      $image->line($x,$y,$x-$height,$y+$height,$fg);
+	$image->moveTo($x,$y);
+	$image->lineTo($x-$height,$y-$height);
+	$image->moveTo($x,$y);
+	$image->lineTo($x-$height,$y+$height);
     } else {
-      $image->line($x,$y,$x+$height,$y-$height,$fg);
-      $image->line($x,$y,$x+$height,$y+$height,$fg);
+	$image->moveTo($x,$y);
+	$image->lineTo($x+$height,$y-$height);
+	$image->moveTo($x,$y);
+	$image->lineTo($x+$height,$y+$height);
     }
   }
 }
@@ -641,6 +651,8 @@ sub arrow {
   my $height = $self->height/4;
   $height    = 3 if $height < 3;
 
+  # get GD::Simple's underlying object in order to avoid detailed
+  # source code changes here.
   $image->line($x1,$y,$x2,$y,$fg);
   $self->arrowhead($image,$x2,$y,$height,+1) if $x1 < $x2;
   $self->arrowhead($image,$x2,$y,$height,-1) if $x2 < $x1;

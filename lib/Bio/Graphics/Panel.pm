@@ -17,6 +17,7 @@ use constant MISSING_TRACK_COLOR =>'gray';
 use constant EXTRA_RIGHT_PADDING => 30;
 
 use base qw(Bio::Root::Root);
+use GD::Simple;
 
 my %COLORS;  # translation table for symbolic color names to RGB triple
 my $IMAGEMAP = 'bgmap00001';
@@ -52,6 +53,7 @@ sub new {
   my $empty_track_style   = $options{-empty_tracks} || 'key';
   my $autopad      = defined $options{-auto_pad} ? $options{-auto_pad} : 1;
   my $truecolor    = $options{-truecolor}  || 0;
+  my $map_fonts    = $options{-map_fonts_to_truetype}  || 0;
   my $image_class  = ($options{-image_class} && $options{-image_class} =~ /SVG/)
                       ? 'GD::SVG'
 		      : $options{-image_class} || 'GD';  # Allow users to specify GD::SVG using SVG
@@ -73,7 +75,11 @@ sub new {
      if defined $options{-start} && defined $options{-stop};
 
   # bring in the image generator class, since we will need it soon anyway
-  eval "require $image_class; 1" or $class->throw($@);
+  #eval "require $image_class; 1" or $class->throw($@);
+  #{
+  #local $^W = 0;
+  #eval "GD::Image->useFontConfig(1)";
+  #}
 
   return bless {
 		tracks => [],
@@ -96,6 +102,7 @@ sub new {
 		key_spacing => $keyspacing,
 		key_style => $keystyle,
 		key_align => $keyalign,
+		map_fonts    => $map_fonts,
 		suppress_key => $suppress_key,
 		background => $background,
 		postgrid   => $postgrid,
@@ -113,6 +120,13 @@ sub new {
 		add_category_labels => $add_categories,
 		key_boxes  => [],
 	       },$class;
+}
+
+sub map_fonts {
+    my $self = shift;
+    my $d    = $self->{map_fonts};
+    $self->{map_fonts} = shift if @_;
+    $d;
 }
 
 sub rotate {
@@ -417,16 +431,15 @@ sub _expand_padding {
   return unless $keystyle eq 'left' or $keystyle eq 'right';
   return unless $self->auto_pad;
 
-  $self->setup_fonts();
-  my $width    = $self->{key_font}->width;
-
   my $key       = $self->track2key($track);
   return unless defined $key;
 
   my $has_parts = $track->parts;
   next if !$has_parts && $empty_track_style eq 'suppress';
 
-  my $width_needed = $self->{key_font}->width * CORE::length($key)+3;
+  my $gd = $self->get_gd;
+
+  my $width_needed = $gd->stringWidth($key) + 3;
   if ($keystyle eq 'left') {
     my $width_i_have = $self->pad_left;
     $self->pad_left($width_needed)  if $width_needed > $width_i_have;
@@ -441,7 +454,6 @@ sub extra_right_padding { EXTRA_RIGHT_PADDING }
 
 sub height {
   my $self = shift;
-  $self->setup_fonts;
 
   for my $track (@{$self->{tracks}}) {
     $self->_expand_padding($track);
@@ -455,7 +467,7 @@ sub height {
   my $between_key       = $key_style eq 'between';
   my $side_key          = $key_style =~ /left|right/;
   my $draw_empty        = $empty_track_style =~ /^(line|dashed)$/;
-  my $keyheight         = $self->{key_font}->height;
+  my $keyheight         = $self->key_height;
   my $height = 0;
   for my $track (@{$self->{tracks}}) {
     my $draw_between =  $between_key && $track->option('key');
@@ -473,45 +485,35 @@ sub height {
   return $height + $key_height + $self->pad_top + $self->pad_bottom + 2;
 }
 
-sub setup_fonts {
-  my $self = shift;
-  return if ref $self->{key_font};
+sub get_gd {
+    my $self        = shift;
+    my $existing_gd = shift;
+    return $self->{gd} if $self->{gd};
 
-  my $image_class = $self->image_class;
-  my $keyfont = $self->{key_font};
-  my $font_obj = $image_class->$keyfont;
-  $self->{key_font} = $font_obj;
+    unless ($existing_gd) {
+	my $image_class = $self->image_class;
+	eval "require $image_class; 1" or $self->throw($@);
+    }
+
+    my $height = $self->height;
+    my $width  = $self->width + $self->pad_left + $self->pad_right;
+    my $pkg = $self->image_package;
+    $height = 12 if $height < 1; # so GD doesn't crash
+    $width  = 1  if $width  < 1; # ditto
+    my $gd  = $existing_gd || $pkg->new($width,$height,
+					($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
+	);
+    return $self->{gd} = GD::Simple->new($gd); # wrap it
 }
 
 sub gd {
   my $self        = shift;
   my $existing_gd = shift;
 
-  local $^W = 0;  # can't track down the uninitialized variable warning
-
-  return $self->{gd} if $self->{gd};
-
-  $self->setup_fonts;
-
-  unless ($existing_gd) {
-    my $image_class = $self->image_class;
-    eval "require $image_class; 1" or $self->throw($@);
-  }
-
-  my $height = $self->height;
-  my $width  = $self->width + $self->pad_left + $self->pad_right;
-
-  my $pkg = $self->image_package;
-
-  $height = 12 if $height < 1; # so GD doesn't crash
-  $width  = 1  if $width  < 1; # ditto
-
-  my $gd  = $existing_gd || $pkg->new($width,$height,
-				      ($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
-				     );
+  my $gd = $self->get_gd($existing_gd);
 
   if ($self->{truecolor} 
-      && $pkg->can('saveAlpha')) {
+      && $gd->can('saveAlpha')) {
       $gd->saveAlpha(1);
   }
 
@@ -536,13 +538,14 @@ sub gd {
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
   my $offset = $pt;
-  my $keyheight   = $self->{key_font}->height;
+  my $keyheight   = $self->key_height;
   my $bottom_key  = $self->{key_style} eq 'bottom';
   my $between_key = $self->{key_style} eq 'between';
   my $left_key    = $self->{key_style} eq 'left';
   my $right_key   = $self->{key_style} eq 'right';
   my $empty_track_style = $self->empty_track_style;
   my $spacing = $self->spacing;
+  my $width   = $self->width;
 
   # we draw in two steps, once for background of tracks, and once for
   # the contents.  This allows the grid to sit on top of the track background.
@@ -554,7 +557,7 @@ sub gd {
 			 $offset,
 			 $width-$self->pad_right,
 			 $offset+$track->layout_height
-			 + ($between_key ? $self->{key_font}->height : 0),
+			 + ($between_key ? $keyheight : 0),
 			 $track->tkcolor)
 	if defined $track->tkcolor;
     $offset += $keyheight if $draw_between;
@@ -635,15 +638,13 @@ sub boxes {
   my @boxes;
   my $offset = 0;
 
-  $self->setup_fonts;
-
   my $pl = $self->pad_left;
   my $pt = $self->pad_top;
 
   my $between_key       = $self->{key_style} eq 'between';
   my $bottom_key        = $self->{key_style} eq 'bottom';
   my $empty_track_style = $self->empty_track_style;
-  my $keyheight         = $self->{key_font}->height;
+  my $keyheight         = $self->key_height;
   my $spacing = $self->spacing;
   my $rotate  = $self->rotate;
 
@@ -684,15 +685,20 @@ sub draw_between_key {
   my $self   = shift;
   my ($gd,$track,$offset) = @_;
   my $key = $self->track2key($track) or return 0;
-  my $x =   $self->{key_align} eq 'center' ? $self->width - (CORE::length($key) * $self->{key_font}->width)/2
-          : $self->{key_align} eq 'right'  ? $self->width - CORE::length($key)
+
+  my $keywidth  = $self->string_width($key,$self->{key_font});
+  my $keyheight = $self->key_height;
+
+  my $x =   $self->{key_align} eq 'center' ? $self->width - $keywidth/2
+          : $self->{key_align} eq 'right'  ? $self->width - $keywidth
           : $self->pad_left;
 
   # Key color hard-coded. Should be configurable for the control freaks.
   my $color = $self->translate_color('black');
-  $gd->string($self->{key_font},$x,$offset,$key,$color) unless $self->{suppress_key};
+  $self->string($gd,$self->{key_font},$x,$offset-3,$key,$color) 
+      unless $self->{suppress_key};
   $self->add_key_box($track,$key,$x,$offset);
-  return $self->{key_font}->height;
+  return $keyheight;
 }
 
 # draw the keys -- left or right side
@@ -700,17 +706,19 @@ sub draw_side_key {
   my $self   = shift;
   my ($gd,$track,$offset,$side) = @_;
   my $key = $self->track2key($track) or return;
-  my $pos = $side eq 'left' ? $self->pad_left - $self->{key_font}->width * CORE::length($key)-3
+  my $keyheight = $self->key_height;
+  my $keywidth  = $self->string_width($key,$self->{key_font});
+  my $pos = $side eq 'left' ? $self->pad_left - $keywidth - 3
                             : $self->pad_left + $self->width + EXTRA_RIGHT_PADDING;
   my $color = $self->translate_color('black');
   unless ($self->{suppress_key}) {
       $gd->filledRectangle($pos,$offset,
-			   $pos+$self->{key_font}->width*CORE::length($key),$offset,#-$self->{key_font}->height)/2,
+			   $pos+$keywidth,$offset,
 			   $self->bgcolor);
-      $gd->string($self->{key_font},$pos,$offset,$key,$color);
+      $self->string($gd,$self->{key_font},$pos,$offset,$key,$color);
   }
   $self->add_key_box($track,$key,$pos,$offset);
-  return $self->{key_font}->height;
+  return $keyheight;
 }
 
 # draw the keys -- bottom
@@ -723,7 +731,7 @@ sub draw_bottom_key {
   $gd->filledRectangle($left,$top,$self->width - $self->pad_right,$self->height-$self->pad_bottom,$color);
   my $text_color = $self->translate_color('black');
   $gd->string($self->{key_font},$left,KEYPADTOP+$top,"KEY:",$text_color)  unless $self->{suppress_key};
-  $top += $self->{key_font}->height + KEYPADTOP;
+  $top += $self->key_height + KEYPADTOP;
   $_->draw($gd,$left,$top) foreach @$key_glyphs;
 }
 
@@ -741,7 +749,7 @@ sub format_key {
     my @key_tracks = $suppress
       ? grep {$_->option('key') && $_->parts} @{$self->{tracks}}
       : grep {$_->option('key')} @{$self->{tracks}};
-    return $self->{key_height} = @key_tracks * $self->{key_font}->height;
+    return $self->{key_height} = @key_tracks * $self->key_height;
   }
 
   elsif ($self->{key_style} eq 'bottom') {
@@ -815,7 +823,7 @@ sub format_key {
     $self->{key_glyphs} = \@glyphs;     # remember our key glyphs
     # remember our key height
     return $self->{key_height} =
-      ($height+$spacing) * $rows + $self->{key_font}->height +KEYPADTOP;
+      ($height+$spacing) * $rows + $self->key_height + KEYPADTOP;
   }
 
   else {  # no known key style, neither "between" nor "bottom"
@@ -826,7 +834,10 @@ sub format_key {
 sub add_key_box {
   my $self = shift;
   my ($track,$label,$x,$y) = @_;
-  my $value = [$label,$x,$y,$x+$self->{key_font}->width*CORE::length($label),$y+$self->{key_font}->height,$track];
+  my $gd        = $self->get_gd;
+  my $strheight = $self->string_height($label,$self->{key_font});
+  my $strwidth  = $self->string_width($label,$self->{key_font});
+  my $value = [$label,$x,$y,$x+$strwidth,$y+$strheight,$track];
   push @{$self->{key_boxes}},$value;
 }
 
@@ -868,7 +879,7 @@ sub draw_empty {
 # draw a grid
 sub draw_grid {
   my $self = shift;
-  my $gd = shift;
+  my $gd   = shift;
 
   my $gridcolor      = $self->translate_color($self->{gridcolor});
   my $gridmajorcolor = $self->translate_color($self->{gridmajorcolor});
@@ -891,8 +902,9 @@ sub draw_grid {
   for my $tick (@positions) {
     my ($pos) = $self->map_pt($self->{flip} ? $offset - $tick
                                             : $tick);
-    my $color = (defined $major && $tick % $major == 0) ? $gridmajorcolor : $gridcolor;
-    $gd->line($pl+$pos,$pt,$pl+$pos,$pb,$color);
+    $gd->fgcolor((defined $major && $tick % $major == 0) ? $gridmajorcolor : $gridcolor);
+    $gd->moveTo($pl+$pos,$pt);
+    $gd->lineTo($pl+$pos,$pb);
   }
 }
 
@@ -932,9 +944,10 @@ sub ticks {
   my $self = shift;
   my ($length,$minwidth) = @_;
 
-  my $img = $self->image_class;
+  my $img   = $self->get_gd;
   $length   = $self->{length}             unless defined $length;
-  $minwidth = $img->gdSmallFont->width*7  unless defined $minwidth;
+  
+  $minwidth = $self->string_width('|',$img->gdSmallFont)*7  unless defined $minwidth;
 
   my ($major,$minor);
 
@@ -973,7 +986,7 @@ sub translate_color {
   return $self->{closestcache}{"@colors"} if exists $self->{closestcache}{"@colors"};
 
   my $index;
-  my $gd    = $self->gd             or return 1;
+  my $gd    = $self->get_gd         or return 1;
   my $table = $self->{translations} or return 1;
 
   if (@colors == 3) {
@@ -1178,6 +1191,92 @@ sub make_link {
     unless Bio::Graphics::FeatureFile->can('link_pattern');
   return Bio::Graphics::FeatureFile->link_pattern($linkrule,$feature,$self,$escapeHTML);
 }
+
+##########################################
+# these functions provide intercompatibility between classic bitmapped GD fonts and
+# GD::Simple truetype fonts
+#
+sub gdfont2ttf {
+    my $self = shift;
+    my $font = shift;
+    my $base = $self->map_fonts or return $font;
+    $base    = 'Arial' if $base eq '1';
+    my $c = $self->image_class;
+    if (ref $font && $font->isa('GD::Font')) {
+	my $width = $font->width;
+	return 
+	     $width <= 5  ? "$base-8"
+	    :$width <= 6  ? "$base-9"
+	    :$width <= 7  ? "$base-12:bold"
+	    :$width <= 8  ? "$base-14"
+	    :$width >  8  ? "$base-18"
+	    :"$base-9";
+    } else {
+	return $font eq 'gdTinyFont'       ? "$base-8"
+	    :$font eq   'gdSmallFont'      ? "$base-9"
+	    :$font eq   'gdMediumBoldFont' ? "$base-12:bold"
+	    :$font eq   'gdLargeFont'      ? "$base-14"
+	    :$font eq   'gdGiantFont'      ? "$base-18"
+	    :$font eq   'sanserif'         ? "$base-9"
+	    :$font;
+    }
+}
+
+sub key_height {
+    my $self = shift;
+    my $font = $self->gdfont2ttf($self->{key_font});
+    my $size = $self->_font_size($font);
+    return $self->{_key_height} 
+       ||= GD::Simple->fontMetrics($font,$size,'dj')->{lineheight};
+}
+
+sub string {
+    my $self = shift;
+    my $gd   = shift;
+    my ($font,$x,$y,$string,$color) = @_;
+    $self->set_font($self->gdfont2ttf($font),$gd);
+    my $xheight   = $self->{_font_xheight}{$font} ||= $gd->fontMetrics()->{xheight};
+    $gd->fgcolor($color);
+    $gd->moveTo($x,$y+$xheight);
+    $gd->string($string);
+}
+
+sub _font_size {
+    my $self = shift;
+    my $font = shift;
+    if ($font =~ /^\w+-(\d+)/) {
+	return $1;
+    } else {
+	return 9;
+    }
+}
+
+sub set_font {
+    my $self = shift;
+    my ($font,$gd) = @_;
+    if ($font =~ /^\w+-(\d+)/) {
+	$gd->fontsize($1);
+    } else {
+	$gd->fontsize(9);
+    }
+    $gd->font($font);
+}
+
+sub string_width {
+    my $self   = shift;
+    my ($string,$font) = @_;
+    $font = $self->gdfont2ttf($font) if ref $font;
+    return GD::Simple->stringWidth($string,$font);
+}
+
+sub string_height {
+    my $self   = shift;
+    my ($string,$font) = @_;
+    $font = $self->gdfont2ttf($font) if ref $font;
+    return GD::Simple->stringHeight($string,$font);
+}
+
+# end string compatibility functions #
 
 sub make_title {
   my $self = shift;

@@ -62,14 +62,14 @@ sub pad_top {
     my $font = $self->font;
     my $pt   = $self->SUPER::pad_top;
     return $self->dna_fits 
-	   ? $pt + $font->height+5
+	   ? $pt + $self->font_height($font)+5
            : 16;
 }
 
 sub height {
   my $self = shift;
   my $font = $self->font;
-  return $self->dna_fits ? 2*$font->height
+  return $self->dna_fits ? 2*$self->font_height($font)
        : $self->do_gc    ? $self->SUPER::height
        : 0;
 }
@@ -114,7 +114,7 @@ sub draw_dna {
 
   my $color = $self->fgcolor;
   my $font  = $self->font;
-  my $lineheight = $font->height;
+  my $lineheight = $self->font_height($font);
   $y1 -= $lineheight/2 - 3;
   my $strands = $self->option('strand') || 'auto';
 
@@ -130,12 +130,14 @@ sub draw_dna {
     $forward = 1;
   }
   # minus strand features align right, not left
-  $x1 += $pixels_per_base - $font->width - 1 if $strand < 0;
+  $x1 += $pixels_per_base - $self->font_width($font) - 1 if $strand < 0;
   for (my $i=0;$i<@bases;$i++) {
     my $x = $x1 + $i * $pixels_per_base;
-    $gd->char($font,$x+2,$y1,$bases[$i],$color)                                   if $forward;
-    $gd->char($font,$x+2,$y1+($forward ? $lineheight:0),
-	      $complement{$bases[$i]}||$bases[$i],$color)                         if $reverse;
+    $gd->char(GD->gdSmallFont,$x+2,$y1,$bases[$i],$color)                               if $forward;
+    $gd->char(GD->gdSmallFont,
+		  $x+2,
+		  $y1+($forward ? $lineheight:0),
+		  $complement{$bases[$i]}||$bases[$i],$color)                         if $reverse;
   }
 
 }
@@ -234,7 +236,9 @@ sub draw_gc_content {
   my $axiscolor  = $self->color('axis_color') || $fgcolor;
 
 # Draw the axes
-  my $fontwidth = $self->font->width;
+  my $font       = $self->font;
+  my $fontwidth  = $self->font_width($font);
+  my $fontheight = $self->font_height($font);
   $gd->line($x1,  $y1,        $x1,  $y2,        $axiscolor);
   $gd->line($x2-2,$y1,        $x2-2,$y2,        $axiscolor);
   $gd->line($x1,  $y1,        $x1+3,$y1,        $axiscolor);
@@ -246,15 +250,15 @@ sub draw_gc_content {
   $gd->line($x1+5,$y2,        $x2-5,$y2,        $bgcolor);
   $gd->line($x1+5,($y2+$y1)/2,$x2-5,($y2+$y1)/2,$bgcolor);
   $gd->line($x1+5,$y1,        $x2-5,$y1,        $bgcolor);
-  $gd->string($self->font,$x1-length('% gc')*$fontwidth,$y1,'% gc',$axiscolor) if $bin_height > $self->font->height*2;
+  $self->string($gd,$self->font,$x1-length('% gc')*$fontwidth,$y1,'% gc',$axiscolor) if $bin_height > $fontheight*2;
 
 # If we are using a sliding window, the GC graph will be scaled to use the full
 # height of the glyph, so label the right vertical axis to show the scaling that# is in effect
 
-  $gd->string($self->font,$x2+3,$y1,"${maxgc}%",$axiscolor) 
-    if $bin_height > $self->font->height*2.5;
-  $gd->string($self->font,$x2+3,$y2-$self->font->height,"${mingc}%",$axiscolor) 
-    if $bin_height > $self->font->height*2.5;
+  $self->string($gd,$self->font,$x2+3,$y1,"${maxgc}%",$axiscolor) 
+    if $bin_height > $fontheight*2.5;
+  $self->string($gd,$self->font,$x2+3,$y2-$fontheight,"${mingc}%",$axiscolor) 
+    if $bin_height > $fontheight*2.5;
 
 # Draw the GC content graph itself
 

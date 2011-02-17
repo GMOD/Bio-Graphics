@@ -127,7 +127,7 @@ sub draw {
 # if required
 sub color_index {
   my ($self, @rgb) = @_;
-  my $gd = $self->panel->gd;
+  my $gd = $self->panel->get_gd;
   return $gd->colorResolve(@rgb);
 }
 

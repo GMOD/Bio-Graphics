@@ -135,7 +135,7 @@ sub draw_component {
 # and fgcolor when the index does not return true
 sub adjust_bgcolor {
   my $self = shift;
-  my $gd   = $self->panel->gd;
+  my $gd   = $self->panel->get_gd;
   my @rgb = $self->panel->rgb($self->panel->bgcolor);
 
   for (@rgb) {

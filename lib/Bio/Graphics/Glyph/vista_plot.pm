@@ -106,8 +106,8 @@ sub pad_top {
   my $self = shift;
   return 0 if $self->glyph_subtype eq 'density';
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height)) {
-    $pad = $self->font('gdTinyFont')->height;  # extra room for the scale
+  if ($pad < ($self->font_height($self->font('gdTinyFont')))) {
+    $pad = $self->font_height($self->font('gdTinyFont'));  # extra room for the scale
   }
   $pad;
 }
@@ -149,14 +149,15 @@ sub graph_type {
 sub draw {
     my $self = shift;
     my($gd,$dx,$dy) = @_;
-
+    
     my $only_show = $self->glyph_subtype;
     my $feature   = $self->feature;
- 
+
     # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
-    my %features = (wig=>$feature->attributes('wigfile'),
-		    peak=>$feature->attributes('peak_type'),
-		    fasta=>$feature->attributes('fasta'));
+    my %features = (wig  => ($feature->attributes('wigfile'))[0]||undef,
+		    peak => ($feature->attributes('peak_type'))[0]||undef,
+		    fasta=> ($feature->attributes('fasta'))[0]||undef,
+	);
     $self->panel->startGroup($gd);
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
     $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
@@ -220,7 +221,7 @@ sub draw_peaks {
     my $feature = $self->feature;
     
     my $p_type = $paths->{peak};
-    my @peaks = $self->peaks();
+    my @peaks  = $self->peaks();
     my $x_scale     = $self->scale;
     my $panel_start = $self->panel->start;
     my $f_start     = $feature->start > $panel_start

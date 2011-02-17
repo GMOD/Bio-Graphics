@@ -1,7 +1,7 @@
 package Bio::Graphics::Glyph::xyplot;
 
 use strict;
-#use GD 'gdTinyFont';
+# use GD 'gdTinyFont';
 
 use base qw(Bio::Graphics::Glyph::segments Bio::Graphics::Glyph::minmax);
 use constant DEFAULT_POINT_RADIUS=>4;
@@ -106,17 +106,22 @@ sub point_radius {
 sub pad_top {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height+2)) {
-    $pad = $self->font('gdTinyFont')->height+2;  # extra room for the scale
+  if ($pad < ($self->tinyFont->height+2)) {
+    $pad = $self->tinyFont->height+2;  # extra room for the scale
   }
   $pad;
+}
+
+sub tinyFont {
+    my $self = shift;
+    return $self->image_class->gdTinyFont();
 }
 
 sub pad_bottom {
   my $self = shift;
   my $pad  = $self->Bio::Graphics::Glyph::generic::pad_bottom(@_);
-  if ($pad < ($self->font('gdTinyFont')->height)/4) {
-    $pad = ($self->font('gdTinyFont')->height)/4;  # extra room for the scale
+  if ($pad < ($self->tinyFont->height)/4) {
+    $pad = ($self->tinyFont->height)/4;  # extra room for the scale
   }
   $pad;
 }
@@ -422,7 +427,7 @@ sub _draw_points {
 sub _determine_side
 {
   my $self = shift;
-  my $side = $self->option('scale');
+  my $side = $self->option('scale') || '';
   return if $side eq 'none';
   $side   ||= $self->default_scale();
   return $side;
@@ -438,7 +443,7 @@ sub _draw_scale {
   my $side = $self->_determine_side();
 
   my $fg    = $self->scalecolor;
-  my $font  = $self->font('gdTinyFont');
+  my $font  = $self->tinyFont;
 
   my $middle = ($x1+$x2)/2;
 
@@ -449,15 +454,7 @@ sub _draw_scale {
   my $gc = $p->translate_color($p->gridcolor);
   my $mgc= $p->translate_color($p->gridmajorcolor);
 
-  # if ($side ne 'none') {
-  #     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
-  # 	  my $yr = int($y+0.5);
-  # 	  $gd->line($x1-1,$yr,$x2,$yr,$gc);
-  #     }
-  #     $gd->line($x1,$y1,$x2,$y1,$gc);
-  #     $gd->line($x1,$y2,$x2,$y2,$gc);
-  # }
-  
+  $gd->fgcolor($mgc);
   $gd->line($x1,$y1,$x1,$y2,$fg) if $side eq 'left'  || $side eq 'both' || $side eq 'three';
   $gd->line($x2,$y1,$x2,$y2,$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
   $gd->line($middle,$y1,$middle,$y2,$fg) if $side eq 'three';
@@ -469,32 +466,38 @@ sub _draw_scale {
 
   my $last_font_pos = -99999999999;
 
+  my $fontheight = $self->font_height($font);
+  my $fontwidth  = $self->font_width($font);
+
   for (sort {$a->[0]<=>$b->[0]} @points) {
     $gd->line($x1-3,$_->[0],$x1,$_->[0],$fg) if $side eq 'left'  || $side eq 'both' || $side eq 'three';
     $gd->line($x2,$_->[0],$x2+3,$_->[0],$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
     $gd->line($middle,$_->[0],$middle+3,$_->[0],$fg) if $side eq 'three';
 
-    my $font_pos = $_->[0]-($font->height/2);
+    my $font_pos = $_->[0]-($fontheight/2);
     $font_pos-=2 if $_->[1] < 0;  # jog a little bit for neg sign
 
-    next unless $font_pos > $last_font_pos + $font->height/2; # prevent labels from clashing
+    next unless $font_pos > $last_font_pos + $fontheight/2; # prevent labels from clashing
     if ($side eq 'left' or $side eq 'both' or $side eq 'three') {
-      $gd->string($font,
-		  $x1 - $font->width * length($_->[1]) - 3,$font_pos,
-		  $_->[1],
-		  $fg);
+      $self->string($gd,
+		    $font,
+		    $x1 - $fontwidth * length($_->[1]) - 3,$font_pos,
+		    $_->[1],
+		    $fg);
     }
     if ($side eq 'right' or $side eq 'both' or $side eq 'three') {
-      $gd->string($font,
-		  $x2 + 5,$font_pos,
-		  $_->[1],
-		  $fg);
+      $self->string($gd,
+		    $font,
+		    $x2 + 5,$font_pos,
+		    $_->[1],
+		    $fg);
     }
     if ($side eq 'three' && $_->[1] != 0) {
-      $gd->string($font,
-		  $middle + 5,$font_pos,
-		  $_->[1],
-		  $fg);
+	$self->string($gd,
+		      $font,
+		      $middle + 5,$font_pos,
+		      $_->[1],
+		      $fg);
     }
     $last_font_pos = $font_pos;
   }
@@ -646,7 +649,7 @@ sub draw_label {
   return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
 
   my $font = $self->labelfont;
-  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+  my $x = $self->left + $left - $self->font_width($font)*length($label) - $self->extra_label_pad;
   my $y = $self->{top} + $top;
 
   $self->render_label($gd,
@@ -688,7 +691,7 @@ aggregator for the feature.  We'll take as an example a histogram of
 repeat density in which interval are spaced every megabase and the
 score indicates the number of repeats in the interval; we'll assume
 that the database has been loaded in in such a way that each interval
-is a distinct feature with the method name "density" and the source
+is a disticnt feature with the method name "density" and the source
 name "repeat".  Furthermore, all the repeat features are grouped
 together into a single group (the name of the group is irrelevant).
 If you are using Bio::DB::GFF and Bio::Graphics directly, the sequence

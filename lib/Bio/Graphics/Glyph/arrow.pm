@@ -114,7 +114,7 @@ my %UNITS = (p => 1e-12,
 sub pad_bottom {
   my $self = shift;
   my $val = $self->SUPER::pad_bottom(@_);
-  $val += $self->font->height if $self->option('tick');
+  $val   += $self->labelheight if $self->option('tick');
   $val;
 }
 
@@ -181,6 +181,7 @@ sub draw_parallel {
   $trunc_right = 0 if $self->no_trunc;
 
   my ($sw,$ne,$base_w,$base_e) = $self->arrowheads;
+  # get GD::Image's underlying object
   $gd->line($x1,$center,$x2,$center,$fg);
   $self->arrowhead($gd,$x1,$center,$a2,-1) if $sw && !$trunc_left;  # west arrow
   $self->arrowhead($gd,$x2,$center,$a2,+1) if $ne && !$trunc_right; # east arrow
@@ -191,7 +192,7 @@ sub draw_parallel {
   if ($self->option('tick')) {
     local $^W = 0;  # dumb uninitialized variable warning
     my $font       = $self->font;
-    my $width      = $font->width;
+    my $width      = $self->string_width('m',$font);
     my $font_color = $self->fontcolor;
     my $height     = $self->height;
 
@@ -284,7 +285,8 @@ sub draw_parallel {
       next if $tickpos < $x1 || $tickpos > $x2;
       $drewit{$tickpos}++;
 
-      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$tickpen)
+      my $g = $gd->gd;
+      $g->line($tickpos,$center-$a2,$tickpos,$center+$a2,$tickpen)
 	unless $tickpos < $left or $tickpos > $right;
 
       my $label = $scale ? $i / $scale : $i;
@@ -296,7 +298,7 @@ sub draw_parallel {
       my $middle = $tickpos - $label_len/2;
       $middle   += $interval_width if $label_intervals;
 
-      $gd->string($font,$middle,$center+$a2-1,$label,$font_color)
+      $self->string($gd,$font,$middle,$center+$a2+1,$label,$font_color)
         unless ($self->option('no_tick_label') || $middle > $x2);
     }
 

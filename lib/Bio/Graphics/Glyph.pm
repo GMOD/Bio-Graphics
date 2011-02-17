@@ -743,24 +743,45 @@ sub getfont {
 
   my $font = $self->option($option) || $default;
   return unless $font;
-
   my $img_class = $self->image_class;
 
   unless (UNIVERSAL::isa($font,$img_class . '::Font')) {
-    my $ref    = {
-		  gdTinyFont       => $img_class->gdTinyFont(),
-		  gdSmallFont      => $img_class->gdSmallFont(),
-		  gdMediumBoldFont => $img_class->gdMediumBoldFont(),
-		  gdLargeFont      => $img_class->gdLargeFont(),
-		  gdGiantFont      => $img_class->gdGiantFont(),
-		  sanserif         => $img_class->gdSmallFont(),
-    		 };
+      return $font unless $font =~ /^gd.+/;
 
-    my $gdfont = $ref->{$font} || $ref->{gdSmallFont};
-    $self->configure($option => $gdfont);
-    return $gdfont;
+      my $ref    = {
+	  gdTinyFont       => $img_class->gdTinyFont(),
+	  gdSmallFont      => $img_class->gdSmallFont(),
+	  gdMediumBoldFont => $img_class->gdMediumBoldFont(),
+	  gdLargeFont      => $img_class->gdLargeFont(),
+	  gdGiantFont      => $img_class->gdGiantFont(),
+	  sanserif         => $img_class->gdSmallFont(),
+      };
+      
+      my $gdfont = $ref->{$font} || $ref->{gdSmallFont};
+      $self->configure($option => $gdfont);
+      return $gdfont;
   }
   return $font;
+}
+
+sub font_height {
+    my $self = shift;
+    my $font = shift;
+    if (ref $font && $font->isa('GD::Font')) {
+	return $font->height;
+    } else {
+	return $self->panel->string_height('dj',$font);
+    }
+}
+
+sub font_width {
+    my $self = shift;
+    my $font = shift;
+    if (ref $font && $font->isa('GD::Font')) {
+	return $font->width;
+    } else {
+	return $self->panel->string_width('A',$font)/2;
+    }
 }
 
 sub tkcolor { # "track color"
@@ -988,7 +1009,7 @@ sub optimized_layout {
     my $parts = shift;
 
     my $hspacing   = $self->hbumppad;
-    my $bump_limit = $self->bump_limit;
+    my $bump_limit = $self->bump_limit || -1;
 
     my @rects = map {
 	$_ => [
@@ -1165,6 +1186,7 @@ sub draw_connector {
   my $color          = $self->connector_color;
   my $connector_type = $self->connector or return;
 
+  $gd->fgcolor($self->fgcolor);
   if ($connector_type eq 'hat') {
     $self->draw_hat_connector($gd,$color,@_);
   } elsif ($connector_type eq 'solid') {
@@ -1301,11 +1323,10 @@ sub filled_box {
   $lw ||= $self->option('linewidth') || 1;
   $x2 = $x1+1 if abs($x2-$x1) < 1;
 
-  $gd->filledRectangle($x1,$y1,$x2,$y2,$bg);
   $fg = $self->set_pen($lw,$fg) if $lw > 1;
-
-  # draw a box
-  $gd->rectangle($x1,$y1,$x2,$y2,$fg);
+  $gd->fgcolor($fg);
+  $gd->bgcolor($bg);
+  $gd->rectangle($x1,$y1,$x2,$y2);
 
   # if the left end is off the end, then cover over
   # the leftmost line
@@ -1346,6 +1367,7 @@ sub filled_oval {
   # Maintain backwards compatability with gd 1.8.4
   # which does not support the ellipse methods.
   # can() method fails with GD::SVG...
+  # use GD::Simple's underlying GD object to avoid detailed code changes
   if ($gd->can('ellipse') || $gd =~ /SVG/ ) {
     $gd->filledEllipse($cx,$cy,$x2-$x1,$y2-$y1,$bg);
     # Draw the edge around the ellipse
@@ -1431,6 +1453,10 @@ sub filled_arrow {
        ($offend_left     && $orientation > 0)
        or ($offend_right && $orientation < 0);
 }
+
+sub string        { shift->panel->string(@_)         }
+sub string_width  { shift->panel->string_width(@_)   }
+sub string_height { shift->panel->string_height(@_)  }
 
 sub linewidth {
   shift->option('linewidth') || 1;
@@ -1658,6 +1684,7 @@ sub options {
     $seenit->{$class}++;
     my $options = $self->my_options
                  if defined &{"$class\:\:my_options"};
+    $options ||= {};
 
     my @inherited_options;
 

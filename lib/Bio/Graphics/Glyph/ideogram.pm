@@ -385,7 +385,7 @@ sub create_tile {
   my $self      = shift;
   my $direction = shift;
 
-  my $gd = $self->panel->gd;
+  my $gd = $self->panel->get_gd;
   return unless $gd->can('setTile');
 
   # Prepare tile to use for filling an area
