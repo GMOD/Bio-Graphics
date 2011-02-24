@@ -114,7 +114,7 @@ sub draw {
                                   -type   => 'summary');
    
    my $stats = $summary->statistical_summary($self->width);
-   my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+   my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}*$flip:0} @$stats;
    $self->draw_coverage($self,\@vals,@_);
   }
  }
