@@ -53,6 +53,7 @@ lib/Bio/Graphics/Glyph/line.pm
 lib/Bio/Graphics/Glyph/merge_parts.pm
 lib/Bio/Graphics/Glyph/merged_alignment.pm
 lib/Bio/Graphics/Glyph/minmax.pm
+lib/Bio/Graphics/Glyph/operon.pm
 lib/Bio/Graphics/Glyph/oval.pm
 lib/Bio/Graphics/Glyph/pairplot.pm
 lib/Bio/Graphics/Glyph/pentagram.pm
