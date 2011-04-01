@@ -490,7 +490,8 @@ sub _draw_scale {
 		  $_->[1],
 		  $fg);
     }
-    if ($side eq 'three' && $_->[1] != 0) {
+#    if ($side eq 'three' && $_->[1] != 0) {
+    if ($side eq 'three') {
       $gd->string($font,
 		  $middle + 5,$font_pos,
 		  $_->[1],

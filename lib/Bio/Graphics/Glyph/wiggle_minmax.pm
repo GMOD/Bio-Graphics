@@ -16,18 +16,18 @@ sub minmax {
     my $do_min     = !defined $min_score;
     my $do_max     = !defined $max_score;
 
-    if ($self->feature->can('statistical_summary')) {
-	my ($min,$max,$mean,$stdev) = $self->bigwig_stats($autoscale,$self->feature);
+    if (@$parts && $self->feature->can('statistical_summary')) {
+	my ($min,$max,$mean,$stdev) = eval {$self->bigwig_stats($autoscale,$self->feature)};
 	$min_score = $min if $do_min;
 	$max_score = $max if $do_max;
-	return ($min_score,$max_score,$mean,$stdev);
+	return $self->sanity_check($min_score,$max_score,$mean,$stdev);
     }
 
     elsif (eval {$self->wig}) {
-	if (my ($min,$max,$mean,$stdev) = $self->wig_stats($autoscale,$self->wig)) {
+	if (my ($min,$max,$mean,$stdev) = eval{$self->wig_stats($autoscale,$self->wig)}) {
 	    $min_score = $min if $do_min;
 	    $max_score = $max if $do_max;
-	    return ($min_score,$max_score,$mean,$stdev);
+	    return $self->sanity_check($min_score,$max_score,$mean,$stdev);
 	}
     }
 

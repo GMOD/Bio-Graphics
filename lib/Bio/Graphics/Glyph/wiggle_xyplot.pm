@@ -109,6 +109,7 @@ sub draw {
   # support for BigWig/BigBed
   if ($feature->can('statistical_summary')) {
       my $stats = $feature->statistical_summary($self->width);
+      $stats   ||= [];
       my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
       return $self->draw_coverage($feature,\@vals,@_);
   }

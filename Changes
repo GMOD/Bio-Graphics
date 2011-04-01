@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
  
+2.20
+     - Fixed the various "wiggle" glyphs so that scale is always drawn even if no data is to be
+       shown in selected region.
+
 2.19
      - Made "record_label_positions" default to "true" for wiggle_density plot. This activates
        a fixed-position floating label when density plots are being shown in GBrowse.

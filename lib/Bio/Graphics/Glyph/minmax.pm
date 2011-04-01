@@ -72,16 +72,16 @@ sub minmax {
 
 sub sanity_check {
     my $self = shift;
-    my ($min_score,$max_score,$mean) = @_;
-    return ($min_score,$max_score,$mean) if $max_score > $min_score;
+    my ($min_score,$max_score,@rest) = @_;
+    return ($min_score,$max_score,@rest) if $max_score > $min_score;
 
     if ($max_score > 0) {
 	$min_score = 0;
     } else {
-	$max_score = 0;
+	$max_score = $min_score + 1;
     }
 
-    return ($min_score,$max_score,$mean);
+    return ($min_score,$max_score,@rest);
 }
 
 sub midpoint {
