@@ -154,9 +154,9 @@ sub draw {
     my $feature   = $self->feature;
  
     # Draw dual graph if we have both types of attributes, BigWig and wiggle format supported
-    my %features = (wig=>$feature->attributes('wigfile'),
-		    peak=>$feature->attributes('peak_type'),
-		    fasta=>$feature->attributes('fasta'));
+    my %features = (wig  => (eval{$feature->get_tag_values('wigfile')})[0],
+		    peak => (eval{$feature->get_tag_values('peak_type')})[0],
+		    fasta=> (eval{$feature->get_tag_values('fasta')})[0]);
     $self->panel->startGroup($gd);
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
     $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
@@ -397,7 +397,7 @@ sub boxes {
   
   my $feature = $self->feature;
   my @result;
-  my($handle) = $feature->attributes('peak_type');
+  my ($handle) = eval{$feature->get_tag_values('peak_type')};
   
   if (!$handle) {
    return wantarray ? () : \();
@@ -468,7 +468,7 @@ sub peaks {
 
     my $feature = $self->feature;
     my $db = $feature->object_store;
-    my ($p_type) = $feature->attributes('peak_type');
+    my ($p_type) = eval{$feature->get_tag_values('peak_type')};
 
     unless ($db && $p_type) {
 	$self->{_peaks}	 = [];

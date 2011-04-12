@@ -65,23 +65,23 @@ sub draw {
 
   my $drawnit;
   $self->panel->startGroup($gd);
-  my ($wigfile) = $feature->attributes('wigfile');
+  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
   if ($wigfile) {
     $self->draw_wigfile($self->rel2abs($wigfile),@_);
     $drawnit++;
   }
 
-  my ($wigdata) = $feature->attributes('wigdata');
+  my ($wigdata) = eval{$feature->get_tag_values('wigdata')};
   if ($wigdata) {
       $self->draw_wigdata($wigdata,@_);
       $drawnit++;
   }
-  my ($densefile) = $feature->attributes('densefile');
+  my ($densefile) = eval{$feature->get_tag_values('densefile')};
   if ($densefile) {
     $self->draw_densefile($self->rel2abs($feature),$densefile,@_);
     $drawnit++;
   }
-  my ($coverage)  = $feature->attributes('coverage');
+  my ($coverage)  = eval{$feature->get_tag_values('coverage')};
   if ($coverage) {
       $self->draw_coverage($feature,$coverage,@_);
       $drawnit++;
@@ -213,8 +213,8 @@ sub draw_densefile {
   my $densefile = shift;
   my ($gd,$left,$top) = @_;
 
-  my ($denseoffset) = $feature->attributes('denseoffset');
-  my ($densesize)   = $feature->attributes('densesize');
+  my ($denseoffset) = eval{$feature->get_tag_values('denseoffset')};
+  my ($densesize)   = eval{$feature->get_tag_values('densesize')};
   $denseoffset ||= 0;
   $densesize   ||= 1;
 

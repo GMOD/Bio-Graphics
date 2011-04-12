@@ -11,7 +11,7 @@ use Bio::Graphics::Glyph::generic;
 # Give enough height to fit in the alleles
 sub height {
   my $self = shift;
-  my @alleles = $self->feature->attributes('Alleles');
+  my @alleles = eval{$self->feature->get_tag_values('Alleles')};
   @alleles    = split /\//,$self->option('alleles') unless @alleles >= 2;
   my $size = 2 + 10 * ($#alleles +1);
   return $size;
@@ -35,7 +35,7 @@ sub draw_component {
   my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries(@_);
 
   my $feature = $self->feature;
-  my @alleles = $feature->attributes('Alleles');
+  my @alleles = eval{$feature->get_tag_values('Alleles')};
   @alleles    = split /\//,$self->option('alleles') unless @alleles == 2;
 
   if (@alleles) {
@@ -128,7 +128,7 @@ separated by a slash:
 
   alleles = sub {
 	my $snp = shift;
-	my @d   = $snp->attributes('AllelePair');
+	my @d   = $snp->get_tag_values('AllelePair');
 	return join "/",@d;
     }
 

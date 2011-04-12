@@ -13,19 +13,19 @@ sub draw {
 
   my $drawnit;
 
-  my ($wigfile) = $feature->attributes('wigfile');
+  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
   if ($wigfile) {
     $self->draw_wigfile($feature,$self->rel2abs($wigfile),@_);
     $drawnit++;
   }
 
-  my ($wigdata) = $feature->attributes('wigdata');
+  my ($wigdata) = eval{$feature->get_tag_values('wigdata')};
   if ($wigdata) {
     $self->draw_wigdata($feature,$wigdata,@_);
     $drawnit++;
   }
 
-    my ($coverage)  = $feature->attributes('coverage');
+  my ($coverage)  = eval{$feature->get_tag_values('coverage')};
   if ($coverage) {
       $self->draw_coverage($feature,$coverage,@_);
       $drawnit++;

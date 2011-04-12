@@ -1,4 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
+
+2.21
+     - Changed almost all occurrences of attributes() into eval{$feature->get_tag_values()}
+       to achieve compatibility with Bio::SeqFeatureI. One exception is in spectrogram glyph,
+       which depends on the non-standard behavior of attributes() when called with no args.
  
 2.20
      - Fixed the various "wiggle" glyphs so that scale is always drawn even if no data is to be

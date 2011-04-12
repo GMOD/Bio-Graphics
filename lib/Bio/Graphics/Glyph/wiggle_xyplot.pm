@@ -94,16 +94,16 @@ sub draw {
   my ($gd,$dx,$dy) = @_;
 
   my $feature     = $self->feature;
-  my ($wigfile)   = $feature->attributes('wigfile');
+  my ($wigfile)   = eval{$feature->get_tag_values('wigfile')};
   return $self->draw_wigfile($feature,$self->rel2abs($wigfile),@_) if $wigfile;
 
-  my ($wigdata) = $feature->attributes('wigdata');
+  my ($wigdata) = eval{$feature->get_tag_values('wigdata')};
   return $self->draw_wigdata($feature,$wigdata,@_) if $wigdata;
 
-  my ($densefile) = $feature->attributes('densefile');
+  my ($densefile) = eval{$feature->get_tag_values('densefile')};
   return $self->draw_densefile($feature,$self->rel2abs($densefile),@_) if $densefile;
 
-  my ($coverage)  = $feature->attributes('coverage');
+  my ($coverage)  = eval{$feature->get_tag_values('coverage')};
   return $self->draw_coverage($feature,$coverage,@_) if $coverage;
 
   # support for BigWig/BigBed
@@ -405,8 +405,8 @@ sub draw_densefile {
     my $feature = shift;
     my $densefile = shift;
     
-    my ($denseoffset) = $feature->attributes('denseoffset');
-    my ($densesize)   = $feature->attributes('densesize');
+    my ($denseoffset) = eval{$feature->get_tag_values('denseoffset')};
+    my ($densesize)   = eval{$feature->get_tag_values('densesize')};
     $denseoffset ||= 0;
     $densesize   ||= 1;
     

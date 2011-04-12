@@ -82,11 +82,11 @@ sub draw {
  my @wiggles = ();
  foreach ('A'..'Z') {
    my $filename = 'wigfile'.$_;
-   my ($wiggle) = $feature->attributes('wigfile'.$_);
+   my ($wiggle) = $feature->get_tag_values('wigfile'.$_);
    push (@wiggles, $wiggle);
  }
 
- my ($fasta)   = $feature->attributes('fasta');
+ my ($fasta)   = $feature->get_tag_values('fasta');
  my($scale,$y_origin,$min_score,$max_score);
 
  $self->panel->startGroup($gd);
