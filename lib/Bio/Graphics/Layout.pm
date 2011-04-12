@@ -91,7 +91,7 @@ sub addRect {
 	}
     }
     $self->{seen}{$id}   = $top;
-    $self->{totalHeight} = Math::max($self->{totalHeight}, $top + $height);
+    $self->{totalHeight} = Bio::Graphics::Math::max($self->{totalHeight}, $top + $height);
     return $top;
 }
 
@@ -110,7 +110,7 @@ sub tryLeftFit {
     while (1) {
         # check if the rectangle fits at curTop
         $fit = $self->{leftContour}->getFit($self->{rightBound} - $right, $height, $curTop);
-        $curTop = Math::max($self->{leftContour}->getNextTop($fit), $curTop);
+        $curTop = Bio::Graphics::Math::max($self->{leftContour}->getNextTop($fit), $curTop);
         # if the rectangle extends onto the next block to the right;
         if ($self->{rightLayout} && ($right >= $self->{rightBound})) {
             # check if the rectangle fits into that block at this position
@@ -143,7 +143,7 @@ sub tryRightFit {
     while (1) {
         # check if the rectangle fits at curTop
         $fit = $self->{rightContour}->getFit($left - $self->{leftBound}, $height, $curTop);
-        $curTop = Math::max($self->{rightContour}->getNextTop($fit), $curTop);
+        $curTop = Bio::Graphics::Math::max($self->{rightContour}->getNextTop($fit), $curTop);
         # if the rectangle extends onto the next block to the left;
         if ($self->{leftLayout} && ($left <= $self->{leftBound})) {
             # check if the rectangle fits into that block at this position
@@ -203,7 +203,7 @@ sub addExisting {
     $self->{seen}{$existing->{id}} = $existing->{top};
 
     $self->{totalHeight} =
-        Math::max($self->{totalHeight}, $existing->{top} + $existing->{height});
+        Bio::Graphics::Math::max($self->{totalHeight}, $existing->{top} + $existing->{height});
     
     if ($existing->{left} <= $self->{leftBound}) {
         push(@{$self->{leftOverlaps}},$existing);
@@ -348,7 +348,7 @@ sub insertFit {
         # a bit of slop here is conservative if we take the max
         # (means things might get laid out slightly farther apart
         # than they would otherwise)
-        $prevSpan->{x} = Math::max($prevSpan->{x}, $x);
+        $prevSpan->{x} = Bio::Graphics::Math::max($prevSpan->{x}, $x);
         splice(@$spans,$fit->{above} + 1, $fit->{count});
     } else {
         splice(@$spans,$fit->{above} + 1, $fit->{count},
@@ -414,7 +414,7 @@ sub unionWith {
     if ((abs($prevSpan->{x} - $x) < 1)
         && (abs(($prevSpan->{top} + $prevSpan->{height}) - $top) < 1) ) {
         $prevSpan->{height} = ($top + $height) - $prevSpan->{top};
-        $prevSpan->{x} = Math::max($prevSpan->{x}, $x);
+        $prevSpan->{x} = Bio::Graphics::Math::max($prevSpan->{x}, $x);
         splice(@$spans,$startIndex, $endIndex - $startIndex);
     } else {
         splice(@$spans,$startIndex, $endIndex - $startIndex,
@@ -434,7 +434,7 @@ sub getNextTop {
     return $self->spans->[$fit->{above}]{top} + $self->spans->[$fit->{above}]{height};
 };
 
-package Math;
+package Bio::Graphics::Math;
 
 sub max {$_[0] > $_[1] ? $_[0] : $_[1]}
 

@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.22
+     - Changed package "Math" to "Bio::Graphics::Math" to avoid CPAN namespace
+       collisions.
+
 2.21
      - Changed almost all occurrences of attributes() into eval{$feature->get_tag_values()}
        to achieve compatibility with Bio::SeqFeatureI. One exception is in spectrogram glyph,
