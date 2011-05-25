@@ -841,7 +841,7 @@ sub _state_transition {
 	
 	return 'config' if $line =~ /^\s*$/;                             #empty line
 	return 'config' if $line =~ m/^\[([^\]]+)\]/;                    # section beginning
-	return 'config' if $line =~ m/^[\w\s]+=/ 
+	return 'config' if $line =~ m/^[\w:\s]+=/ 
 	    && $self->{current_config};                                  # configuration line
 	return 'config' if $line =~ m/^\s+(.+)/
 	    && $self->{current_tag};                                     # continuation section

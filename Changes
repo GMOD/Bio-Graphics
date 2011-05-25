@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.24
+    - In feature file configuration sections, allow a tag to contain ":".
+  
 2.23
     - Workaround a problem in BioPerl 1.069 which prevents FeatureFile from rendering
       properly. Fixed in 1.06902 and higher.
