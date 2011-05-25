@@ -596,7 +596,6 @@ sub render {
 
   # we need to add a dummy section for each type that isn't
   # specifically configured
-
   my %types   = map {$_=>1
   } map {
       shellwords ($self->setting($_=>'feature')||$_) } @labels;
@@ -1443,7 +1442,28 @@ types, including those that are not configured with a stanza.
 
 sub types {
   my $self = shift;
+  my $db = $self->db;
+  $self->_patch_old_bioperl;
   return $self->db->types;
+}
+
+sub _patch_old_bioperl {
+    my $self = shift;
+    if ($Bio::Root::Version::VERSION >= 1.0069 &&
+	$Bio::Root::Version::VERSION <= 1.006901
+	) {  # bad version!
+	*Bio::DB::SeqFeature::Store::memory::types = sub {
+	    my $self = shift;
+	    eval "require Bio::DB::GFF::Typename" unless Bio::DB::GFF::Typename->can('new');
+	    my @types;
+	    for my $primary_tag ( keys %{$$self{_index}{type}} ) {
+		for my $source_tag ( keys %{$$self{_index}{type}{$primary_tag}} ) {
+		    push @types, Bio::DB::GFF::Typename->new($primary_tag,$source_tag);
+		}
+	    }
+	    return @types;
+	}
+    }
 }
 
 =over 4
