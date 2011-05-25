@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.23
+    - Workaround a problem in BioPerl 1.069 which prevents FeatureFile from rendering
+      properly. Fixed in 1.06902 and higher.
+
 2.22
      - Changed package "Math" to "Bio::Graphics::Math" to avoid CPAN namespace
        collisions.
