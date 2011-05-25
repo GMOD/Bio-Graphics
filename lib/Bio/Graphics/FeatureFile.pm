@@ -1452,6 +1452,7 @@ sub _patch_old_bioperl {
     if ($Bio::Root::Version::VERSION >= 1.0069 &&
 	$Bio::Root::Version::VERSION <= 1.006901
 	) {  # bad version!
+	local $^W=0;
 	*Bio::DB::SeqFeature::Store::memory::types = sub {
 	    my $self = shift;
 	    eval "require Bio::DB::GFF::Typename" unless Bio::DB::GFF::Typename->can('new');
