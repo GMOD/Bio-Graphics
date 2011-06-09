@@ -41,10 +41,11 @@ sub my_options {
 	     'range to be clipped.'
 	    ],
 	 graph_type => [
-	     ['histogram','boxes','line','points','linepoints'],
-	     'histogram',
-	     'Type of graph to generate. Options are "histogram", "boxes",',
-	     '"line","points", or "linepoints".'
+	     ['boxes','line','points','linepoints'],
+	     'boxes',
+	     'Type of graph to generate. Options are "boxes",',
+	     '"line","points", or "linepoints".',
+	     'The deprecated "histogram" subtype is equivalent to "boxes".'
 	     ],
 	 point_symbol => [
 	     'string',
@@ -216,7 +217,7 @@ sub lookup_draw_method {
   my $self = shift;
   my $type = shift;
 
-  return '_draw_histogram'            if $type eq 'histogram';
+  return '_draw_boxes'                if $type eq 'histogram';  # same thing
   return '_draw_boxes'                if $type eq 'boxes';
   return qw(_draw_line _draw_points)  if $type eq 'linepoints';
   return '_draw_line'                 if $type eq 'line';
@@ -279,40 +280,40 @@ sub min10 {
   return $l*int($a/$l);
 }
 
-sub _draw_histogram {
-  my $self = shift;
-  my ($gd,$left,$top,$bottom) = @_;
+# sub _draw_histogram {
+#   my $self = shift;
+#   my ($gd,$left,$top,$bottom) = @_;
 
-  my @parts   = $self->parts;
-  my $fgcolor = $self->fgcolor;
+#   my @parts   = $self->parts;
+#   my $fgcolor = $self->fgcolor;
 
-  # draw each of the component lines of the histogram surface
-  for (my $i = 0; $i < @parts; $i++) {
-    my $part = $parts[$i];
-    my $next = $parts[$i+1];
-    my ($x1,$y1,$x2,$y2) = $part->calculate_boundaries($left,$top);
-    next unless defined $part->{_y_position};
-    $gd->line($x1,$part->{_y_position},$x2,$part->{_y_position},$fgcolor);
-    next unless $next;
-    my ($x3,$y3,$x4,$y4) = $next->calculate_boundaries($left,$top);
-    if ($x2 == $x3) {# connect vertically to next level
-      $gd->line($x2,$part->{_y_position},$x2,$next->{_y_position},$fgcolor); 
-    } else {
-      $gd->line($x2,$part->{_y_position},$x2,$bottom,$fgcolor); # to bottom
-      $gd->line($x2,$bottom,$x3,$bottom,$fgcolor);              # to right
-      $gd->line($x3,$bottom,$x3,$next->{_y_position},$fgcolor); # up
-    }
-  }
+#   # draw each of the component lines of the histogram surface
+#   for (my $i = 0; $i < @parts; $i++) {
+#     my $part = $parts[$i];
+#     my $next = $parts[$i+1];
+#     my ($x1,$y1,$x2,$y2) = $part->calculate_boundaries($left,$top);
+#     next unless defined $part->{_y_position};
+#     $gd->line($x1,$part->{_y_position},$x2,$part->{_y_position},$fgcolor);
+#     next unless $next;
+#     my ($x3,$y3,$x4,$y4) = $next->calculate_boundaries($left,$top);
+#     if ($x2 == $x3) {# connect vertically to next level
+#       $gd->line($x2,$part->{_y_position},$x2,$next->{_y_position},$fgcolor); 
+#     } else {
+#       $gd->line($x2,$part->{_y_position},$x2,$bottom,$fgcolor); # to bottom
+#       $gd->line($x2,$bottom,$x3,$bottom,$fgcolor);              # to right
+#       $gd->line($x3,$bottom,$x3,$next->{_y_position},$fgcolor); # up
+#     }
+#   }
 
-  # end points: from bottom to first
-  my ($x1,$y1,$x2,$y2) = $parts[0]->calculate_boundaries($left,$top);
-  $gd->line($x1,$bottom,$x1,$parts[0]->{_y_position},$fgcolor);
-  # from last to bottom
-  my ($x3,$y3,$x4,$y4) = $parts[-1]->calculate_boundaries($left,$top);
-  $gd->line($x4,$parts[-1]->{_y_position},$x4,$bottom,$fgcolor);
+#   # end points: from bottom to first
+#   my ($x1,$y1,$x2,$y2) = $parts[0]->calculate_boundaries($left,$top);
+#   $gd->line($x1,$bottom,$x1,$parts[0]->{_y_position},$fgcolor);
+#   # from last to bottom
+#   my ($x3,$y3,$x4,$y4) = $parts[-1]->calculate_boundaries($left,$top);
+#   $gd->line($x4,$parts[-1]->{_y_position},$x4,$bottom,$fgcolor);
 
-  # That's it.  Not too hard.
-}
+#   # That's it.  Not too hard.
+# }
 
 sub _draw_boxes {
   my $self = shift;

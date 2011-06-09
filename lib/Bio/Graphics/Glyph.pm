@@ -1012,6 +1012,7 @@ sub optimized_layout {
 	$part->move(0,$offset);
 	$overbumped = $offset if $bump_limit > 0 && $offset >= $bump_limit * $rect->[2];
     }
+
     return $overbumped && $overbumped < $layout->totalHeight ? $overbumped : $layout->totalHeight;
 }
 
