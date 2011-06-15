@@ -1,7 +1,6 @@
 package Bio::Graphics::Glyph::arrow;
 # package to use for drawing an arrow
 
-# $Id: arrow.pm,v 1.2 2009-03-20 13:03:01 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
 
 =head1 NAME

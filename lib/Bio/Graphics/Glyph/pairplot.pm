@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::pairplot;
 
-# $Id: pairplot.pm,v 1.1 2009-06-04 22:00:49 lstein Exp $
-
 # Triangle plot for showing pairwise quantitative relationships.
 # Similar to pairwise_plot, which was originally distributed in GBrowse,
 # except that the signal intensity is handled using a callback that takes

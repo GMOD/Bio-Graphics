@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::wiggle_minmax;
-# $Id: wiggle_minmax.pm,v 1.2 2009-04-29 09:58:32 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);

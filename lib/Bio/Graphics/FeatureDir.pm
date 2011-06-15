@@ -1,5 +1,4 @@
 package Bio::Graphics::FeatureDir;
-# $Id: FeatureDir.pm,v 1.1 2009-06-04 22:00:49 lstein Exp $
 
 =head1 NAME
 

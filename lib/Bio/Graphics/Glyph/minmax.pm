@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::minmax;
-# $Id: minmax.pm,v 1.3 2009-04-29 09:58:32 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph);

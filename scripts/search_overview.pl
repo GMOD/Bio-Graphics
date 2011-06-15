@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: search_overview.pl,v 1.1 2008-12-08 23:15:57 lstein Exp $
 
 =head1 NAME
 

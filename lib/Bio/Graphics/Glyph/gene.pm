@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::gene;
 
-# $Id: gene.pm,v 1.3 2009-03-23 17:24:14 lstein Exp $
-
 use strict;
 use base 'Bio::Graphics::Glyph::processed_transcript';
 

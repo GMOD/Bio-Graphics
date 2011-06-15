@@ -1,6 +1,5 @@
 package Bio::Graphics::Glyph::flag;
 
-# $Id: flag.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
 
 sub my_description {
