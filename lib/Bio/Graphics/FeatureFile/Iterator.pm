@@ -1,7 +1,5 @@
 package Bio::Graphics::FeatureFile::Iterator;
 
-# $Id: Iterator.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
-
 =head1 NAME
 
 Bio::Graphics::FeatureFile::Iterator -- Iterator across a Bio::Graphics::FeatureFile

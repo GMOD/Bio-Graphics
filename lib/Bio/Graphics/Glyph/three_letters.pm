@@ -1,7 +1,6 @@
 package Bio::Graphics::Glyph::three_letters;
 # DAS-compatible package to use for drawing a line of groups of three letters
 
-# $Id: three_letters.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
 
 =head1 NAME

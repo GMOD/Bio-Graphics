@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::transcript2;
 
-# $Id: transcript2.pm,v 1.2 2009-01-23 16:27:59 lstein Exp $
-
 use strict;
 use base qw(Bio::Graphics::Glyph::transcript);
 

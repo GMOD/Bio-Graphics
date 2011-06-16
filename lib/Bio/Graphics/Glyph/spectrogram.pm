@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::spectrogram;
-# $Id: spectrogram.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
 
 use strict;
 use Bio::Graphics::Glyph::generic;

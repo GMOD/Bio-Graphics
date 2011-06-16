@@ -1,6 +1,5 @@
 package Bio::Graphics::Glyph::ideogram;
 
-# $Id: ideogram.pm,v 1.11 2009-06-23 13:51:38 lstein Exp $
 # Glyph to draw chromosome ideograms
 
 use strict qw/vars refs/;

@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::wiggle_box;
 
-# $Id: wiggle_box.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
-
 use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing);
 use File::Spec;

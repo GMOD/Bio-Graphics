@@ -1,6 +1,5 @@
 package Bio::Graphics::Glyph::allele_tower;
 
-# $Id: allele_tower.pm,v 1.4.6.2.6.2 2007-10-17 01:48:21 lstein Exp $
 # Glyph for drawing each allele found at a SNP position in a column.
 
 use strict;

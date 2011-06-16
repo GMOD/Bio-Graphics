@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::heat_map;
-#$Id: heat_map.pm,v 1.4 2009-05-15 13:42:37 pruzanov Exp $
 
 use strict;
 use Bio::Graphics::Glyph::minmax;

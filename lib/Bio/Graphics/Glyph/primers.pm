@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::primers;
-#$Id: primers.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
 # package to use for drawing something that looks like
 # primer pairs.
 

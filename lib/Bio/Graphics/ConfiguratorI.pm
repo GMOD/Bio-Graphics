@@ -1,5 +1,3 @@
-# $Id: ConfiguratorI.pm,v 1.1 2008-12-08 23:15:57 lstein Exp $
-#
 # BioPerl module for Bio::Graphics::ConfiguratorI
 #
 # Cared for by Robert Hubley <rhubley@systemsbiology.org>

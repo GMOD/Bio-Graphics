@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::segments;
-#$Id: segments.pm,v 1.4 2009-06-23 10:54:16 lstein Exp $
 
 use strict;
 use Bio::Location::Simple;

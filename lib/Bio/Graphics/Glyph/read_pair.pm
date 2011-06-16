@@ -1,7 +1,6 @@
 package Bio::Graphics::Glyph::read_pair;
 
 #specialized for SAM read pairs
-# $Id$ 
 
 use base 'Bio::Graphics::Glyph::segments';
 

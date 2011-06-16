@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::redgreen_box;
-#$Id: redgreen_box.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::generic);

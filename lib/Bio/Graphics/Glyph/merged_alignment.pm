@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::merged_alignment;
 
-# $Id: merged_alignment.pm,v 1.2 2009-03-23 17:24:14 lstein Exp $
-
 # this glyph acts like graded_segments but the bgcolor of each segment is
 # more configurable.  Supply a list of colors and corresponding
 # bins.  Each bin is a range of x-y scores, where score n is > x and <= y
