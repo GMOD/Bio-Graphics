@@ -149,6 +149,7 @@ sub graph_type {
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
+
   my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
   my @parts = $self->parts;
 
@@ -197,6 +198,7 @@ sub draw {
 
   $self->panel->startGroup($gd);
   $self->_draw_grid($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
+
   $self->panel->endGroup($gd);
 
   for my $draw_method (@draw_methods) {
@@ -207,8 +209,9 @@ sub draw {
   $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
-  $self->draw_label(@_)       if $self->option('label');
-  $self->draw_description(@_) if $self->option('description');
+  $self->draw_label(@_)       if ($self->option('label') && !$self->option('overlay'));
+  $self->draw_description(@_) if ($self->option('description') && !$self->option('overlay'));
+  $self->draw_legend(@_)      if $self->option('overlay');
 
   $self->panel->endGroup($gd);
 }
@@ -321,8 +324,9 @@ sub _draw_boxes {
 
   my @parts    = $self->parts;
   my $lw       = $self->linewidth;
-  my $positive = $self->pos_color;
-  my $negative = $self->neg_color;
+  # Make the boxes transparent
+  my $positive = $self->pos_color + 1073741824;
+  my $negative = $self->neg_color + 1073741824;
   my $height   = $self->height;
 
   my $midpoint = $self->midpoint ? $self->score2position($self->midpoint) 
@@ -336,7 +340,7 @@ sub _draw_boxes {
 
     my $part = $parts[$i];
     my $next = $parts[$i+1];
-
+	
     my ($color,$negcolor);
 
     # special check here for the part_color being defined so as not to introduce lots of
@@ -377,7 +381,8 @@ sub _draw_line {
   my $current_x = ($x1+$x2)/2;
   my $current_y = $first_part->{_y_position};
 
-  for my $part (@parts) {
+  for my $part (@parts) {  
+    
     ($x1,$y1,$x2,$y2) = $part->calculate_boundaries($left,$top);
     my $next_x = ($x1+$x2)/2;
     my $next_y = $part->{_y_position};
@@ -659,6 +664,25 @@ sub draw_label {
 		      $label);
 }
 
+sub draw_legend {
+  my $self = shift;
+  my ($gd,$left,$top,$partno,$total_parts) = @_;
+  my $color = $self->option('fgcolor'); 
+  my $name = $self->feature->{name};
+
+  my $label = "<a id=\"legend_$name\" target=\"_blank\" href=\"#\"> <font color=\'$color\';\">" . $name . "</font></a>" or return;
+
+  my $font = $self->labelfont;
+  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+  my $y = $self->{top} + $top;
+  my $is_legend = 1;
+  $self->render_label($gd,
+		      $font,
+		      $x,
+		      $y,
+		      $label,
+		      $is_legend);
+}
 
 1;
 

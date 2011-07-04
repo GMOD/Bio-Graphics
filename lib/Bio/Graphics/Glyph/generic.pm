@@ -489,8 +489,8 @@ sub draw_label {
 
 sub render_label {
     my $self = shift;
-    my ($gd,$font,$x,$y,$label) = @_;
-    $gd->string($font,$x,$y,$label,$self->labelcolor);
+    my ($gd,$font,$x,$y,$label,$is_legend) = @_;
+    if(!$is_legend){$gd->string($font,$x,$y,$label,$self->labelcolor);}
     $self->panel->add_key_box($self,$label,$x,$y)
 	if $self->record_label_positions;
 }
