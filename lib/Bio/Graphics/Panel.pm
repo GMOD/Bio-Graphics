@@ -570,7 +570,6 @@ sub gd {
   $offset = $pt;
   for my $track (@{$self->{tracks}}) {
       $self->startGroup($gd);
-  
       my $draw_between = $between_key && $track->option('key');
       my $has_parts = $track->parts;
       my $side_key_height = 0;
@@ -825,7 +824,7 @@ sub format_key {
 
 sub add_key_box {
   my $self = shift;
-  my ($track,$label,$x,$y) = @_;
+  my ($track,$label,$x,$y, $is_legend) = @_;
   my $value = [$label,$x,$y,$x+$self->{key_font}->width*CORE::length($label),$y+$self->{key_font}->height,$track];
   push @{$self->{key_boxes}},$value;
 }

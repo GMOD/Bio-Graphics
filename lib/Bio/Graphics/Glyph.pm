@@ -481,6 +481,7 @@ sub bounds {
   my $self = shift;
   my ($dx,$dy) = @_;
   $dx += 0; $dy += 0;
+
   ($dx + $self->{left},
    $dy + $self->top    + $self->pad_top,
    $dx + $self->{left} + $self->{width} - 1,
@@ -700,8 +701,7 @@ sub fillcolor {
 # we also look for the "fillcolor" option for Ace::Graphics compatibility
 sub bgcolor {
   my $self = shift;
-  my $bgcolor;
-  ($bgcolor) = $self->feature->get_tag_values('bgcolor') if $self->feature->has_tag('bgcolor'); 
+  my ($bgcolor) = $self->feature->get_tag_values('bgcolor'); 
   $bgcolor    ||= $self->option('bgcolor'); # Let feature attribute override color
   my $index     = defined $bgcolor ? $bgcolor : $self->option('fillcolor');
   $index        = 'white' unless defined $index;
@@ -833,7 +833,7 @@ sub layout_sort {
 sub layout {
   my $self = shift;
   return $self->{layout_height} if exists $self->{layout_height};
-
+  
   my @parts = $self->parts;
   return $self->{layout_height} = 
       $self->height + $self->pad_top + $self->pad_bottom unless @parts;
@@ -848,8 +848,8 @@ sub layout {
 
   $_->layout foreach @parts;  # recursively lay out
 
-  # no bumping requested, or only one part here
-  if (@parts == 1 || !$bump_direction) {
+  # no bumping requested, or only one part here, or the tracks are supposed to be overlay
+  if (@parts == 1 || !$bump_direction || ($bump_direction eq 'fast' and $self->code_option('overlay') == 1)) {
     my $highest = 0;
     foreach (@parts) {
       my $height = $_->layout_height;
@@ -862,7 +862,6 @@ sub layout {
       return $self->{layout_height} = $self->optimized_layout(\@parts)
 	  + $self->pad_bottom + $self->pad_top -1;# - $self->top  + 1;
   }
-
   my (%bin1,%bin2);
   my $limit          = 0;
   my $recent_pos     = 0;
@@ -914,6 +913,7 @@ sub layout {
     }
     
     $g->move(0,$pos);
+
     $self->add_collision(\%bin1,CM1,CM2,$left,$g->top,$right,$g->bottom);
     
     $recent_pos = $pos;
@@ -1012,7 +1012,6 @@ sub optimized_layout {
 	$part->move(0,$offset);
 	$overbumped = $offset if $bump_limit > 0 && $offset >= $bump_limit * $rect->[2];
     }
-
     return $overbumped && $overbumped < $layout->totalHeight ? $overbumped : $layout->totalHeight;
 }
 
