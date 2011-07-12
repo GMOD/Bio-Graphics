@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::image;
 
-# $Id: image.pm,v 1.4 2009-05-08 17:20:12 lstein Exp $
-
 use strict;
 use GD;
 use base 'Bio::Graphics::Glyph::generic';

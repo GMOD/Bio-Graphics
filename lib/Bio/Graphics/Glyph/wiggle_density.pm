@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::wiggle_density;
-# $Id: wiggle_density.pm,v 1.8 2009/10/06 20:36:04 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);

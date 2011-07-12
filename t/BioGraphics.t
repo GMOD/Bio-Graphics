@@ -1,5 +1,4 @@
 # -*-Perl-*- Test Harness script for Bioperl
-# $Id: BioGraphics.t,v 1.1 2008-12-08 23:15:57 lstein Exp $
 
 use strict;
 use File::Spec;

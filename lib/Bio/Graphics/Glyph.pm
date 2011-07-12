@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph;
 
-# $Id: Glyph.pm,v 1.14 2009-08-26 21:59:24 lstein Exp $
-
 use strict;
 use Carp 'croak','cluck';
 use constant BUMP_SPACING => 2; # vertical distance between bumped glyphs

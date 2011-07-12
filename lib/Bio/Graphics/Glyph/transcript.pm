@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::transcript;
-# $Id: transcript.pm,v 1.2 2009-04-02 22:22:07 lstein Exp $
 
 use strict;
 use base qw(Bio::Graphics::Glyph::segments);

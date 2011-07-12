@@ -1,7 +1,5 @@
 package Bio::Graphics::Glyph::trace;
 
-# $Id: trace.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
-
 use strict;
 use GD;
 use Bio::SCF;

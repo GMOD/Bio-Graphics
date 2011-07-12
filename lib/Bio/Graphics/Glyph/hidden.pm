@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::hidden;
-# $Id: hidden.pm,v 1.1 2009-06-04 22:00:49 lstein Exp $
 # a simple inverted V (used by DAS)
 
 use strict;

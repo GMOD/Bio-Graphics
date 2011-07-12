@@ -1,7 +1,6 @@
 package Bio::Graphics::Glyph::ruler_arrow;
 # package to use for drawing an arrow as ruler (5' and 3' are marked as label)
 
-# $Id: ruler_arrow.pm,v 1.1 2008-12-08 23:18:43 lstein Exp $
 # Non object-oriented utilities used here-and-there in Bio::Graphics modules
 
 =head1 NAME
