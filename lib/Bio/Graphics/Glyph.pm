@@ -681,7 +681,7 @@ sub fgcolor {
   $index = 'black' unless defined $index;
 
   if ($index eq 'featureRGB') {
-      ($index) = $self->feature->get_tag_values('RGB');
+      ($index) = eval{$self->feature->get_tag_values('RGB')};
       $index ||= $fgcolor;
   } elsif ($index eq 'featureScore') {
       $index = $self->score_to_color;
@@ -699,13 +699,13 @@ sub fillcolor {
 # we also look for the "fillcolor" option for Ace::Graphics compatibility
 sub bgcolor {
   my $self = shift;
-  my ($bgcolor) = $self->feature->get_tag_values('bgcolor'); 
+  my ($bgcolor) = eval{$self->feature->get_tag_values('bgcolor')};
   $bgcolor    ||= $self->option('bgcolor'); # Let feature attribute override color
   my $index     = defined $bgcolor ? $bgcolor : $self->option('fillcolor');
   $index        = 'white' unless defined $index;
 
   if ($index eq 'featureRGB') {
-      ($index) = $self->feature->get_tag_values('RGB');
+      ($index) = eval{$self->feature->get_tag_values('RGB')};
       $index ||= $bgcolor;
   } elsif ($index eq 'featureScore') {
       $index = $self->score_to_color;
@@ -719,9 +719,8 @@ sub score_to_color {
     my $self = shift;
     my $feature   = $self->feature;
 
-    my ($score)   = $feature->can('score') 
-                  ? $feature->score
-                  : $feature->get_tag_values('score');
+    my ($score)   = $feature->can('score')     ? $feature->score
+	          : eval{$feature->has_tag('score')} || 0;
 
     my $max_score = 945;  # defined by UCSC docs
     my $min_score = 166;
