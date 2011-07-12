@@ -2,6 +2,7 @@ Revision history for Perl extension Bio::Graphics.
 
 2.25
     - Deprecate xyplot "histogram" subtype and default to "boxes".
+    - Add xyplot overlay feature.
 
 2.24
     - In feature file configuration sections, allow a tag to contain ":".
