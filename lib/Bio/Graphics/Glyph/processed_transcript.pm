@@ -32,9 +32,10 @@ sub create_implied_utrs {
 
   # parts should be ordered from left to right
   my @features = sort {$a->start <=> $b->start} map {$_->feature} $self->parts;
-  my @exons   = grep {$_->type eq 'exon'} @features;
-  my @cds     = grep {$_->type eq 'CDS'}  @features;
-  my @old_utr = grep {$_->type =~ /UTR/}  @features;
+
+  my @exons   = grep {$_->type =~ /^exon/} @features;
+  my @cds     = grep {$_->type =~ /^CDS/ } @features;
+  my @old_utr = grep {$_->type =~ /UTR/  } @features;
 
   # if there are already UTRs then we don't modify anything
   return if @old_utr;
