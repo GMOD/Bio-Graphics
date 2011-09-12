@@ -135,6 +135,7 @@ sub fixup_glyph {
 
 sub draw {
     my $self = shift;
+    $self->fixup_glyph();
     $self->SUPER::draw(@_);
 
     return unless $self->thin_utr;
