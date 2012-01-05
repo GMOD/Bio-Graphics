@@ -49,7 +49,7 @@ sub normalize_track {
     my $self  = shift;
     my @parts = @_;
     @parts    = map {$_->isa('Bio::Graphics::Glyph::group') ? $_->parts : $_} @parts;
-    $parts[0]->normalize_track(@parts) if $parts[0]->can('normalize_track');
+    $parts[0]->normalize_track(@parts) if $parts[0] && $parts[0]->can('normalize_track');
 }
 
 sub bump { 
