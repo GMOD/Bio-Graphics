@@ -2,7 +2,7 @@ package Bio::Graphics::Glyph::wiggle_whiskers;
 
 use strict;
 use base qw(Bio::Graphics::Glyph::wiggle_minmax
-            Bio::Graphics::Glyph::xyplot
+            Bio::Graphics::Glyph::wiggle_xyplot
             );
 
 

@@ -30,6 +30,10 @@ sub draw {
   }
 
   my @parts = $self->parts;
+
+  # give the glyph a chance to do track-wide normalization if it supports it
+  $self->normalize_track(@parts);
+
   for (my $i=0; $i<@parts; $i++) {
     $parts[$i]->draw_highlight($gd,$left,$top);
     $parts[$i]->draw($gd,$left,$top,0,1);
@@ -40,6 +44,13 @@ sub draw {
 
 # do nothing for components
 # sub draw_component { }
+
+sub normalize_track {
+    my $self  = shift;
+    my @parts = @_;
+    @parts    = map {$_->isa('Bio::Graphics::Glyph::group') ? $_->parts : $_} @parts;
+    $parts[0]->normalize_track(@parts) if $parts[0]->can('normalize_track');
+}
 
 sub bump { 
     my $self = shift;

@@ -285,6 +285,26 @@ sub translate_color {
   $self->panel->translate_color($color_name);
 }
 
+=head2 transparent_color
+
+  Title    : transparent_color
+  Usage    : $index = $f->transparent_color($opacity,$color_name)
+  Function : translate symbolic color names into GD indexes, with
+                an opacity value taken into account
+  Returns  : an integer
+  Args     : an opacity value from 0-1.0, plus a color name in format "green" or "#00FF00"
+  Status   : Internal to Bio::Graphics
+
+The real work is done by the panel, but factory subclasses can
+override if desired.
+
+=cut
+
+sub transparent_color {
+  my $self = shift;
+  $self->panel->transparent_color(@_);
+}
+
 =head2 make_glyph
 
   Title    : make_glyph

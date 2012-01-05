@@ -82,6 +82,7 @@ sub new {
 		pad_bottom => $options{-pad_bottom}||0,
 		pad_left   => $options{-pad_left}||0,
 		pad_right  => $options{-pad_right}||0,
+		global_alpha => $options{-alpha} || 0,
 		length => $length,
 		offset => $offset,
 		gridcolor => $gridcolor,
@@ -516,6 +517,7 @@ sub gd {
   }
 
   my %translation_table;
+  my $global_alpha = $self->{global_alpha} || 0;
   for my $name (keys %COLORS) {
     my $idx = $gd->colorAllocate(@{$COLORS{$name}});
     $translation_table{$name} = $idx;
@@ -523,7 +525,6 @@ sub gd {
 
   $self->{translations} = \%translation_table;
   $self->{gd}           = $gd;
-
   
   eval {$gd->alphaBlending(0)};
   if ($self->bgcolor) {
@@ -965,18 +966,34 @@ sub rgb {
   return $gd->rgb($idx);
 }
 
-sub translate_color {
-  my $self    = shift;
-  my @colors  = @_;
+sub transparent_color {
+    my $self = shift;
+    my ($opacity,@colors) = @_;
+    return $self->_translate_color($opacity,@colors);
+}
 
-  return $self->{closestcache}{"@colors"} if exists $self->{closestcache}{"@colors"};
+sub translate_color {
+    my $self = shift;
+    my @colors = @_;
+    return $self->_translate_color(1.0,@colors);
+}
+
+sub _translate_color {
+  my $self    = shift;
+  my ($opacity,@colors)  = @_;
+  $opacity    = '1.0' if $opacity == 1;
+  my $default_alpha   = $self->adjust_alpha($opacity);
+  $default_alpha    ||= 127;
+
+  my $ckey = "@{colors}_${default_alpha}";
+  return $self->{closestcache}{$ckey} if exists $self->{closestcache}{$ckey};
 
   my $index;
   my $gd    = $self->gd             or return 1;
   my $table = $self->{translations} or return 1;
 
   if (@colors == 3) {
-    $index = $self->colorClosest($gd,@colors);
+    $index = $gd->colorAllocateAlpha(@colors,$default_alpha);
   }
   elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
     my ($r,$g,$b,$alpha) = (hex($1),hex($2),hex($3),hex($4));
@@ -984,7 +1001,7 @@ sub translate_color {
   }
   elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
     my ($r,$g,$b) = (hex($1),hex($2),hex($3));
-    $index = $self->colorClosest($gd,$r,$g,$b);
+    $index = $gd->colorAllocateAlpha($r,$g,$b,$default_alpha);
   }
   elsif ($colors[0] =~ /^(\d+),(\d+),(\d+),([\d.]+)$/i ||
 	 $colors[0] =~ /^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/) {
@@ -996,7 +1013,7 @@ sub translate_color {
 	 $colors[0] =~ /^rgb\((\d+),(\d+),(\d+)\)$/i
       ) {
       my (@rgb) = map {/(\d+)%/ ? int(255 * $1 / 100) : $_} ($1,$2,$3);
-      $index = $self->colorClosest($gd,@rgb);
+      $index = $self->colorAllocateAlpha($gd,@rgb,$default_alpha);
   }
   elsif ($colors[0] eq 'transparent') {
       $index = $gd->colorAllocateAlpha(255,255,255,127);
@@ -1006,10 +1023,14 @@ sub translate_color {
       my $alpha = $self->adjust_alpha($2);
       $index = $gd->colorAllocateAlpha(@rgb,$alpha);
   }
+  elsif ($default_alpha < 127) {
+      my @rgb   = $self->color_name_to_rgb($colors[0]);
+      $index = $gd->colorAllocateAlpha(@rgb,$default_alpha);
+  }
   else {
       $index = defined $table->{$colors[0]} ? $table->{$colors[0]} : 1;
   }
-  return $self->{closestcache}{"@colors"} = $index;
+  return $self->{closestcache}{$ckey} = $index;
 }
 
 # change CSS opacity values (0-1.0) into GD opacity values (127-0)
@@ -2217,6 +2238,12 @@ B<Background color:> The -bgcolor option controls the background used
 for filled boxes and other "solid" glyphs.  The foreground color
 controls the color of lines and strings.  The -tkcolor argument
 controls the background color of the entire track.
+
+B<Default opacity:>For truecolor images, you can apply a default opacity
+value to both foreground and background colors by supplying a B<-opacity>
+argument. This is specified as a CSS-style floating point number from
+0.0 to 1.0. If the color has an explicit alpha, then the default is
+ignored.
 
 B<Track color:> The -tkcolor option used to specify the background of
 the entire track.

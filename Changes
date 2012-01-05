@@ -1,5 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.26
+    - Support for normalizing quantitative plots across entire track.
+    - Support for transparency within tracks, allowing features to overlap.
+
 2.25
     - Deprecate xyplot "histogram" subtype and default to "boxes".
     - Add xyplot overlay feature.

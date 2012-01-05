@@ -88,6 +88,13 @@ sub my_options {
 	    undef,
 	    'Rarely-used option to flood-fill entire glyph with a single color',
 	    'prior to rendering it.'],
+	opacity => [
+	    'float',
+	    '1.0',
+	    'Default opacity to apply to glyph background and foreground colors.',
+	    'This is a value between 0.0 (completely transparent) to 1.0 (completely opaque.',
+	    'If the color contains an explicit opacity (alpha) value, the default value',
+	    'will be ignored'],
 	linewidth    => [
 	    'integer',
 	    1,
@@ -646,8 +653,15 @@ sub color {
 sub translate_color {
   my $self = shift;
   my $color = shift;
-  # turn into a color index
-  return $self->factory->translate_color($color);
+  return $self->_translate_color($color);
+}
+
+sub _translate_color {
+    my $self = shift;
+    my $color = shift;
+    my $opacity = $self->default_opacity;
+    return $opacity < 1 ? $self->factory->transparent_color($opacity,$color) 
+                        : $self->factory->translate_color($color);
 }
 
 # return value:
@@ -672,6 +686,12 @@ sub hbumppad {
   return $self->{_hbumppad}= $hbumppad;
 }
 
+sub default_opacity {
+    my $self = shift;
+    return $self->{default_opacity} if defined $self->{default_opacity};
+    return $self->{default_opacity} = $self->option('opacity') || 0;
+}
+
 # we also look for the "color" option for Ace::Graphics compatibility
 sub fgcolor {
   my $self  = shift;
@@ -686,8 +706,7 @@ sub fgcolor {
   } elsif ($index eq 'featureScore') {
       $index = $self->score_to_color;
   }
-
-  $self->factory->translate_color($index);
+  return $self->_translate_color($index);
 }
 
 #add for compatibility
@@ -710,8 +729,7 @@ sub bgcolor {
   } elsif ($index eq 'featureScore') {
       $index = $self->score_to_color;
   }
-
-  $self->factory->translate_color($index);
+  return $self->_translate_color($index);
 }
 
 # for compatibility with UCSC genome browser useScore option
@@ -859,10 +877,19 @@ sub layout {
       return $self->{layout_height} = $self->optimized_layout(\@parts)
 	  + $self->pad_bottom + $self->pad_top -1;# - $self->top  + 1;
   }
+
   my (%bin1,%bin2);
   my $limit          = 0;
   my $recent_pos     = 0;
   my $max_pos        = 0;
+
+  # strand bumping turns on bumping for features that are in opposite strands!
+  # features in the same strand are allowed to overlap
+  my $strand_bumping;
+  if ($bump_direction eq 'overlap') {
+      $bump_direction    = 1;
+      $strand_bumping++;
+  }
 
   for my $g ($self->layout_sort(@parts)) {
 
@@ -881,6 +908,7 @@ sub layout {
     my $bumplevel = 0;
     my $left   = $g->left;
     my $right  = $g->right;
+    my $strand = $g->strand || 0;
 
     my $search_mode = 'down';
 
@@ -897,8 +925,9 @@ sub layout {
 
 	# look for collisions
 	my $bottom      = $pos + $height;
-	my $collision   = $self->collides(\%bin1,CM1,CM2,$left,$pos,$right,$bottom) or last;
-	# my $collision = $self->collides(\%bin2,CM3,CM4,$left,$pos,$right,$bottom) or last;
+	my $bin = \%bin1;
+	$bin = $strand >= 0 ? \%bin1 : \%bin2 if $strand_bumping;
+	my $collision   = $self->collides($bin,CM1,CM2,$left,$pos,$right,$bottom) or last;
 	
 	if ($bump_direction > 0) {
 	    $pos = $collision->[3] + BUMP_SPACING;    # collision, so bump
@@ -911,7 +940,9 @@ sub layout {
     
     $g->move(0,$pos);
 
-    $self->add_collision(\%bin1,CM1,CM2,$left,$g->top,$right,$g->bottom);
+    my $bin = \%bin1;
+    $bin    = $strand >= 0 ? \%bin2 : \%bin1 if $strand_bumping;  # note reversed order - features in opposite strands bump
+    $self->add_collision($bin,CM1,CM2,$left,$g->top,$right,$g->bottom);
     
     $recent_pos = $pos;
     $max_pos    = $pos if $pos > $max_pos;
@@ -1084,7 +1115,6 @@ sub parent_feature {
 
 sub draw_connectors {
   my $self = shift;
-
   return if $self->{overbumped};
   my $gd = shift;
   my ($dx,$dy) = @_;

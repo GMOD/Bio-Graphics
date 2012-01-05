@@ -19,6 +19,7 @@ sub minmax {
 	my ($min,$max,$mean,$stdev) = eval {$self->bigwig_stats($autoscale,$self->feature)};
 	$min_score = $min if $do_min;
 	$max_score = $max if $do_max;
+	warn "($min,$max,$mean,$stdev)";
 	return $self->sanity_check($min_score,$max_score,$mean,$stdev);
     }
 

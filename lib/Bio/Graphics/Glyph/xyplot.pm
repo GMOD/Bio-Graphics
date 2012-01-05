@@ -228,6 +228,29 @@ sub lookup_draw_method {
   return;
 }
 
+sub normalize_track {
+    my $self  = shift;
+    my @glyphs_in_track = @_;
+    my ($global_min,$global_max);
+    warn "trackwide normalization(@glyphs_in_track)";
+    for my $g (@glyphs_in_track) {
+	my ($min_score,$max_score) = $g->minmax($g->get_parts);
+	warn "$g: ($min_score,$max_score)";
+	$global_min = $min_score if !defined $global_min || $min_score < $global_min;
+	$global_max = $max_score if !defined $global_max || $max_score > $global_max;
+    }
+    for my $g (@glyphs_in_track) {
+	$g->configure(-min_score => $global_min);
+	$g->configure(-max_score => $global_max);
+    }
+}
+
+sub get_parts {
+    my $self = shift;
+    my @parts = $self->parts;
+    return \@parts;
+}
+
 sub score {
   my $self    = shift;
   my $s       = $self->option('score');
@@ -346,7 +369,7 @@ sub _draw_boxes {
     # special check here for the part_color being defined so as not to introduce lots of
     # checking overhead when it isn't
     if ($partcolor) {
-	$color    = $factory->translate_color($factory->option($part,'part_color',0,0));
+	$color    = $self->translate_color($factory->option($part,'part_color',0,0));
 	$negcolor = $color;
     } else {
 	$color    = $positive;
@@ -416,7 +439,7 @@ sub _draw_points {
 
     my $color;
     if ($partcolor) {
-      $color    = $factory->translate_color($factory->option($part,'part_color',0,0));
+      $color    = $self->translate_color($factory->option($part,'part_color',0,0));
     } else {
       $color    = $fgcolor;
     }
@@ -452,8 +475,8 @@ sub _draw_scale {
   my $y_scale = $self->minor_ticks($min,$max,$y1,$y2);
 
   my $p  = $self->panel;
-  my $gc = $p->translate_color($p->gridcolor);
-  my $mgc= $p->translate_color($p->gridmajorcolor);
+  my $gc = $self->translate_color($p->gridcolor);
+  my $mgc= $self->translate_color($p->gridmajorcolor);
 
   # if ($side ne 'none') {
   #     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
@@ -524,7 +547,7 @@ sub _draw_grid {
 
     my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries($dx,$dy);
     my $p  = $self->panel;
-    my $gc = $p->translate_color($p->gridcolor);
+    my $gc = $self->translate_color($p->gridcolor);
     my $y_scale = $self->minor_ticks($min,$max,$y1,$y2);
 
     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
