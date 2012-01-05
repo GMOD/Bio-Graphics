@@ -65,6 +65,11 @@ sub my_options {
     }
 }
 
+sub pad_top {
+    my $self = shift;
+    return $self->Bio::Graphics::Glyph::wiggle_xyplot::pad_top;
+}
+
 sub extra_label_pad {
     return 16
 }
@@ -132,8 +137,10 @@ sub draw {
   my ($scaled_min,$scaled_max);
   if ($rescale) {
       my $bound  = $self->z_score_bound;
-      $scaled_min = -$bound;
-      $scaled_max = +$bound;
+      $scaled_min = int(($min_score-$mean)/$stdev + 0.5);
+      $scaled_max = int(($max_score-$mean)/$stdev + 0.5);
+      $scaled_max = $bound  if $scaled_max > $bound;
+      $scaled_min = -$bound if $scaled_min < -$bound;
       $self->{_stdev}     = $stdev;
       $self->{_mean}      = $mean;
       $self->{_zfold}     = $bound;
@@ -190,6 +197,7 @@ sub _draw_whiskers {
     my $stdev_color_neg = $self->stdev_color_neg;
     my $max_color   = $self->max_color;
     my $min_color   = $self->min_color;
+    my $clip_color  = $self->clip_color;
 
     my $graph_type = $self->graph_type;
 
@@ -218,15 +226,26 @@ sub _draw_whiskers {
 	my $max_pos   = $self->score2position($max);
 	my $min_pos   = $self->score2position($min);
 
+	my ($clip_top,$clip_bottom);
+	foreach (\$mean_pos,\$plus_one,\$minus_one,\$max_pos,\$min_pos) {
+	    if (int($$_) < $top - 2) {
+		$$_ = $top;
+		$clip_top++;
+	    } elsif (int($$_) > $bottom + 2) {
+		$$_ = $bottom;
+		$clip_bottom++;
+	    }
+	}
+
 	if ($graph_type eq 'boxes') {
 	    if ($mean >= 0) {
-		$gd->line($pos,$origin,$pos,$mean_pos,$mean_color);
+		$gd->line($pos,$origin,$pos,$mean_pos,  $mean_color);
 		$gd->line($pos,$mean_pos,$pos,$plus_one,$stdev_color) if $mean_pos != $plus_one;
-		$gd->line($pos,$plus_one,$pos,$max_pos,$max_color)    if $plus_one != $max_pos;
+		$gd->line($pos,$plus_one,$pos,$max_pos, $max_color)   if $plus_one != $max_pos;
 	    } else {
-		$gd->line($pos,$origin,$pos,$mean_pos,$mean_color_neg);
-		$gd->line($pos,$mean_pos,$pos,$minus_one,$stdev_color_neg) if $mean_pos != $minus_one;
-		$gd->line($pos,$minus_one,$pos,$min_pos,$min_color)         if $minus_one != $min_pos;
+		$gd->line($pos,$origin,$pos,$mean_pos,   $mean_color_neg);
+		$gd->line($pos,$mean_pos,$pos,$minus_one,$stdev_color_neg) if $mean_pos  != $minus_one;
+		$gd->line($pos,$minus_one,$pos,$min_pos, $min_color)       if $minus_one != $min_pos;
 	    }
 	} 
 	else {
@@ -236,7 +255,10 @@ sub _draw_whiskers {
 	    $gd->line($pos,$mean_pos+1,$pos,$minus_one,$stdev_color)       if $minus_one != $mean_pos;
 	    $gd->line($pos,$minus_one+1,$pos,$min_pos,$min_color)          if $min_pos != $mean_pos;
 	}
-	
+
+# this tops off clipped peaks with a distinct color, but I just don't like how it looks
+	$gd->line($pos,$top-2,     $pos,$top,    $clip_color) if $clip_top;
+	$gd->line($pos,$bottom,$pos,$bottom+2, $clip_color)   if $clip_bottom;
     } continue {
 	$self->{flip} ? $pos-- : $pos++;
     }

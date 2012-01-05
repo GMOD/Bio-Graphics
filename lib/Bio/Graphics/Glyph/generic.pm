@@ -457,6 +457,7 @@ sub draw_label {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
 
   my $label = $self->label or return;
+  local $self->{default_opacity} = 1;
 
   my $x    = $self->left + $left; # valid for both "top" and "left" because the left-hand side is defined by pad_left
   my $font = $self->labelfont;
@@ -499,6 +500,8 @@ sub draw_description {
   my $self = shift;
   my ($gd,$dx,$dy,$partno,$total_parts) = @_;
   my $label = $self->description or return;
+
+  local $self->{default_opacity} = 1;
   my ($left,$top,$right,$bottom) = $self->bounds($dx,$dy);
   $bottom  += $self->pad_bottom;
   $bottom  -= $self->labelheight;
@@ -516,6 +519,9 @@ sub draw_part_labels {
   my ($gd,$left,$top,$partno,$total_parts) = @_;
   return unless $self->{level} == 0;
   my @p = $self->parts or return;
+
+  local $self->{default_opacity} = 1;
+
   @p > 1 or return;
   @p = reverse @p if $self->flip;
 

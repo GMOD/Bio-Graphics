@@ -9,8 +9,8 @@ sub minmax {
 
     my $autoscale  = $self->option('autoscale') || 'local';
 
-    my $min_score  = $self->min_score;
-    my $max_score  = $self->max_score;
+    my $min_score  = $self->min_score unless $autoscale eq 'z_score';
+    my $max_score  = $self->max_score  unless $autoscale eq 'z_score';
 
     my $do_min     = !defined $min_score;
     my $do_max     = !defined $max_score;
@@ -19,7 +19,6 @@ sub minmax {
 	my ($min,$max,$mean,$stdev) = eval {$self->bigwig_stats($autoscale,$self->feature)};
 	$min_score = $min if $do_min;
 	$max_score = $max if $do_max;
-	warn "($min,$max,$mean,$stdev)";
 	return $self->sanity_check($min_score,$max_score,$mean,$stdev);
     }
 

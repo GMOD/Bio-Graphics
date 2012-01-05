@@ -87,6 +87,11 @@ sub pad_left {
     return $pad;
 }
 
+sub clip_color {
+    my $self = shift;
+    return $self->translate_color('orange');
+}
+
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
 sub draw {
@@ -96,13 +101,17 @@ sub draw {
   my $feature     = $self->feature;
   my $datatype    = $self->datatype;
 
-  # REFACTOR HERE USING DATATYPE
-  return $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
-  return $self->draw_wigdata($feature,@_)   if $datatype eq 'wigdata';
-  return $self->draw_densefile($feature,@_) if $datatype eq 'densefile';
-  return $self->draw_coverage($feature,@_)  if $datatype eq 'coverage';
-  return $self->draw_statistical_summary($feature,@_) if $datatype eq 'statistical_summary';
-  return $self->SUPER::draw(@_);
+  my $retval;
+  $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
+  $retval =  $self->draw_wigdata($feature,@_)   if $datatype eq 'wigdata';
+  $retval =  $self->draw_densefile($feature,@_) if $datatype eq 'densefile';
+  $retval =  $self->draw_coverage($feature,@_)  if $datatype eq 'coverage';
+  $retval =  $self->draw_statistical_summary($feature,@_) if $datatype eq 'statistical_summary';
+  $retval =  $self->SUPER::draw(@_) if $datatype eq 'generic';
+
+  # inhibit the scale if we are non-bumping
+  $self->configure(-scale => 'none') if $self->bump eq 'overlap';
+  return $retval;
 }
 
 sub draw_wigfile {
@@ -320,14 +329,20 @@ sub draw_plot {
     # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
     my ($min_score,$max_score,$mean,$stdev)     = $self->minmax($parts);
+    warn "($min_score,$max_score,$mean,$stdev)";
     my $rescale  = $self->option('autoscale') eq 'z_score';
     my $side    = $self->_determine_side();
 
     my ($scaled_min,$scaled_max);
     if ($rescale) {
+	$scaled_min = int(($min_score-$mean)/$stdev + 0.5);
+	$scaled_max = int(($max_score-$mean)/$stdev + 0.5);
 	my $bound  = $self->z_score_bound;
-	$scaled_min = -$bound;
-	$scaled_max = +$bound;
+	$scaled_max = $bound  if $scaled_max > $bound;
+	$scaled_min = -$bound if $scaled_min < -$bound;
+#	my $bound  = $self->z_score_bound;
+#	$scaled_min = -$bound;
+#	$scaled_max = +$bound;
     }
     elsif ($side) {
 	$scaled_min = int($min_score - 0.5);
@@ -365,8 +380,11 @@ sub draw_plot {
     my $positive = $self->pos_color;
     my $negative = $self->neg_color;
     my $midpoint = $self->midpoint;
+    my $clip_color =  $self->clip_color;
     my $flip     = $self->{flip};
     $midpoint    = ($midpoint - $mean)/$stdev if $rescale;
+
+    my ($clip_top,$clip_bottom);
 
     my @points = map {
 	my ($start,$end,$score) = @$_;
@@ -378,6 +396,7 @@ sub draw_plot {
 	    my $y2     = $y_origin;
 	    $y1        = $top    if $y1 < $top;
 	    $y1        = $bottom if $y1 > $bottom;
+
 	    $x1        = $left   if $x1 < $left;
 	    $x2        = $right  if $x2 > $right;
 
@@ -404,6 +423,9 @@ sub draw_plot {
 	    } else {
 		$gd->filledRectangle($x1,$y1,$x2,$y2,$color);
 	    }
+# this tops off clipped peaks with a distinct color, but I just don't like how it looks
+#	    $gd->line($x1+1,$top-2,     $x1-1,$top,      $clip_color) if $y1 == $top;
+#	    $gd->line($x1+1,$bottom,    $x1-1,$bottom+2, $clip_color) if $y1 == $bottom;
 	}
     }
 
@@ -444,6 +466,7 @@ sub draw_plot {
 	}	
     }
 
+
     if ($self->option('variance_band') && 
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
 	if ($rescale) {
@@ -459,8 +482,16 @@ sub draw_plot {
 	    $y1                = $top;
 	    $clip_top++;
 	}
+	if ($yy1 < $top) {
+	    $yy1 = $top;
+	    $clip_top++;
+	}
 	if ($y2 > $bottom) {
 	    $y2                = $bottom;
+	    $clip_bottom++;
+	}
+	if ($yy2 > $bottom) {
+p	    $yy2 = $bottom;
 	    $clip_bottom++;
 	}
 	my $y              = $bottom - ($mean - $scaled_min) * $y_scale;
@@ -489,7 +520,7 @@ sub draw_plot {
     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
 
-  $self->panel->endGroup($gd);
+    $self->panel->endGroup($gd);
 }
 
 sub draw_label {

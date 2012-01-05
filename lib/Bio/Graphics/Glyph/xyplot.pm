@@ -124,6 +124,7 @@ sub pad_bottom {
 
 sub scalecolor {
   my $self = shift;
+  local $self->{default_opacity} = 1;
   my $color = $self->color('scale_color') || $self->fgcolor;
 }
 
@@ -235,14 +236,12 @@ sub normalize_track {
     warn "trackwide normalization(@glyphs_in_track)";
     for my $g (@glyphs_in_track) {
 	my ($min_score,$max_score) = $g->minmax($g->get_parts);
-	warn "$g: ($min_score,$max_score)";
 	$global_min = $min_score if !defined $global_min || $min_score < $global_min;
 	$global_max = $max_score if !defined $global_max || $max_score > $global_max;
     }
-    for my $g (@glyphs_in_track) {
-	$g->configure(-min_score => $global_min);
-	$g->configure(-max_score => $global_max);
-    }
+    # note that configure applies to the whole track
+    $glyphs_in_track[0]->configure(-min_score => $global_min);
+    $glyphs_in_track[0]->configure(-max_score => $global_max);
 }
 
 sub get_parts {
@@ -305,41 +304,6 @@ sub min10 {
   return $r*$l if int($r) == $r;
   return $l*int($a/$l);
 }
-
-# sub _draw_histogram {
-#   my $self = shift;
-#   my ($gd,$left,$top,$bottom) = @_;
-
-#   my @parts   = $self->parts;
-#   my $fgcolor = $self->fgcolor;
-
-#   # draw each of the component lines of the histogram surface
-#   for (my $i = 0; $i < @parts; $i++) {
-#     my $part = $parts[$i];
-#     my $next = $parts[$i+1];
-#     my ($x1,$y1,$x2,$y2) = $part->calculate_boundaries($left,$top);
-#     next unless defined $part->{_y_position};
-#     $gd->line($x1,$part->{_y_position},$x2,$part->{_y_position},$fgcolor);
-#     next unless $next;
-#     my ($x3,$y3,$x4,$y4) = $next->calculate_boundaries($left,$top);
-#     if ($x2 == $x3) {# connect vertically to next level
-#       $gd->line($x2,$part->{_y_position},$x2,$next->{_y_position},$fgcolor); 
-#     } else {
-#       $gd->line($x2,$part->{_y_position},$x2,$bottom,$fgcolor); # to bottom
-#       $gd->line($x2,$bottom,$x3,$bottom,$fgcolor);              # to right
-#       $gd->line($x3,$bottom,$x3,$next->{_y_position},$fgcolor); # up
-#     }
-#   }
-
-#   # end points: from bottom to first
-#   my ($x1,$y1,$x2,$y2) = $parts[0]->calculate_boundaries($left,$top);
-#   $gd->line($x1,$bottom,$x1,$parts[0]->{_y_position},$fgcolor);
-#   # from last to bottom
-#   my ($x3,$y3,$x4,$y4) = $parts[-1]->calculate_boundaries($left,$top);
-#   $gd->line($x4,$parts[-1]->{_y_position},$x4,$bottom,$fgcolor);
-
-#   # That's it.  Not too hard.
-# }
 
 sub _draw_boxes {
   my $self = shift;
@@ -464,7 +428,7 @@ sub _draw_scale {
 
   my $crosses_origin = $min < 0 && $max > 0;
 
-  my $side = $self->_determine_side();
+  my $side = $self->_determine_side() or return;
 
   my $fg    = $self->scalecolor;
   my $font  = $self->font('gdTinyFont');
@@ -543,7 +507,7 @@ sub _draw_grid {
     my $self = shift;
     my ($gd,$scale,$min,$max,$dx,$dy,$y_origin) = @_;
     my $side = $self->_determine_side();
-    return if $side eq 'none';
+    return unless $side;
 
     my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries($dx,$dy);
     my $p  = $self->panel;
