@@ -1069,13 +1069,14 @@ sub draw {
       # lie just a little bit to avoid lines overlapping and make the picture prettier
       my $fake_x = $x;
       $fake_x-- if defined $last_x && $parts[$i]->left - $last_x == 1;
+      $parts[$i]->draw_highlight($gd,$fake_x,$y);
       $parts[$i]->draw($gd,$fake_x,$y,$i,scalar(@parts));
       $last_x = $parts[$i]->right;
     }
   }
 
   else {  # no part
-    $self->draw_connectors($gd,$left,$top)
+      $self->draw_connectors($gd,$left,$top)
       if $connector && $connector ne 'none'; # && $self->{level} == 0;
     $self->draw_component($gd,$left,$top,$partno,$total_parts) unless $self->feature_has_subparts;
   }
@@ -1148,7 +1149,7 @@ sub draw_connectors {
 # return true if this feature should be highlited
 sub hilite_color {
   my $self         = shift;
-  return     if $self->level; # only highlite top level glyphs
+  return     if $self->level>0; # only highlite top level glyphs
   my $index   = $self->option('hilite') or return;
   $self->factory->translate_color($index);
 }
