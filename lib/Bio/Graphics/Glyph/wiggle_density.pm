@@ -55,6 +55,11 @@ sub my_options {
 	    'scaled to the minimum and maximum values of the region currently on display.',
 	    'min_score and max_score override autoscaling if one or both are defined'
         ],
+	 graph_type => [
+	     undef,
+	     undef,
+	     'Unused option',
+	     ],
     };
 }
 
@@ -105,7 +110,7 @@ sub draw_plot {
 	($scaled_min,$scaled_max) = ($min_score,$max_score);
     }
 
-    my $pivot = $self->bicolor_pivot;
+    my $pivot    = $self->bicolor_pivot;
     my $positive = $self->pos_color;
     my $negative = $self->neg_color;
     my $midpoint = $self->midpoint;

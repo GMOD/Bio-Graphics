@@ -461,7 +461,6 @@ sub draw_label {
   local $self->{default_opacity} = 1;
 
   my $x    = $self->left + $left; # valid for both "top" and "left" because the left-hand side is defined by pad_left
-  warn "draw_label = ",$self->label, ' position = ',$self->label_position," x = $x";
 
   my $font = $self->labelfont;
   if ($self->label_position eq 'top') {
