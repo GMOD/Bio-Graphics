@@ -99,7 +99,7 @@ sub draw {
   my ($gd,$dx,$dy) = @_;
 
   my $feature     = $self->feature;
-  my $datatype    = $self->datatype;
+  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
 
   my $retval;
   $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
@@ -235,25 +235,6 @@ sub _draw_wigfile {
     $self->wig($wig);
     my $parts = $self->get_parts;
     $self->draw_plot($parts,@_);
-}
-
-sub datatype {
-    my $self = shift;
-    my $feature = $self->feature;
-    my ($tag,$value);
-
-    foreach $tag ('wigfile','wigdata','densefile','coverage') {
-	($value) = eval{$feature->get_tag_values($tag)};
-	last if $value;
-    }
-    unless ($value) {
-	$tag   = 'statistical_summary';
-	$value = eval{$feature->statistical_summary};
-    }
-    unless ($value) {
-	$tag = 'generic';
-    }
-    return wantarray ? ($tag,$value) : $tag;
 }
 
 sub get_parts {

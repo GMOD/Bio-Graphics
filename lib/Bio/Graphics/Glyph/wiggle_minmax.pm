@@ -153,5 +153,24 @@ sub wig {
   $d;
 }
 
+sub datatype {
+    my $self = shift;
+    my $feature = $self->feature;
+    my ($tag,$value);
+
+    foreach $tag ('wigfile','wigdata','densefile','coverage') {
+	($value) = eval{$feature->get_tag_values($tag)};
+	last if $value;
+    }
+    unless ($value) {
+	$tag   = 'statistical_summary';
+	$value = eval{$feature->statistical_summary};
+    }
+    unless ($value) {
+	$tag = 'generic';
+    }
+    return wantarray ? ($tag,$value) : $tag;
+}
+
 
 1;

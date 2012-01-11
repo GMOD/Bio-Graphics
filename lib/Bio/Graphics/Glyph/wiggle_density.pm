@@ -1,7 +1,9 @@
 package Bio::Graphics::Glyph::wiggle_density;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
+use base qw(Bio::Graphics::Glyph::box 
+            Bio::Graphics::Glyph::smoothing 
+            Bio::Graphics::Glyph::wiggle_minmax);
 use File::Spec;
 
 sub my_description {
