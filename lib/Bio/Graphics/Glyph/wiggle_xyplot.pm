@@ -329,7 +329,6 @@ sub draw_plot {
     # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
     my ($min_score,$max_score,$mean,$stdev)     = $self->minmax($parts);
-    warn "($min_score,$max_score,$mean,$stdev)";
     my $rescale  = $self->option('autoscale') eq 'z_score';
     my $side    = $self->_determine_side();
 
@@ -340,9 +339,6 @@ sub draw_plot {
 	my $bound  = $self->z_score_bound;
 	$scaled_max = $bound  if $scaled_max > $bound;
 	$scaled_min = -$bound if $scaled_min < -$bound;
-#	my $bound  = $self->z_score_bound;
-#	$scaled_min = -$bound;
-#	$scaled_max = +$bound;
     }
     elsif ($side) {
 	$scaled_min = int($min_score - 0.5);
@@ -491,7 +487,7 @@ sub draw_plot {
 	    $clip_bottom++;
 	}
 	if ($yy2 > $bottom) {
-p	    $yy2 = $bottom;
+	    $yy2 = $bottom;
 	    $clip_bottom++;
 	}
 	my $y              = $bottom - ($mean - $scaled_min) * $y_scale;

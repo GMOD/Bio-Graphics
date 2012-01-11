@@ -233,7 +233,6 @@ sub normalize_track {
     my $self  = shift;
     my @glyphs_in_track = @_;
     my ($global_min,$global_max);
-    warn "trackwide normalization(@glyphs_in_track)";
     for my $g (@glyphs_in_track) {
 	my ($min_score,$max_score) = $g->minmax($g->get_parts);
 	$global_min = $min_score if !defined $global_min || $min_score < $global_min;

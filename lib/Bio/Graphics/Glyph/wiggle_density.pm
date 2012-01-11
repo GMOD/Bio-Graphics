@@ -308,10 +308,12 @@ sub draw_segment {
 
   my $rescale  = $self->option('autoscale') eq 'z_score';
   my ($scaled_min,$scaled_max);
-  if ($rescale) {
-      my $bound  = $self->z_score_bound;
-      $scaled_min = -$bound;
-      $scaled_max = +$bound;
+    if ($rescale) {
+	$scaled_min = int(($min_value-$mean)/$stdev + 0.5);
+	$scaled_max = int(($max_value-$mean)/$stdev + 0.5);
+	my $bound  = $self->z_score_bound;
+	$scaled_max = $bound  if $scaled_max > $bound;
+	$scaled_min = -$bound if $scaled_min < -$bound;
   } else {
       ($scaled_min,$scaled_max) = ($min_value,$max_value);
   }
@@ -353,8 +355,10 @@ sub draw_segment {
     $pixels_per_step = 1 if $pixels_per_step < 1;
     my $datapoints_per_base  = @$data/$length;
     my $pixels_per_datapoint = $self->panel->width/@$data * $data_width_ratio;
+
     for (my $i = 0; $i <= @$data ; $i++) {
       my $x          = $x1 + $pixels_per_datapoint * $i;
+
       my $data_point = $data->[$i];
       defined $data_point || next;
       $data_point    = ($data_point-$mean)/$stdev if $rescale;

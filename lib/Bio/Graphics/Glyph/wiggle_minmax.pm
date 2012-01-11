@@ -9,7 +9,7 @@ sub minmax {
 
     my $autoscale  = $self->option('autoscale') || 'local';
 
-    my $min_score  = $self->min_score unless $autoscale eq 'z_score';
+    my $min_score  = $self->min_score  unless $autoscale eq 'z_score';
     my $max_score  = $self->max_score  unless $autoscale eq 'z_score';
 
     my $do_min     = !defined $min_score;

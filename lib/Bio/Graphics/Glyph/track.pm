@@ -34,6 +34,18 @@ sub draw {
   # give the glyph a chance to do track-wide normalization if it supports it
   $self->normalize_track(@parts);
 
+  # dynamic assignment of colors
+  if ($self->option('color_series')) {
+      my @color_series    = qw(black red green blue orange yellow magenta cyan turquoise coral pink);
+      my $index           = 0;
+      my %color_cache;
+      my $closure = sub {
+	  my $glyph = pop;
+	  return $color_cache{$glyph} ||= $color_series[$index++ % @color_series];
+      };
+      $self->configure(bgcolor   => $closure);
+  }
+
   for (my $i=0; $i<@parts; $i++) {
     $parts[$i]->draw_highlight($gd,$left,$top);
     $parts[$i]->draw($gd,$left,$top,0,1);
