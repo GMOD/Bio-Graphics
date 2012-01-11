@@ -57,45 +57,43 @@ sub my_options {
     };
 }
 
-
-
+# we override the draw method so that it dynamically creates the parts needed
+# from the wig file rather than trying to fetch them from the database
 sub draw {
   my $self = shift;
-  my ($gd,$left,$top,$partno,$total_parts) = @_;
+  my ($gd,$dx,$dy) = @_;
+
+  my $feature     = $self->feature;
+  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
+
+  my $retval;
+  $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
+  $retval =  $self->draw_wigdata($feature,@_)   if $datatype eq 'wigdata';
+  $retval =  $self->draw_densefile($feature,@_) if $datatype eq 'densefile';
+  $retval =  $self->draw_coverage($feature,@_)  if $datatype eq 'coverage';
+  $retval =  $self->draw_statistical_summary($feature,@_) if $datatype eq 'statistical_summary';
+  $retval =  $self->SUPER::draw(@_) if $datatype eq 'generic';
+
+  # inhibit the scale if we are non-bumping
+  $self->configure(-scale => 'none') if $self->bump eq 'overlap';
+  return $retval;
+}
+sub draw {
+  my $self = shift;
+  my ($gd,$dx,$dy) = @_;
   my $feature   = $self->feature;
+  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
 
-  my $drawnit;
   $self->panel->startGroup($gd);
-  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
-  if ($wigfile) {
-    $self->draw_wigfile($self->rel2abs($wigfile),@_);
-    $drawnit++;
-  }
+  my $retval;
+  $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
+  $retval =  $self->draw_wigdata($feature,@_)   if $datatype eq 'wigdata';
+  $retval =  $self->draw_densefile($feature,@_) if $datatype eq 'densefile';
+  $retval =  $self->draw_coverage($feature,@_)  if $datatype eq 'coverage';
+  $retval =  $self->draw_statistical_summary($feature,@_) if $datatype eq 'statistical_summary';
+  $retval =  $self->SUPER::draw(@_) if $datatype eq 'generic';
 
-  my ($wigdata) = eval{$feature->get_tag_values('wigdata')};
-  if ($wigdata) {
-      $self->draw_wigdata($wigdata,@_);
-      $drawnit++;
-  }
-  my ($densefile) = eval{$feature->get_tag_values('densefile')};
-  if ($densefile) {
-    $self->draw_densefile($self->rel2abs($feature),$densefile,@_);
-    $drawnit++;
-  }
-  my ($coverage)  = eval{$feature->get_tag_values('coverage')};
-  if ($coverage) {
-      $self->draw_coverage($feature,$coverage,@_);
-      $drawnit++;
-  }
-  # support for BigWig/BigBed
-  if ($feature->can('statistical_summary')) {
-      my $stats = $feature->statistical_summary($self->width);
-      my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
-      $self->draw_coverage($feature,\@vals,@_);
-      $drawnit++;
-  }
-
-  if ($drawnit) {
+  if ($retval) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
@@ -172,20 +170,6 @@ sub draw_coverage {
 			$start,$end,
 			1,1,
 			$x1,$y1,$x2,$y2);
-}
-
-sub effective_bounds { # copied from wiggle_xyplot -- ouch!
-    my $self    = shift;
-    my $feature = shift;
-    my $panel_start = $self->panel->start;
-    my $panel_end   = $self->panel->end;
-    my $start       = $feature->start>$panel_start 
-                         ? $feature->start 
-                         : $panel_start;
-    my $end         = $feature->end<$panel_end   
-                         ? $feature->end   
-                         : $panel_end;
-    return ($start,$end);
 }
 
 sub _draw_wigfile {
@@ -442,15 +426,6 @@ sub calculate_color {
 
 sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
 sub max { $_[0] > $_[1] ? $_[0] : $_[1] }
-
-# repeated in wiggle_xyplot.pm!
-sub rel2abs {
-    my $self = shift;
-    my $wig  = shift;
-    return $wig if ref $wig;
-    my $path = $self->option('basedir');
-    return File::Spec->rel2abs($wig,$path);
-}
 
 sub record_label_positions { 
     my $self = shift;

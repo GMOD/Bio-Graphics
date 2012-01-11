@@ -94,147 +94,16 @@ sub clip_color {
 
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
+
+# sub draw() { } is now mostly in wiggle_minmax.pm 
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
-
-  my $feature     = $self->feature;
-  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
-
-  my $retval;
-  $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
-  $retval =  $self->draw_wigdata($feature,@_)   if $datatype eq 'wigdata';
-  $retval =  $self->draw_densefile($feature,@_) if $datatype eq 'densefile';
-  $retval =  $self->draw_coverage($feature,@_)  if $datatype eq 'coverage';
-  $retval =  $self->draw_statistical_summary($feature,@_) if $datatype eq 'statistical_summary';
-  $retval =  $self->SUPER::draw(@_) if $datatype eq 'generic';
+  my $result = $self->Bio::Graphics::Glyph::wiggle_minmax::draw(@_);
 
   # inhibit the scale if we are non-bumping
   $self->configure(-scale => 'none') if $self->bump eq 'overlap';
-  return $retval;
-}
-
-sub draw_wigfile {
-  my $self = shift;
-  my $feature = shift;
-
-  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
-  $wigfile      = $self->rel2abs($wigfile);
-
-  eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = ref $wigfile && $wigfile->isa('Bio::Graphics::Wiggle') 
-      ? $wigfile
-      : eval { Bio::Graphics::Wiggle->new($wigfile) };
-  unless ($wig) {
-      warn $@;
-      return $self->SUPER::draw(@_);
-  }
-  $self->_draw_wigfile($feature,$wig,@_);
-}
-
-sub draw_wigdata {
-    my $self    = shift;
-    my $feature = shift;
-
-    my ($data)    = eval{$feature->get_tag_values('wigdata')};
-
-    if (ref $data eq 'ARRAY') {
-	my ($start,$end) = $self->effective_bounds($feature);
-	my $parts = $self->subsample($data,$start,$end);
-	$self->draw_plot($parts,@_);
-    }
-
-    else {
-	my $wig = eval { Bio::Graphics::Wiggle->new() };
-	unless ($wig) {
-	    warn $@;
-	    return $self->SUPER::draw(@_);
-	}
-
-	$wig->import_from_wif64($data);
-	$self->_draw_wigfile($feature,$wig,@_);
-    }
-}
-
-sub draw_densefile {
-    my $self = shift;
-    my $feature = shift;
-
-    my ($densefile) = eval{$feature->get_tag_values('densefile')};
-    $densefile      = $self->rel2abs($densefile);
-    
-    my ($denseoffset) = eval{$feature->get_tag_values('denseoffset')};
-    my ($densesize)   = eval{$feature->get_tag_values('densesize')};
-    $denseoffset ||= 0;
-    $densesize   ||= 1;
-    
-    my $smoothing      = $self->get_smoothing;
-    my $smooth_window  = $self->smooth_window;
-    my $start          = $self->smooth_start;
-    my $end            = $self->smooth_end;
-
-    my $fh         = IO::File->new($densefile) or die "can't open $densefile: $!";
-    eval "require Bio::Graphics::DenseFeature" unless Bio::Graphics::DenseFeature->can('new');
-    my $dense = Bio::Graphics::DenseFeature->new(-fh=>$fh,
-						 -fh_offset => $denseoffset,
-						 -start     => $feature->start,
-						 -smooth    => $smoothing,
-						 -recsize   => $densesize,
-						 -window    => $smooth_window,
-	) or die "Can't initialize DenseFeature: $!";
-    my $parts = $self->get_parts;
-    $self->draw_plot($parts);
-}
-
-sub draw_coverage {
-    my $self    = shift;
-    my $feature = shift;
-
-    my ($array)   = eval{$feature->get_tag_values('coverage')};
-    $self->_draw_coverage($feature,$array,@_);
-}
-
-sub draw_statistical_summary {
-    my $self = shift;
-    my $feature = shift;
-    my $stats = $feature->statistical_summary($self->width);
-    $stats   ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
-    return $self->_draw_coverage($feature,\@vals,@_);
-}
-
-sub _draw_coverage {
-    my $self    = shift;
-    my $feature = shift;
-    my $array   = shift;
-
-    $array      = [split ',',$array] unless ref $array;
-    return unless @$array;
-
-    my ($start,$end)    = $self->effective_bounds($feature);
-    my $bases_per_bin   = ($end-$start)/@$array;
-    my $pixels_per_base = $self->scale;
-    my @parts;
-    for (my $pixel=0;$pixel<$self->width;$pixel++) {
-	my $offset = $pixel/$pixels_per_base;
-	my $s      = $start + $offset;
-	my $e      = $s+1;  # fill in gaps
-	my $v      = $array->[$offset/$bases_per_bin];
-	push @parts,[$s,$s,$v];
-    }
-    $self->draw_plot(\@parts,@_);
-}
-
-sub _draw_wigfile {
-    my $self    = shift;
-    my $feature = shift;
-    my $wig     = shift;
-
-    $wig->smoothing($self->get_smoothing);
-    $wig->window($self->smooth_window);
-    $self->wig($wig);
-    my $parts = $self->get_parts;
-    $self->draw_plot($parts,@_);
+  return $result;
 }
 
 sub draw_plot {
@@ -447,28 +316,6 @@ sub draw_label {
     return $self->Bio::Graphics::Glyph::xyplot::draw_label($gd,$left,$top,$partno,$total_parts);
 }
 
-
-
-# BUG: the next two subroutines should be merged
-sub create_parts_for_dense_feature {
-    my $self = shift;
-    my ($dense,$start,$end) = @_;
-
-    my $span = $self->scale> 1 ? $end - $start : $self->width;
-    my $data = $dense->values($start,$end,$span);
-    my $points_per_span = ($end-$start+1)/$span;
-    my @parts;
-
-    for (my $i=0; $i<$span;$i++) {
-	my $offset = $i * $points_per_span;
-	my $value  = shift @$data;
-	next unless defined $value;
-	push @parts,[$start + int($i * $points_per_span),
-		     $start + int($i * $points_per_span),
-		     $value];
-    }
-    return \@parts;
-}
 
 1;
 
