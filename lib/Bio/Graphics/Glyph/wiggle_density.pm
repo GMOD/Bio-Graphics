@@ -3,7 +3,7 @@ package Bio::Graphics::Glyph::wiggle_density;
 use strict;
 use base qw(Bio::Graphics::Glyph::box 
             Bio::Graphics::Glyph::smoothing 
-            Bio::Graphics::Glyph::wiggle_minmax);
+            Bio::Graphics::Glyph::wiggle_data);
 use File::Spec;
 
 sub my_description {
@@ -64,7 +64,7 @@ sub draw {
   my ($gd,$dx,$dy) = @_;
 
   my $feature     = $self->feature;
-  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
+  my $datatype    = $self->datatype;  # found in wiggle_data.pm
 
   my $retval;
   $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
@@ -82,7 +82,7 @@ sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
   my $feature   = $self->feature;
-  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
+  my $datatype    = $self->datatype;  # found in wiggle_data.pm
 
   $self->panel->startGroup($gd);
   my $retval;
@@ -120,13 +120,13 @@ sub draw_wigfile {
       warn $@;
       return $self->SUPER::draw(@_);
   }
-  $self->wig($wig);
 
-  $self->_draw_wigfile(@_);
+  $self->_draw_wigfile($feature,$wig,@_);
 }
 
 sub draw_wigdata {
-    my $self = shift;
+    my $self    = shift;
+    my $feature = shift;
     my $data = shift;
 
     my $wig = eval { Bio::Graphics::Wiggle->new() };

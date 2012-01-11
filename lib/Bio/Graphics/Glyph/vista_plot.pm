@@ -1,7 +1,7 @@
 package Bio::Graphics::Glyph::vista_plot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_minmax
+use base qw(Bio::Graphics::Glyph::wiggle_data
             Bio::Graphics::Glyph::wiggle_xyplot 
             Bio::Graphics::Glyph::wiggle_density
             Bio::Graphics::Glyph::wiggle_whiskers

@@ -1,4 +1,4 @@
-package Bio::Graphics::Glyph::wiggle_minmax;
+package Bio::Graphics::Glyph::wiggle_data;
 
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);
@@ -276,7 +276,7 @@ sub draw {
   my ($gd,$dx,$dy) = @_;
 
   my $feature     = $self->feature;
-  my $datatype    = $self->datatype;  # found in wiggle_minmax.pm
+  my $datatype    = $self->datatype;
 
   my $retval;
   $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';

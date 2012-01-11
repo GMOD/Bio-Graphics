@@ -1,7 +1,7 @@
 package Bio::Graphics::Glyph::wiggle_xyplot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_minmax 
+use base qw(Bio::Graphics::Glyph::wiggle_data
             Bio::Graphics::Glyph::xyplot 
             Bio::Graphics::Glyph::smoothing);
 use IO::File;
@@ -95,11 +95,11 @@ sub clip_color {
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
 
-# sub draw() { } is now mostly in wiggle_minmax.pm 
+# sub draw() { } is now mostly in wiggle_data.pm 
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
-  my $result = $self->Bio::Graphics::Glyph::wiggle_minmax::draw(@_);
+  my $result = $self->Bio::Graphics::Glyph::wiggle_data::draw(@_);
 
   # inhibit the scale if we are non-bumping
   $self->configure(-scale => 'none') if $self->bump eq 'overlap';
@@ -116,7 +116,7 @@ sub draw_plot {
 
     my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
 
-    # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
+    # There is a minmax inherited from xyplot as well as wiggle_data, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
     my ($min_score,$max_score,$mean,$stdev)     = $self->minmax($parts);
     my $rescale  = $self->option('autoscale') eq 'z_score';
