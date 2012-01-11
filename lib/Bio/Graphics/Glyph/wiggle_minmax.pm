@@ -172,5 +172,59 @@ sub datatype {
     return wantarray ? ($tag,$value) : $tag;
 }
 
+sub get_parts {
+    my $self = shift;
+    my $feature = $self->feature;
+    my ($start,$end) = $self->effective_bounds($feature);
+    my ($datatype,$data) = $self->datatype;
+
+    return $self->subsample($data,$start,$end) if $datatype eq 'wigdata';
+    return $self->create_parts_for_dense_feature($data,$start,$end) if $datatype eq 'densefile';
+    return $self->create_parts_from_coverage($data,$start,$end)     if $datatype eq 'coverage';
+    return $self->create_parts_from_summary($data,$start,$end)      if $datatype eq 'statistical_summary';
+    return [];
+}
+
+sub effective_bounds {
+    my $self    = shift;
+    my $feature = shift;
+    my $panel_start = $self->panel->start;
+    my $panel_end   = $self->panel->end;
+    my $start       = $feature->start>$panel_start 
+                         ? $feature->start 
+                         : $panel_start;
+    my $end         = $feature->end<$panel_end   
+                         ? $feature->end   
+                         : $panel_end;
+    return ($start,$end);
+}
+
+sub create_parts_from_coverage {
+    my $self    = shift;
+    my ($array,$start,$end) = @_;
+    $array      = [split ',',$array] unless ref $array;
+    return unless @$array;
+
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my $pixels_per_base = $self->scale;
+    my @parts;
+    for (my $pixel=0;$pixel<$self->width;$pixel++) {
+	my $offset = $pixel/$pixels_per_base;
+	my $s      = $start + $offset;
+	my $e      = $s+1;  # fill in gaps
+	my $v      = $array->[$offset/$bases_per_bin];
+	push @parts,[$s,$s,$v];
+    }
+    return \@parts;
+}
+
+sub create_parts_from_summary {
+    my $self = shift;
+    my ($stats,$start,$end) = @_;
+    $stats ||= [];
+    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    return \@vals;
+}
+
 
 1;
