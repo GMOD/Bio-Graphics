@@ -1,9 +1,9 @@
 package Bio::Graphics::Glyph::wiggle_density;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::box 
-            Bio::Graphics::Glyph::smoothing 
-            Bio::Graphics::Glyph::wiggle_data);
+use base qw(Bio::Graphics::Glyph::wiggle_data
+            Bio::Graphics::Glyph::box 
+            Bio::Graphics::Glyph::smoothing );
 use File::Spec;
 
 sub my_description {
@@ -90,7 +90,7 @@ sub draw {
     $self->panel->endGroup($gd);
     return $retval;
   } else {
-      return $self->SUPER::Bio::Graphics::Glyph::box::draw(@_);
+      return $self->Bio::Graphics::Glyph::box::draw(@_);
   }
 
 }
