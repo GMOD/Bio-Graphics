@@ -46,7 +46,6 @@ sub bigwig_stats {
     my $self = shift;
     my ($autoscale,$feature) = @_;
     my $s;
-
     if ($autoscale =~ /global/ or $autoscale eq 'z_score') {
 	$s = $feature->global_stats;
     } elsif ($autoscale eq 'chromosome') {
@@ -158,17 +157,18 @@ sub datatype {
     my $feature = $self->feature;
     my ($tag,$value);
 
-    foreach $tag ('wigfile','wigdata','densefile','coverage') {
-	($value) = eval{$feature->get_tag_values($tag)};
-	last if $value;
+    for my $t ('wigfile','wigdata','densefile','coverage') {
+	if (my ($v) = eval{$feature->get_tag_values($t)}) {
+	    $value = $v;
+	    $tag   = $t;
+	    last;
+	}
     }
     unless ($value) {
 	$tag   = 'statistical_summary';
 	$value = eval{$feature->statistical_summary};
     }
-    unless ($value) {
-	$tag = 'generic';
-    }
+    $tag ||= 'generic';
     return wantarray ? ($tag,$value) : $tag;
 }
 
@@ -178,7 +178,8 @@ sub get_parts {
     my ($start,$end) = $self->effective_bounds($feature);
     my ($datatype,$data) = $self->datatype;
 
-    return $self->subsample($data,$start,$end) if $datatype eq 'wigdata';
+    return $self->subsample($data,$start,$end)                      if $datatype eq 'wigdata';
+    return $self->create_parts_from_wigfile($data,$start,$end)      if $datatype eq 'wigfile';
     return $self->create_parts_for_dense_feature($data,$start,$end) if $datatype eq 'densefile';
     return $self->create_parts_from_coverage($data,$start,$end)     if $datatype eq 'coverage';
     return $self->create_parts_from_summary($data,$start,$end)      if $datatype eq 'statistical_summary';
@@ -244,6 +245,25 @@ sub create_parts_from_summary {
     $stats ||= [];
     my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
     return \@vals;
+}
+
+sub create_parts_from_wigfile {
+    my $self = shift;
+    my ($path,$start,$end) = @_;
+    $path = $self->rel2abs($path);
+    if ($path =~ /\.wi\w{1,3}$/) {
+	eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
+	my $wig = eval { Bio::Graphics::Wiggle->new($path)};
+	return $self->create_parts_for_dense_feature($wig,$start,$end);
+    } elsif ($path =~ /\.bw$/i) { 
+	eval "use Bio::DB::BigWig" unless Bio::DB::BigWig->can('new');
+	my $bigwig = Bio::DB::BigWig->new(-bigwig=>$path);
+	my ($summary) = $bigwig->features(-seq_id => $self->feature->segment->ref,
+					  -start  => $start,
+					  -end    => $end,
+					  -type   => 'summary');
+	return $self->create_parts_from_summary($summary->statistical_summary($self->width));
+    }
 }
 
 sub subsample {

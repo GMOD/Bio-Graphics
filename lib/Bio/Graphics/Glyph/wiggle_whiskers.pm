@@ -57,10 +57,11 @@ sub my_options {
 	    'The color drawn from -stdev to min.'
 	],
 	graph_type => [
-	    ['boxes','whiskers'],
-	    'boxes',
-	    'Type of graph to generate. Options are "boxes" (for a barchart),',
-	    'or "whiskers" (for a whiskerplot showing mean, +/- stdev and max/min.'
+	    ['histogram','whiskers'],
+	    'histogram',
+	    'Type of graph to generate. Options are "histogram" (for a barchart),',
+	    'or "whiskers" (for a whiskerplot showing mean, +/- stdev and max/min.',
+	    'The deprecated "boxes" subtype is a synonym for "histogram."'
 	],
     }
 }
@@ -80,7 +81,7 @@ sub graph_type {
 
 sub glyph_subtype {
     my $self = shift;
-    return $self->option('glyph_subtype') || $self->option('graph_type') || 'boxes';
+    return $self->option('glyph_subtype') || $self->option('graph_type') || 'histogram';
 }
 
 sub mean_color {
@@ -128,6 +129,7 @@ sub draw {
   $stats  ||= [];
 
   my ($min_score,$max_score,$mean,$stdev) = $self->minmax($stats);
+  warn "($min_score,$max_score,$mean,$stdev)";
   my $rescale  = $self->option('autoscale') eq 'z_score';
 
   my $side = $self->_determine_side();
@@ -237,7 +239,7 @@ sub _draw_whiskers {
 	    }
 	}
 
-	if ($graph_type eq 'boxes') {
+	if ($graph_type =~ /histogram|boxes/) {
 	    if ($mean >= 0) {
 		$gd->line($pos,$origin,$pos,$mean_pos,  $mean_color);
 		$gd->line($pos,$mean_pos,$pos,$plus_one,$stdev_color) if $mean_pos != $plus_one;

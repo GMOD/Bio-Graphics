@@ -7,7 +7,6 @@ use base qw(Bio::Graphics::Glyph::wiggle_data
 use IO::File;
 use File::Spec;
 
-
 sub my_description {
     return <<END;
 This glyph draws quantitative data as an xyplot. It is designed to be

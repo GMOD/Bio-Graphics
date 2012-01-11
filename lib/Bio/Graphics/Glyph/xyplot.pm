@@ -41,11 +41,11 @@ sub my_options {
 	     'range to be clipped.'
 	    ],
 	 graph_type => [
-	     ['boxes','line','points','linepoints'],
-	     'boxes',
+	     ['histogram','line','points','linepoints'],
+	     'histogram',
 	     'Type of graph to generate. Options are "boxes",',
 	     '"line","points", or "linepoints".',
-	     'The deprecated "histogram" subtype is equivalent to "boxes".'
+	     'The deprecated "boxes" subtype is equivalent to "histogram".'
 	     ],
 	 point_symbol => [
 	     'string',
@@ -235,6 +235,7 @@ sub normalize_track {
     my ($global_min,$global_max);
     for my $g (@glyphs_in_track) {
 	my ($min_score,$max_score) = $g->minmax($g->get_parts);
+	warn "($min_score,$max_score)";
 	$global_min = $min_score if !defined $global_min || $min_score < $global_min;
 	$global_max = $max_score if !defined $global_max || $max_score > $global_max;
     }

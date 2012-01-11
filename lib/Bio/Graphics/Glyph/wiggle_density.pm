@@ -81,66 +81,19 @@ sub draw {
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
-  my $feature   = $self->feature;
-  my $datatype    = $self->datatype;  # found in wiggle_data.pm
 
-  $self->panel->startGroup($gd);
-  my $retval;
-  $retval =  $self->draw_wigfile($feature,@_)   if $datatype eq 'wigfile';
-  $retval =  $self->draw_wigdata($feature,@_)   if $datatype eq 'wigdata';
-  $retval =  $self->draw_densefile($feature,@_) if $datatype eq 'densefile';
-  $retval =  $self->draw_coverage($feature,@_)  if $datatype eq 'coverage';
-  $retval =  $self->draw_statistical_summary($feature,@_) if $datatype eq 'statistical_summary';
-  $retval =  $self->SUPER::draw(@_) if $datatype eq 'generic';
+  my $retval    = $self->SUPER::draw(@_);
 
   if ($retval) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
-    return;
+    return $retval;
+  } else {
+      return $self->SUPER::Bio::Graphics::Glyph::box::draw(@_);
   }
 
-  else {
-      $self->panel->endGroup($gd);
-  }
-
-  return $self->SUPER::draw(@_);
 }
-
-sub draw_wigfile {
-  my $self    = shift;
-  my $wigfile = shift;
-
-  eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = ref $wigfile &&a $wigfile->isa('Bio::Graphics::Wiggle') 
-      ? $wigfile
-      : eval { Bio::Graphics::Wiggle->new($wigfile) };
-
-  unless ($wig) {
-      warn $@;
-      return $self->SUPER::draw(@_);
-  }
-
-  $self->_draw_wigfile($feature,$wig,@_);
-}
-
-sub draw_wigdata {
-    my $self    = shift;
-    my $feature = shift;
-    my $data = shift;
-
-    my $wig = eval { Bio::Graphics::Wiggle->new() };
-    unless ($wig) {
-	warn $@;
-	return $self->SUPER::draw(@_);
-    }
-
-    $wig->import_from_wif64($data);
-
-    $self->wig($wig);
-    $self->_draw_wigfile(@_);
-}
-
 sub draw_coverage {
     my $self    = shift;
     my $feature = shift;
@@ -170,61 +123,6 @@ sub draw_coverage {
 			$start,$end,
 			1,1,
 			$x1,$y1,$x2,$y2);
-}
-
-sub _draw_wigfile {
-    my $self = shift;
-    my $wig  = $self->wig;
-    my ($gd,$left,$top) = @_;
-
-    my $smoothing      = $self->get_smoothing;
-    my $smooth_window  = $self->smooth_window;
-    my $start          = $self->smooth_start;
-    my $end            = $self->smooth_end;
-
-    $wig->window($smooth_window);
-    $wig->smoothing($smoothing);
-    my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-    $self->draw_segment($gd,
-			$start,$end,
-			$wig,$start,$end,
-			1,1,
-			$x1,$y1,$x2,$y2);
-}
-
-sub draw_densefile {
-  my $self = shift;
-  my $feature   = shift;
-  my $densefile = shift;
-  my ($gd,$left,$top) = @_;
-
-  my ($denseoffset) = eval{$feature->get_tag_values('denseoffset')};
-  my ($densesize)   = eval{$feature->get_tag_values('densesize')};
-  $denseoffset ||= 0;
-  $densesize   ||= 1;
-
-  my $smoothing      = $self->get_smoothing;
-  my $smooth_window  = $self->smooth_window;
-  my $start          = $self->smooth_start;
-  my $end            = $self->smooth_end;
-
-  my $fh         = IO::File->new($densefile) or die "can't open $densefile: $!";
-  eval "require Bio::Graphics::DenseFeature" unless Bio::Graphics::DenseFeature->can('new');
-
-  my $dense = Bio::Graphics::DenseFeature->new(-fh=>$fh,
-					       -fh_offset => $denseoffset,
-					       -start     => $feature->start,
-					       -smooth    => $smoothing,
-					       -recsize   => $densesize,
-					       -window    => $smooth_window,
-					      ) or die "Can't initialize DenseFeature: $!";
-
-  my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-  $self->draw_segment($gd,
-		      $start,$end,
-		      $dense,$start,$end,
-		      1,1,
-		      $x1,$y1,$x2,$y2);
 }
 
 sub draw_segment {
