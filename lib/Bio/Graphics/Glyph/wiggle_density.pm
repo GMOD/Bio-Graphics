@@ -3,8 +3,9 @@ package Bio::Graphics::Glyph::wiggle_density;
 use strict;
 use base qw(Bio::Graphics::Glyph::wiggle_data
             Bio::Graphics::Glyph::box 
-            Bio::Graphics::Glyph::smoothing );
-use File::Spec;
+            Bio::Graphics::Glyph::smoothing
+            Bio::Graphics::Glyph::xyplot
+ );
 
 sub my_description {
     return <<END;
@@ -61,6 +62,7 @@ sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
 
+  warn "label = ",$self->option('label');
   my $retval    = $self->SUPER::draw(@_);
 
   if ($retval) {
@@ -112,7 +114,7 @@ sub draw_plot {
 	$rgb_pos = [$self->panel->rgb($positive)];
 	$rgb_neg = [$self->panel->rgb($negative)];
     } else {
-	$rgb = $scaled_max > $scaled_min ? ([$self->panel->rgb($$positive)] || [$self->panel->rgb($self->bgcolor)]) 
+	$rgb = $scaled_max > $scaled_min ? ([$self->panel->rgb($positive)] || [$self->panel->rgb($self->bgcolor)]) 
 	                                 : ([$self->panel->rgb($negative)] || [$self->panel->rgb($self->bgcolor)]);
     }
 
@@ -162,6 +164,10 @@ sub record_label_positions {
     my $rlp  = $self->option('record_label_positions');
     return $rlp if defined $rlp;
     return 1;
+}
+
+sub draw_label {
+    shift->Bio::Graphics::Glyph::xyplot::draw_label(@_);
 }
 
 1;

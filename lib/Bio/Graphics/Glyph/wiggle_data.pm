@@ -2,6 +2,7 @@ package Bio::Graphics::Glyph::wiggle_data;
 
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);
+use File::Spec;
 
 sub minmax {
     my $self   = shift;

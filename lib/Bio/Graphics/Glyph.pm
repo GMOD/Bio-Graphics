@@ -689,7 +689,8 @@ sub hbumppad {
 sub default_opacity {
     my $self = shift;
     return $self->{default_opacity} if defined $self->{default_opacity};
-    return $self->{default_opacity} = $self->option('opacity') || 0;
+    my $o = $self->option('opacity');
+    return $self->{default_opacity} = defined  $o ? $o : 1.0;
 }
 
 # we also look for the "color" option for Ace::Graphics compatibility
