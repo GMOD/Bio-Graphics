@@ -983,7 +983,7 @@ sub _translate_color {
   my ($opacity,@colors)  = @_;
   $opacity    = '1.0' if $opacity == 1;
   my $default_alpha   = $self->adjust_alpha($opacity);
-  $default_alpha    ||= 127;
+  $default_alpha    ||= 0;
 
   my $ckey = "@{colors}_${default_alpha}";
   return $self->{closestcache}{$ckey} if exists $self->{closestcache}{$ckey};
@@ -993,7 +993,7 @@ sub _translate_color {
   my $table = $self->{translations} or return 1;
 
   if (@colors == 3) {
-    $index = $gd->colorAllocateAlpha(@colors,$default_alpha);
+      $index = $gd->colorAllocateAlpha(@colors,$default_alpha);
   }
   elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
     my ($r,$g,$b,$alpha) = (hex($1),hex($2),hex($3),hex($4));

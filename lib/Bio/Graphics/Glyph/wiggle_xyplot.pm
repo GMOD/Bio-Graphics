@@ -251,7 +251,6 @@ sub draw_plot {
 	}	
     }
 
-
     if ($self->option('variance_band') && 
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
 	if ($rescale) {
