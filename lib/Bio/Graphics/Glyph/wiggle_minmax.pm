@@ -226,5 +226,29 @@ sub create_parts_from_summary {
     return \@vals;
 }
 
+sub subsample {
+  my $self = shift;
+  my ($data,$start,$end) = @_;
+  my $span = $self->scale > 1 ? $end - $start 
+                              : $self->width;
+  my $points_per_span = ($end-$start+1)/$span;
+  my @parts;
+  for (my $i=0; $i<$span;$i++) {
+    my $offset = $i * $points_per_span;
+    my $value  = $data->[$offset + $points_per_span/2];
+    push @parts,[$start + int($i*$points_per_span),
+		 $start + int($i*$points_per_span),
+		 $value];
+  }
+  return \@parts;
+}
+
+sub rel2abs {
+    my $self = shift;
+    my $wig  = shift;
+    return $wig if ref $wig;
+    my $path = $self->option('basedir');
+    return File::Spec->rel2abs($wig,$path);
+}
 
 1;
