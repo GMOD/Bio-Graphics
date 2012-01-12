@@ -239,6 +239,8 @@ sub draw_peaks {
 	$grad_ok = $self->calculate_gradient($min_s,$max_s);
     }
 
+    my $flip     = $self->{flip};
+
     foreach my $peak (@peaks) {
 	my $x1     = $left    + ($peak->{start} - $f_start) * $x_scale;
 	my $x2     = $left    + ($peak->{stop}  - $f_start) * $x_scale;
@@ -263,9 +265,15 @@ sub draw_peaks {
 
 	    my $bgcolor = $self->bgcolor;
 		
-	    if($alpha_c > 0){
+	    if ($alpha_c > 0){
 		$gd->alphaBlending(1);
 		$bgcolor = $self->add_alpha($gd,$bgcolor,$alpha_c);
+	    }
+
+	    if ($flip) {
+		$x1 = $right - ($x1-$left);
+		$x2 = $right - ($x2-$left);
+		($x1,$x2) = ($x2,$x1);
 	    }
 	    
 	    $self->filled_box($gd,int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
