@@ -144,7 +144,6 @@ sub font {
 sub fontcolor {
   my $self = shift;
   my $fontcolor = $self->color('labelcolor') || $self->color('fontcolor');
-  warn "opacity = ",$self->default_opacity;
   return defined $fontcolor ? $fontcolor : $self->fgcolor;
 }
 sub font2color {

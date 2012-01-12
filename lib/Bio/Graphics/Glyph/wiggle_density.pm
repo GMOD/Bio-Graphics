@@ -124,6 +124,7 @@ sub draw_plot {
     }
 
     my %color_cache;
+    my $flip     = $self->{flip};
 
     $self->panel->startGroup($gd);
     foreach (@$parts) {
@@ -134,6 +135,11 @@ sub draw_plot {
 
 	my $x1     = $left    + ($start - $f_start) * $x_scale;
 	my $x2     = $left    + ($end   - $f_start) * $x_scale;
+	if ($flip) {
+	    $x1 = $right - ($x1-$left);
+	    $x2 = $right - ($x2-$left);
+	    ($x1,$x2) = ($x2,$x1);
+	}
 
 	my ($r,$g,$b)  = $pivot
 	  ? $score > $midpoint ? $self->calculate_color($score,$rgb_pos,
@@ -143,7 +149,6 @@ sub draw_plot {
           : $self->calculate_color($score,$rgb,
 				   $scaled_min,$scaled_max);
 	my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
-	# debugging
 	$self->filled_box($gd,$x1,$top,$x2,$bottom,$idx,$idx);
     }
     return 1;
