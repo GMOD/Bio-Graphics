@@ -301,19 +301,11 @@ sub draw_plot {
     $self->_draw_scale($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
     $self->panel->endGroup($gd);
 
-    $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
+    $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
 
     $self->panel->endGroup($gd);
 }
-
-sub draw_label {
-    my $self = shift;
-    my ($gd,$left,$top,$partno,$total_parts) = @_;
-    return $self->Bio::Graphics::Glyph::xyplot::draw_label(@_) unless $self->option('variance_band');
-    return $self->Bio::Graphics::Glyph::xyplot::draw_label($gd,$left,$top,$partno,$total_parts);
-}
-
 
 1;
 

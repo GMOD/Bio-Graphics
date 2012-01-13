@@ -137,7 +137,7 @@ sub record_label_positions {
     my $self = shift;
     my $rlp  = $self->option('record_label_positions');
     return $rlp if defined $rlp;
-    return 1;
+    return -1;
 }
 
 sub graph_type {
@@ -209,9 +209,9 @@ sub draw {
   $self->panel->startGroup($gd);
   $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
-
-  $self->draw_label(@_)       if ($self->option('label') && !$self->option('overlay'));
-  $self->draw_description(@_) if ($self->option('description') && !$self->option('overlay'));
+  
+  $self->draw_label(@_)       if $self->option('label');
+  $self->draw_description(@_) if $self->option('description');
   $self->draw_legend(@_)      if $self->option('overlay');
 
   $self->panel->endGroup($gd);
@@ -235,7 +235,6 @@ sub normalize_track {
     my ($global_min,$global_max);
     for my $g (@glyphs_in_track) {
 	my ($min_score,$max_score) = $g->minmax($g->get_parts);
-	warn "($min_score,$max_score)";
 	$global_min = $min_score if !defined $global_min || $min_score < $global_min;
 	$global_max = $max_score if !defined $global_max || $max_score > $global_max;
     }
@@ -560,6 +559,12 @@ sub height {
   return $self->option('graph_height') || $self->SUPER::height;
 }
 
+sub draw_description {
+    my $self = shift;
+    return  if $self->bump eq 'overlap';
+    return $self->SUPER::draw_description(@_);
+}
+
 sub draw_triangle {
   my ($gd,$x,$y,$pr,$color,$filled) = @_;
   $pr /= 2;
@@ -634,26 +639,44 @@ sub symbols {
 }
 
 sub draw_label {
-  my $self = shift;
-  my ($gd,$left,$top,$partno,$total_parts) = @_;
+    my $self = shift;
+    my ($gd,$left,$top,$partno,$total_parts) = @_;
+    my $label = $self->label or return;
 
-  my $label = $self->label or return;
-  return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
+    if ($self->bump eq 'overlap') {
+	local $self->{default_opacity} = 1;
+	my $x    = $self->left + $left + $self->pad_left;
+	$x  = $self->panel->left + 1 if $x <= $self->panel->left;
+	$x += ($self->panel->glyph_scratch||0);
 
-  my $font = $self->labelfont;
-  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
-  my $y = $self->{top} + $top;
+	my $font  = $self->labelfont;
+	$gd->string($font,$x,$top,$label,$self->bgcolor);
+	my $width = $font->width*(length($label)+4);
+	$self->panel->glyph_scratch($self->panel->glyph_scratch + $width);
+	$self->panel->add_key_box($self,$label,$x,$top) if $self->record_label_positions;
 
-  $self->render_label($gd,
-		      $font,
-		      $x,
-		      $y,
-		      $label);
+    } elsif ($self->label_position eq 'left') {
+	  my $font = $self->labelfont;
+	  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+	  my $y = $self->{top} + $top;
+
+	  $self->render_label($gd,
+			      $font,
+			      $x,
+			      $y,
+			      $label);
+
+    } else {
+	$self->SUPER::draw_label(@_);
+    }
+
 }
 
 sub draw_legend {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
+  return  if $self->bump eq 'overlap';
+
   my $color = $self->option('fgcolor'); 
   my $name = $self->feature->{name};
 

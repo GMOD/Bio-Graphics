@@ -17,6 +17,7 @@ use constant MISSING_TRACK_COLOR =>'gray';
 use constant EXTRA_RIGHT_PADDING => 30;
 
 use base qw(Bio::Root::Root);
+our $GlyphScratch;
 
 my %COLORS;  # translation table for symbolic color names to RGB triple
 my $IMAGEMAP = 'bgmap00001';
@@ -1232,6 +1233,13 @@ sub color_names {
     my $class = shift;
     $class->read_colors unless %COLORS;
     return wantarray ? keys %COLORS : [keys %COLORS];
+}
+
+sub glyph_scratch {
+    my $self = shift;
+    my $d = $GlyphScratch;
+    $GlyphScratch = shift if @_;
+    $d;
 }
 
 sub finished {

@@ -129,7 +129,6 @@ sub draw {
   $stats  ||= [];
 
   my ($min_score,$max_score,$mean,$stdev) = $self->minmax($stats);
-  warn "($min_score,$max_score,$mean,$stdev)";
   my $rescale  = $self->option('autoscale') eq 'z_score';
 
   my $side = $self->_determine_side();
@@ -182,6 +181,7 @@ sub draw {
   $self->_draw_scale($gd,$scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
+  warn "draw_label = ",$self->option('label');
   $self->draw_label(@_)       if $self->option('label');
   $self->draw_description(@_) if $self->option('description');
 

@@ -120,10 +120,11 @@ sub my_options {
 	    'black',
 	    'Color to use for lines connecting discontinuous pieces of the feature.'],
 	record_label_positions => [
-	    'boolean',
+	    'integer',
 	    undef,
 	    'If true, remember the coordinates of the glyph label and return it',
-	    'by calling $panel->key_boxes.'
+	    'by calling $panel->key_boxes. If -1, then remember coordinates, but',
+	    "don't actually draw the label",
 	]
     }
 
@@ -492,9 +493,14 @@ sub draw_label {
 sub render_label {
     my $self = shift;
     my ($gd,$font,$x,$y,$label,$is_legend) = @_;
-    if(!$is_legend){$gd->string($font,$x,$y,$label,$self->labelcolor);}
+    my $rlp = $self->record_label_positions;
+
+    unless ($rlp || $is_legend)
+    {
+	$gd->string($font,$x,$y,$label,$self->labelcolor);
+    }
     $self->panel->add_key_box($self,$label,$x,$y)
-	if $self->record_label_positions;
+	if $rlp
 }
 
 sub draw_description {

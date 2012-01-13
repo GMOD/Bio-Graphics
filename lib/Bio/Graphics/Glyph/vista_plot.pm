@@ -158,7 +158,6 @@ sub draw {
 		    peak => (eval{$feature->get_tag_values('peak_type')})[0],
 		    fasta=> (eval{$feature->get_tag_values('fasta')})[0]);
     $self->panel->startGroup($gd);
-    warn "$only_show";
     $self->configure(opacity => 0.5)             if $only_show eq 'vista';
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
     $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista/;

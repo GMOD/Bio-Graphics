@@ -36,7 +36,8 @@ sub draw {
 
   # dynamic assignment of colors
   if ($self->option('color_series')) {
-      my @color_series    = qw(aqua black blue fuchsia gray green lime maroon navy olive purple red silver teal yellow magenta);
+      my @color_series    = 
+	  qw(aqua black blue fuchsia gray green lime maroon navy olive purple red silver teal yellow magenta);
       my $index           = 0;
       my %color_cache;
       my $closure = sub {
@@ -46,6 +47,7 @@ sub draw {
       $self->configure(bgcolor   => $closure);
   }
 
+  local $Bio::Graphics::Panel::GlyphScratch;  # set $GlyphScratch to undef
   for (my $i=0; $i<@parts; $i++) {
     $parts[$i]->draw_highlight($gd,$left,$top);
     $parts[$i]->draw($gd,$left,$top,0,1);
