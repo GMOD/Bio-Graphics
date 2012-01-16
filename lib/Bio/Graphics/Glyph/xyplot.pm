@@ -644,15 +644,18 @@ sub draw_label {
     my $label = $self->label or return;
 
     if ($self->bump eq 'overlap') {
-	local $self->{default_opacity} = 1;
 	my $x    = $self->left + $left + $self->pad_left;
 	$x  = $self->panel->left + 1 if $x <= $self->panel->left;
 	$x += ($self->panel->glyph_scratch||0);
 
 	my $font  = $self->labelfont;
-	$gd->string($font,$x,$top,$label,$self->bgcolor);
 	my $width = $font->width*(length($label)+4);
-	$self->panel->glyph_scratch($self->panel->glyph_scratch + $width);
+	unless ($self->record_label_positions) {
+	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$font->height,$self->bgcolor);
+	    local $self->{default_opacity} = 1;
+	    $gd->string($font,$x+3,$top,$label,$self->contrasting_label_color($gd,$self->bgcolor));
+	}
+	$self->panel->glyph_scratch($self->panel->glyph_scratch + $width + 9);
 	$self->panel->add_key_box($self,$label,$x,$top) if $self->record_label_positions;
 
     } elsif ($self->label_position eq 'left') {
@@ -670,6 +673,14 @@ sub draw_label {
 	$self->SUPER::draw_label(@_);
     }
 
+}
+
+sub contrasting_label_color {
+    my $self = shift;
+    my ($gd,$bgcolor) = @_;
+    my ($r,$g,$b)   = $gd->rgb($bgcolor);
+    my $avg         = ($r+$g+$b)/3;
+    return $self->translate_color($avg > 128 ? 'black' : 'white');
 }
 
 sub draw_legend {
