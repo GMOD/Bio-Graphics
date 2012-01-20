@@ -66,6 +66,18 @@ sub my_options {
     }
 }
 
+sub color_series {
+    my $self = shift;
+    return $self->{color_series} if exists $self->{color_series};
+    return $self->{color_series} = $self->option('color_series');
+}
+
+sub overlaps {
+    my $self = shift;
+    return $self->{overlaps} if exists $self->{overlaps};
+    return $self->{overlaps} = $self->bump eq 'overlap';
+}
+
 sub pad_top {
     my $self = shift;
     return $self->Bio::Graphics::Glyph::wiggle_xyplot::pad_top;
@@ -86,30 +98,36 @@ sub glyph_subtype {
 
 sub mean_color {
     my $self = shift;
+    return $self->bgcolor if $self->color_series;
     return $self->color('mean_color') || $self->translate_color('black');
 }
 
 sub mean_color_neg {
     my $self = shift;
+    return $self->bgcolor if $self->color_series;
     return $self->color('mean_color_neg') || $self->mean_color;
 }
 
 sub stdev_color {
     my $self = shift;
+    return $self->bgcolor if $self->color_series;
     return $self->color('stdev_color') || $self->translate_color('grey');
 }
 
 sub stdev_color_neg {
     my $self = shift;
+    return $self->bgcolor if $self->color_series;
     return $self->color('stdev_color_neg') || $self->stdev_color;
 }
 sub max_color {
     my $self = shift;
+    return $self->bgcolor if $self->color_series;
     return $self->color('max_color') || $self->translate_color('lightgrey');
 }
 
 sub min_color {
     my $self = shift;
+    return $self->bgcolor if $self->color_series;
     return $self->color('min_color') || $self->max_color;
 }
 
@@ -187,7 +205,7 @@ sub draw {
   $self->panel->endGroup($gd);
 
   # inhibit the scale if we are non-bumping
-  $self->configure(-scale => 'none') if $self->bump eq 'overlap';
+  $self->configure(-scale => 'none') if $self->overlaps;
 }
 
 sub _draw_whiskers {
