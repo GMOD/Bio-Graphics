@@ -72,7 +72,7 @@ sub pad_top {
 }
 
 sub extra_label_pad {
-    return 16
+    return 8
 }
 
 sub graph_type {
@@ -185,6 +185,9 @@ sub draw {
   $self->draw_description(@_) if $self->option('description');
 
   $self->panel->endGroup($gd);
+
+  # inhibit the scale if we are non-bumping
+  $self->configure(-scale => 'none') if $self->bump eq 'overlap';
 }
 
 sub _draw_whiskers {

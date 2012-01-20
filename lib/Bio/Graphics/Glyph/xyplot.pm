@@ -655,7 +655,7 @@ sub draw_label {
 	    local $self->{default_opacity} = 1;
 	    $gd->string($font,$x+3,$top,$label,$self->contrasting_label_color($gd,$self->bgcolor));
 	}
-	$self->panel->glyph_scratch($self->panel->glyph_scratch + $width + 9);
+	$self->panel->glyph_scratch($self->panel->glyph_scratch + $width);
 	$self->panel->add_key_box($self,$label,$x,$top) if $self->record_label_positions;
 
     } elsif ($self->label_position eq 'left') {
