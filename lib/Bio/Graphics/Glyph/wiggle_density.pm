@@ -63,13 +63,18 @@ sub my_options {
     };
 }
 
+sub pad_top { 
+    my $self = shift;
+    my $overlap = $self->bump eq 'overlap';
+    return $overlap ?$self->Bio::Graphics::Glyph::xyplot::pad_top(@_)
+	            :$self->SUPER::pad_top(@_);
+}
+
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
 
-  warn "label = ",$self->option('label');
   my $retval    = $self->SUPER::draw(@_);
-
   if ($retval) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
@@ -142,10 +147,11 @@ sub draw_plot {
 	}
 
 	my ($r,$g,$b)  = $pivot
-	  ? $score > $midpoint ? $self->calculate_color($score,$rgb_pos,
+	  ? ($score > $midpoint ? $self->calculate_color($score,$rgb_pos,
 							  $midpoint,$scaled_max)
-	                       : $self->calculate_color($score,$rgb_neg,
+	                        : $self->calculate_color($score,$rgb_neg,
 							  $midpoint,$scaled_min)
+	  )
           : $self->calculate_color($score,$rgb,
 				   $scaled_min,$scaled_max);
 	my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
@@ -159,11 +165,12 @@ sub calculate_color {
   my ($s,$rgb,$min_score,$max_score) = @_;
   $s ||= $min_score;
 
-  return 0 if $max_score==$min_score; # avoid div by zero
+  return (255,255,255) if $max_score <= $min_score; # avoid div by zero
 
   my $relative_score = ($s-$min_score)/($max_score-$min_score);
-  $relative_score -= .1 if $relative_score == 1;
-  return map { int(254.9 - (255-$_) * min(max( $relative_score, 0), 1)) } @$rgb;
+  $relative_score    = 0 if $relative_score < 0;
+  $relative_score    = 1 if $relative_score > 1;
+  return map { int(255 - (255-$_) * $relative_score) } @$rgb;
 }
 
 sub min { $_[0] < $_[1] ? $_[0] : $_[1] }

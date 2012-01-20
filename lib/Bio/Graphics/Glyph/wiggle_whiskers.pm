@@ -181,8 +181,7 @@ sub draw {
   $self->_draw_scale($gd,$scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
 
-  warn "draw_label = ",$self->option('label');
-  $self->draw_label(@_)       if $self->option('label');
+  $self->draw_label(@_)       if $self->option('label') or $self->record_label_positions;
   $self->draw_description(@_) if $self->option('description');
 
   $self->panel->endGroup($gd);

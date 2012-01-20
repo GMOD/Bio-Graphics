@@ -112,7 +112,9 @@ sub midpoint {
 
 sub bicolor_pivot {
     my $self = shift;
-    return $self->option('bicolor_pivot');
+    my $pivot = $self->option('bicolor_pivot');
+    return if defined $pivot && $pivot eq 'none';
+    return $pivot;
 }
 
 sub pos_color {

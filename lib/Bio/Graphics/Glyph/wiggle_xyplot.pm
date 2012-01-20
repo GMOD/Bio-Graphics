@@ -69,14 +69,7 @@ sub my_options {
 
 # Added pad_top subroutine (pad_top of Glyph.pm, which is called when executing $self->pad_top
 # returns 0, so we need to override it here)
-sub pad_top {
-  my $self = shift;
-  my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height)) {
-    $pad = $self->font('gdTinyFont')->height;  # extra room for the scale
-  }
-  $pad;
-}
+sub pad_top { shift->Bio::Graphics::Glyph::xyplot::pad_top(@_) }
 
 sub pad_left {
     my $self = shift;
@@ -199,7 +192,7 @@ sub draw_plot {
 
     $self->panel->startGroup($gd);
     my $type           = $self->graph_type;
-    if ($type eq 'boxes') {
+    if ($type eq 'boxes' or $type eq 'histogram') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
 	    next unless abs($y2-$y1) > 0;
@@ -235,20 +228,6 @@ sub draw_plot {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
 	    $symbol_ref->($gd,$x1,$y1,$pr,$color,$filled);
 	}
-    }
-
-    if ($type eq 'histogram') {
-	my $current = shift @points;
-	for (@points) {
-	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
-	    my ($y_start,$y_end) = $y1 < $y_origin ? ($y1,$y_origin) : ($y_origin,$y1);
-	    if ($y1-$y2) {
-		my $delta = abs($x2-$current->[0]);
-		$gd->filledRectangle($current->[0],$y_start,$x2,$y_end,$color) if $delta > 1;
-		$gd->line($current->[0],$y_start,$current->[0],$y_end,$color)  if $delta == 1;
-		$current = $_;
-	    }
-	}	
     }
 
     if ($self->option('variance_band') && 
@@ -301,7 +280,7 @@ sub draw_plot {
     $self->_draw_scale($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
     $self->panel->endGroup($gd);
 
-    $self->draw_label(@_)       if $self->option('label');
+    $self->draw_label(@_)       if $self->option('label') || $self->record_label_positions;
     $self->draw_description(@_) if $self->option('description');
 
     $self->panel->endGroup($gd);

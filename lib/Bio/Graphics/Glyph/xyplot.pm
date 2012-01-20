@@ -107,8 +107,8 @@ sub point_radius {
 sub pad_top {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height+2)) {
-    $pad = $self->font('gdTinyFont')->height+2;  # extra room for the scale
+  if ($pad < ($self->font('gdTinyFont')->height+8)) {
+    $pad = $self->font('gdTinyFont')->height+8;  # extra room for the scale
   }
   $pad;
 }
@@ -210,7 +210,7 @@ sub draw {
   $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
   
-  $self->draw_label(@_)       if $self->option('label');
+  $self->draw_label(@_)       if $self->option('label') or $self->record_label_positions;
   $self->draw_description(@_) if $self->option('description');
   $self->draw_legend(@_)      if $self->option('overlay');
 
