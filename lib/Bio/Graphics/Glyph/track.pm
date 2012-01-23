@@ -36,7 +36,6 @@ sub draw {
 
   # dynamic assignment of colors
   if ($self->option('color_series')) {
-      warn "setting color series!!";
       my @color_series    = 
 	  qw(red blue green yellow orange brown aqua black fuchsia green lime maroon navy olive purple silver teal magenta);
       my $index           = 0;

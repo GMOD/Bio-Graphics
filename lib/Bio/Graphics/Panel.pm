@@ -1925,6 +1925,9 @@ L<"GLYPH OPTIONS">).  The following options are track-specific:
 
   -glyph      Glyph class to use.         "generic"
 
+  -color_series Dynamically choose         false
+                bgcolor.
+
   -stylesheet Bio::Das::Stylesheet to     none
               use to generate glyph
 	      classes and options.
@@ -1955,6 +1958,11 @@ The B<-stylesheet> argument is used to pass a Bio::Das stylesheet
 object to the panel.  This stylesheet will be called to determine both
 the glyph and the glyph options.  If both a stylesheet and direct
 options are provided, the latter take precedence.
+
+The B<-color_series> argument, if true, causes the track to ignore
+the -bgcolor setting and instead to assign glyphs a series of
+contrasting colors. This is usually used in combination with 
+-bump=>'overlap' in order to create overlapping features.
 
 If successful, add_track() returns an Bio::Graphics::Glyph object.
 You can use this object to add additional features or to control the
@@ -2150,6 +2158,11 @@ some are shared by all glyphs:
 
   -font2color Secondary font color	   turquoise
 
+  -opacity    Value from 0.0 (invisible)   1.0
+                to 1.0 (opaque) which
+                controls the translucency
+                of overlapping features.
+
   -label      Whether to draw a label	   false
 
   -description  Whether to draw a          false
@@ -2320,11 +2333,17 @@ until there is room for them.  A -bump value of -1 will cause
 overlapping glyphs to bump upwards.  You may also provide a -bump
 value of +2 or -2 to activate a very simple type of collision control
 in which each feature occupies its own line. This is useful for
-showing dense, nearly-full length features such as similarity hits.
-Finally, a bump of 3 or the string "fast" will turn on a faster
+showing dense, nearly-full length features such as similarity hits.  A
+bump of 3 or the string "fast" will turn on a faster
 collision-detection algorithm that only works properly with the
-default "left" sort order.  The bump argument can also be a code reference; see
-below.
+default "left" sort order.
+
+Finally, a bump value of "overlap" will cause features to overlap each
+other and to made partially translucent (the translucency can be
+controlled with the -opacity setting). Features that are on opposite
+strands will bump, but those on the same strand will not.
+
+The bump argument can also be a code reference; see below.
 
 For convenience and backwards compatibility, if you specify a -bump
 of 1 and use the default sort order, the faster algorithm will be
