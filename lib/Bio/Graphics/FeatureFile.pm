@@ -440,7 +440,7 @@ END
     } else {
 	mkpath(dirname($cachefile));
 	my $parsed = $self->_new(@_);
-	lock_store($parsed,$cachefile);
+	eval {lock_store($parsed,$cachefile)};
 	return $parsed;
     }
     
@@ -1166,15 +1166,16 @@ sub code_setting {
   my $setting = $self->_setting($section=>$option);
   return unless defined $setting;
   return $setting if ref($setting) eq 'CODE';
-  if ($setting =~ /^\\&(\w+)/) {  # coderef in string form
-    my $subroutine_name = $1;
-    my $package         = $self->base2package;
-    my $codestring      = "\\&${package}\:\:${subroutine_name}";
-    my $coderef         = eval $codestring;
-    $self->_callback_complain($section,$option) if $@;
-    $self->set($section,$option,$coderef);
-    $self->set_callback_source($section,$option,$setting);
-    return $coderef;
+  if ($setting =~ /^\\&([\w:]+::)*(\w+)/) {  # coderef in string form
+      my $package         = $1;
+      my $subroutine_name = $2;
+      $package           ||= ($self->base2package.'::');
+      my $codestring      = "\\&${package}${subroutine_name}";
+      my $coderef         = eval $codestring;
+      $self->_callback_complain($section,$option) if $@;
+      $self->set($section,$option,$coderef);
+      $self->set_callback_source($section,$option,$setting);
+      return $coderef;
   }
   elsif ($setting =~ /^sub\s*(\(\$\$\))*\s*\{/) {
     my $package         = $self->base2package;
