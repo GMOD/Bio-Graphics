@@ -1021,12 +1021,14 @@ sub _translate_color {
   }
   elsif ($colors[0] =~ /^(\w+):([\d.]+)/) {  # color:alpha
       my @rgb   = $self->color_name_to_rgb($1);
+      @rgb      = (0,0,0) unless @rgb;
       my $alpha = $self->adjust_alpha($2);
       $index = $gd->colorAllocateAlpha(@rgb,$alpha);
   }
   elsif ($default_alpha < 127) {
       my @rgb   = $self->color_name_to_rgb($colors[0]);
-      $index = $gd->colorAllocateAlpha(@rgb,$default_alpha);
+      @rgb      = (0,0,0) unless @rgb;
+      $index    = $gd->colorAllocateAlpha(@rgb,$default_alpha);
   }
   else {
       $index = defined $table->{$colors[0]} ? $table->{$colors[0]} : 1;
