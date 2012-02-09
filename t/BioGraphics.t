@@ -13,6 +13,7 @@ use File::Glob ':glob';
 # the ability to regenerate those files when passing the --write option
 
 # for now, the image tests are turned off
+use lib "$Bin/../lib";
 
 use constant IMAGE_TESTS => 1;
 
