@@ -71,6 +71,7 @@ lib/Bio/Graphics/Glyph/repeating_shape.pm
 lib/Bio/Graphics/Glyph/rndrect.pm
 lib/Bio/Graphics/Glyph/ruler_arrow.pm
 lib/Bio/Graphics/Glyph/saw_teeth.pm
+lib/Bio/Graphics/Glyph/scale.pm
 lib/Bio/Graphics/Glyph/segmented_keyglyph.pm
 lib/Bio/Graphics/Glyph/segments.pm
 lib/Bio/Graphics/Glyph/smoothing.pm
@@ -96,8 +97,8 @@ lib/Bio/Graphics/Glyph/wave.pm
 lib/Bio/Graphics/Glyph/weighted_arrow.pm
 lib/Bio/Graphics/Glyph/whiskerplot.pm
 lib/Bio/Graphics/Glyph/wiggle_box.pm
-lib/Bio/Graphics/Glyph/wiggle_density.pm
 lib/Bio/Graphics/Glyph/wiggle_data.pm
+lib/Bio/Graphics/Glyph/wiggle_density.pm
 lib/Bio/Graphics/Glyph/wiggle_whiskers.pm
 lib/Bio/Graphics/Glyph/wiggle_xyplot.pm
 lib/Bio/Graphics/Glyph/xyplot.pm
@@ -110,7 +111,7 @@ lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
 Makefile.PL
 MANIFEST
-MANIFEST.SKIP
+META.json
 META.yml
 README
 README.bioperl
@@ -122,6 +123,8 @@ scripts/render_msa.pl
 scripts/search_overview.pl
 t/BioGraphics.t
 t/data/feature_data.txt
+t/data/t1.gif
+t/data/t1.png
 t/data/t1/version1.gif
 t/data/t1/version1.png
 t/data/t1/version10.png
@@ -129,6 +132,8 @@ t/data/t1/version11.gif
 t/data/t1/version11.png
 t/data/t1/version12.gif
 t/data/t1/version12.png
+t/data/t1/version13.gif
+t/data/t1/version13.png
 t/data/t1/version2.gif
 t/data/t1/version2.png
 t/data/t1/version3.gif
@@ -140,6 +145,8 @@ t/data/t1/version7.png
 t/data/t1/version8.png
 t/data/t1/version9.gif
 t/data/t1/version9.png
+t/data/t2.gif
+t/data/t2.png
 t/data/t2/version1.gif
 t/data/t2/version1.png
 t/data/t2/version10.png
@@ -155,6 +162,8 @@ t/data/t2/version17.gif
 t/data/t2/version17.png
 t/data/t2/version18.gif
 t/data/t2/version18.png
+t/data/t2/version19.gif
+t/data/t2/version19.png
 t/data/t2/version2.gif
 t/data/t2/version2.png
 t/data/t2/version3.gif
@@ -165,6 +174,8 @@ t/data/t2/version6.png
 t/data/t2/version7.png
 t/data/t2/version8.png
 t/data/t2/version9.png
+t/data/t3.gif
+t/data/t3.png
 t/data/t3/version1.gif
 t/data/t3/version1.png
 t/data/t3/version10.gif
@@ -175,6 +186,8 @@ t/data/t3/version12.gif
 t/data/t3/version12.png
 t/data/t3/version13.gif
 t/data/t3/version13.png
+t/data/t3/version14.gif
+t/data/t3/version14.png
 t/data/t3/version2.gif
 t/data/t3/version2.png
 t/data/t3/version3.gif
@@ -188,4 +201,3 @@ t/data/t3/version8.png
 t/data/t3/version9.png
 t/data/wig_data.wig
 t/Wiggle.t
-META.json
