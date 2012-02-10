@@ -35,9 +35,10 @@ sub draw {
   $self->normalize_track(@parts);
 
   # dynamic assignment of colors
-  if ($self->option('color_series')) {
-      my @color_series    = 
-	  qw(red blue green yellow orange brown aqua black fuchsia green lime maroon navy olive purple silver teal magenta);
+  if ($self->option('color_series') || $self->option('color_cycle')) {
+      my $series = $self->option('color_cycle');
+      $series ||= 'red blue green yellow orange brown aqua black fuchsia green lime maroon navy olive purple silver teal magenta';
+      my @color_series    = ref($series) eq 'ARRAY' ? @$series : split /\s+/,$series;
       my $index           = 0;
       my %color_cache;
       my $closure = sub {

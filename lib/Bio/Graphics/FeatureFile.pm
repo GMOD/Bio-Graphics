@@ -440,7 +440,8 @@ END
     } else {
 	mkpath(dirname($cachefile));
 	my $parsed = $self->_new(@_);
-	lock_store($parsed,$cachefile);
+	eval {lock_store($parsed,$cachefile)};
+	warn $@ if $@;
 	return $parsed;
     }
     
