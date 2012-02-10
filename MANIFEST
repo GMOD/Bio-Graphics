@@ -111,6 +111,7 @@ lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
 Makefile.PL
 MANIFEST
+MANIFEST.SKIP
 META.json
 META.yml
 README
