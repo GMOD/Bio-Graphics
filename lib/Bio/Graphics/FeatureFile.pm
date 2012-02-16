@@ -440,6 +440,7 @@ END
     } else {
 	mkpath(dirname($cachefile));
 	my $parsed = $self->_new(@_);
+	$parsed->initialize_code();
 	eval {lock_store($parsed,$cachefile)};
 	warn $@ if $@;
 	return $parsed;
@@ -1167,10 +1168,12 @@ sub code_setting {
   my $setting = $self->_setting($section=>$option);
   return unless defined $setting;
   return $setting if ref($setting) eq 'CODE';
-  if ($setting =~ /^\\&(\w+)/) {  # coderef in string form
+  if ($setting =~ /^\\&([:\w]+)/) {  # coderef in string form
     my $subroutine_name = $1;
     my $package         = $self->base2package;
-    my $codestring      = "\\&${package}\:\:${subroutine_name}";
+    my $codestring      = $subroutine_name =~ /::/ 
+                           ? "\\&$subroutine_name"
+                           : "\\&${package}\:\:${subroutine_name}" ;
     my $coderef         = eval $codestring;
     $self->_callback_complain($section,$option) if $@;
     $self->set($section,$option,$coderef);

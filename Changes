@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.27
+    - Fix handling of code ref subs to allow for option=>\&Packagename::functionname.
+
 2.26
     - Support for normalizing quantitative plots across entire track.
     - Support for transparency within tracks, allowing features to overlap.
