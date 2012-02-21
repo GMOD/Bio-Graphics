@@ -207,7 +207,7 @@ sub additional_decorations {
 	return $self->{'parent'}->additional_decorations(@_)
 		if ($self->{'parent'} and $feature->primary_tag ne "mRNA");
 
-	return @{$self->{'additional_decorations'}}
+	return $self->{'additional_decorations'}
 		if (defined $self->{'additional_decorations'});
 		
 	my @additional_decorations;
@@ -219,14 +219,16 @@ sub additional_decorations {
 	
 	$self->{'additional_decorations'} = \@additional_decorations;
 	
-	return @additional_decorations;
+	return \@additional_decorations;
 }
 
 sub all_decorations {
 	my $self = shift;
 
+	my @all_decorations;
+	
 	# no decorations at gene level
-	return ()
+	return \@all_decorations
 		if ($self->feature->primary_tag eq "gene");
 		
 	# forward request to mRNA parent glyph; 
@@ -235,13 +237,14 @@ sub all_decorations {
 		if ($self->{'parent'} and $self->feature->primary_tag ne "mRNA");
 
 	# decoration data specified as feature tag
-	my @decorations = $self->decorations;
+	@all_decorations = $self->decorations;
 	
-	# additional decorations provided via callback
-	push(@decorations, $self->additional_decorations);
+	# add additional decorations provided via callback
+	push(@all_decorations, @{$self->additional_decorations});
 
-	return @decorations;
+	return \@all_decorations;
 }
+
 
 sub active_decoration {
 	my $self = shift;	
@@ -259,7 +262,46 @@ sub mapped_decorations {
 	$self->_map_decorations()
 		if (!defined $self->{'mapped_decorations'});
 		
-	return @{$self->{'mapped_decorations'}};
+	return $self->{'mapped_decorations'};
+}
+
+# get all mapped decorations, as sorted by user call-back (if provided)
+# by default, decorations are sorted by length, causing shorter decorations
+#   to be drawn on top of longer decorations
+# TODO: document this new feature
+sub sorted_decorations {
+	my $self = shift;
+
+	# forward request to mRNA parent glyph; 
+	# allows CDS child glyphs to retrieve decoration information from mRNA
+	return $self->{'parent'}->sorted_decorations(@_)
+		if ($self->{'parent'} and $self->feature->primary_tag ne "mRNA");
+
+	# cache for faster access
+	return $self->{'sorted_decorations'}
+		if (defined $self->{'sorted_decorations'});
+	
+	# get sorted decorations from callback
+	my $sorted_decorations = $self->option('sorted_decorations');
+	
+	# if no callback or bad return value, sort by length by default (causes longer 
+	# decorations to be drawn first)
+	if (!$sorted_decorations or ref($sorted_decorations) ne 'ARRAY')
+	{
+		my @sorted = reverse sort { $a->length <=> $b->length } (@{$self->mapped_decorations});
+		$sorted_decorations = \@sorted;
+
+		if (DEBUG)
+		{
+			print STDERR "sorted decorations: ";
+			foreach my $sd (@$sorted_decorations) { print STDERR $sd->name."(".$sd->length.") "; }
+			print STDERR "\n";
+		}
+	}
+
+	$self->{'sorted_decorations'} = $sorted_decorations;
+	
+	return $sorted_decorations;
 }
 
 sub _map_decorations {
@@ -269,12 +311,12 @@ sub _map_decorations {
 	$self->_map_coordinates();
 
 	my @mapped_decorations;
-	foreach my $h ( $self->all_decorations ) {
+	foreach my $h ( @{$self->all_decorations} ) {
 		my ( $type, $name, $p_start, $p_end, $score, $desc ) = split( ":", $h );
 
 		if (!defined $p_end)
 		{
-			warn "_map_decorations(): WARNING: invalid decoration data for feature $feature: '$h'";
+			warn "_map_decorations(): WARNING: invalid decoration data for feature $feature: '$h'\n";
 			next;
 		}
 
@@ -282,14 +324,14 @@ sub _map_decorations {
 		if (!$nt_start)
 		{
 			warn "DECORATION=$h\n";
-			warn "_map_decorations(): WARNING: could not map decoration start coordinate on feature $feature(".$feature->primary_tag.")";
+			warn "_map_decorations(): WARNING: could not map decoration start coordinate on feature $feature(".$feature->primary_tag.")\n";
 			next;
 		}
 		my $nt_end = $self->_map_codon_end($p_end);
 		if (!$nt_end)
 		{
 			warn "DECORATION=$h\n";
-			warn "_map_decorations(): WARNING: could not map decoration end coordinate on feature $feature(".$feature->primary_tag.")";
+			warn "_map_decorations(): WARNING: could not map decoration end coordinate on feature $feature(".$feature->primary_tag.")\n";
 			next;
 		}
 
@@ -426,7 +468,7 @@ sub _calc_add_padding
  	my $height = $self->height;
  	my ($add_pad_bottom, $add_pad_top) = (0, 0);
 
-	foreach my $decoration ($self->mapped_decorations)
+	foreach my $decoration (@{$self->mapped_decorations})
 	{
 		my $h_height = $self->decoration_height($decoration);
 
@@ -731,10 +773,10 @@ sub draw_decorations {
 
 	my ( $left, $top, $right, $bottom ) = $self->bounds( $dx, $dy );
 
-	warn "bounds(): left:$left,top:$top,right:$right,bottom:$bottom\n"
+	warn "  bounds: left:$left,top:$top,right:$right,bottom:$bottom\n"
 	  if (DEBUG == 2);
 
-	foreach my $mh ($self->mapped_decorations) {
+	foreach my $mh (@{$self->sorted_decorations}) {
 		  
 		# skip invisible decorations
 		next if ( !$self->decoration_visible($mh) );
