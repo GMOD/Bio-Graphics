@@ -68,70 +68,72 @@ END
 
 sub my_options {
     return {
-	highlight_visible => [
+	decoration_visible => [
 	    'boolean',
 	    'false',
-	    'Specifies whether highlights should be visible or not (default is false). For selective',
-		'display of individual highlights, specify a callback function and return true or false',
-		'after inspecting the active highlight of the glyph (\$glyph->active_highlight)'],
-	highlight_color => [
+	    'Specifies whether decorations should be visible or not. For selective display of individual', 
+        'decorations, specify a callback function and return 1 or 0 after inspecting the active',
+        'decoration of the glyph. '],
+	decoration_color => [
 	    'color',
 	    undef,
-	    'Highlight background color. If no color is specified, colors are assigned automatically by',
-		'type and name, whereas highlights of identical type and name will get assigned',
-		'the same color. A special color \'transparent\' can be used here in combination with the',
-		'highlight_border option to draw decorations as outlines.'],
-	highlight_border => [
+	    'Decoration background color. If no color is specified, colors are assigned automatically',
+	    'by decoration type and name, whereas decorations of identical type and name are assigned',
+	    'the same color. A special color \'transparent\' can be used here in combination with',
+	    'the option \'decoration_border\' to draw decorations as outlines.'],
+	decoration_border => [
 	    ['none', 'solid', 'dashed'],
 	    'none',
-	    'Highlight border style. By default, highlights are drawn without border. \'solid\' draws',
-	    'highlights with a solid border, \'dashed\' with a dashed border.'],
-	highlight_border_color => [
+	    'Decoration border style. By default, decorations are drawn without border (\'none\' or',
+	    '0). Other valid options here include \'solid\' or \'dashed\'.'],
+	decoration_border_color => [
 	    'color',
 	    'black',
-	    'Color of highlight boder.'],
-	highlight_label => [
+	    'Color of decoration boder.'],
+	decoration_label => [
 	    'string',
 	    undef,
-	    'Highlight label. If not specified, the second data field of the highlight',
-		'is used as label. Set this option to 0 for unlabeled highlights. If the label text extends',
-		'beyond the size of the highlighted segment the label will be clipped. Clipping does not occur for',
-		'SVG output.'],
-	highlight_label_position => [
+	    'Decoration label. If not specified, the second data field of the decoration is used',
+	    'as label. Set this option to 0 to get unlabeled decorations. If the label text',
+	    'extends beyond the size of the decorated segment, the label will be clipped. Clipping',
+	    'does not occur for SVG output.'],
+	decoration_label_position => [
 	    ['inside', 'above', 'below'],
 	    undef,
-	    'Position of highlight label. Labels can be drawn inside highlights (default),',
-		'or above and below highlights.'],
-	highlight_label_color => [
+	    'Position of decoration label. Labels can be drawn \'inside\' decorations (default)',
+	    'or \'above\' and \'below\' decorations.'],
+	decoration_label_color => [
 	    'color',
 	    'undef',
-	    'Highlight label color. If not specified, the label color will be complementary to the',
-		'highlight background color (e.g. yellow text on blue background, white on black, etc.).',
-		'If the highlight background color is transparent and no highlight label color is specified,',
-		'the foreground color of the underlying transcript glyph is used as label color.'],
-	additional_highlights => [
+	    'Decoration label color. If not specified, this color is complementary to',
+	    'decoration_color (e.g., yellow text on blue background, white on black, etc.). If the', 
+        'decoration background color is transparent and no decoration label color is specified,',
+        'the foreground color of the underlying transcript glyph is used as default.'],
+	additional_decorations => [
 	    'string',
 	    undef,
-	    'Additional highlights to those specified in the GFF file.',
-	    'The string has the same format as in the GFF file (see description).',
-	    'This parameter is intended to be used as callback function, which inspects the currently',
-	    'processed transcript feature (first parameter to callback) and returns additional protein', 
-	    'decorations that should be drawn.'],
-	highlight_height => [
+	    'Additional decorations to those specified in the GFF file. Expected is a string',
+	    'in the same format as described above for GFF files. This parameter is intended',
+	    'to be used as callback function, which inspects the currently processed transcript',
+	    'feature (first parameter to callback) and returns additional protein decorations',
+	    'that should be drawn.'],
+	decoration_height => [
 	    'integer',
 	    undef,
-	    'Highlight height. Unless specified otherwise, the height of the highlight is the height',
-		'of the underlying transcript minus 2, such that it is drawn within transcript boundaries.'],
-	highlight_position => [
+	    'Decoration height. Unless specified otherwise, the height of the decoration is the',
+	    'height of the underlying transcript glyph minus 2, such that the decoration is drawn',
+	    'within transcript boundaries.'],
+	decoration_position => [
 	    ['inside'],
 	    'inside',
-	    'Currently highlights can only be drawn inside CDS segments.'],
+	    'Currently, decorations can only be drawn inside CDS segments.'],
 	flip_minus => [
 	    'boolean',
 	    0,
-	    'If true, features on the negative strand will be drawn flipped. This is not particularly',
-		'useful in GBrowse, but is useful if multiple features should be drawn left-aligned on top',
-		'of each other for gene structure comparison.'],
+	    'If set to 1, features on the negative strand will be drawn flipped.',
+	    'This is not particularly useful in GBrowse, but becomes handy if multiple features',
+	    'should be drawn within the same panel, left-aligned, and on top of each other,',
+	    'for example to allow easy gene structure comparisons.'],
     }
 }
 
@@ -1004,7 +1006,7 @@ In addition, it recognizes the following glyph-specific options:
                             
   -decoration_border
   
-                  Decoration border style. By default, decorations are     0 
+                  Decoration border style. By default, decorations are     0 (none)
                   drawn without border ('none' or 0). Other valid 
                   options here include 'solid' or 'dashed'.
                             
@@ -1063,9 +1065,10 @@ In addition, it recognizes the following glyph-specific options:
   
                   If set to 1, features on the negative strand will be     false 
                   drawn flipped. This is not particularly useful in 
-                  GBrowse, but is useful if multiple features should be 
-                  drawn within the same panel left-aligned on top of 
-                  each other, for example for gene structure comparison.
+                  GBrowse, but becomes handy if multiple features should 
+                  be drawn within the same panel, left-aligned, and on 
+                  top of each other, for example to allow for easy gene 
+                  structure comparisons.
 
 =head1 BUGS
 
