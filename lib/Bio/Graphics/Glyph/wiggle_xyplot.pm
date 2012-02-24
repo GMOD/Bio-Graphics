@@ -98,6 +98,29 @@ sub draw {
   return $result;
 }
 
+sub draw_coverage {
+    my $self    = shift;
+    my $feature = shift;
+    my $array   = shift;
+
+    $array      = [split ',',$array] unless ref $array;
+    return unless @$array;
+
+    my ($start,$end)    = $self->effective_bounds($feature);
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my $pixels_per_base = $self->scale;
+    my @parts;
+    for (my $pixel=0;$pixel<$self->width;$pixel++) {
+        my $offset = $pixel/$pixels_per_base;
+        my $s      = $start + $offset;
+        my $e      = $s+1;  # fill in gaps
+        my $v      = $array->[$offset/$bases_per_bin];
+        push @parts,[$s,$s,$v];
+    }
+    $self->draw_plot(\@parts,@_);
+}
+
+
 sub draw_plot {
     my $self            = shift;
     my $parts           = shift;
