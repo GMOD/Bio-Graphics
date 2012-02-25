@@ -1,12 +1,13 @@
 package Bio::Graphics::Glyph::vista_plot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_data
+use base qw(Bio::Graphics::Glyph::wiggle_minmax
             Bio::Graphics::Glyph::wiggle_xyplot 
             Bio::Graphics::Glyph::wiggle_density
             Bio::Graphics::Glyph::wiggle_whiskers
             Bio::Graphics::Glyph::heat_map 
-            Bio::Graphics::Glyph::smoothing); 
+            Bio::Graphics::Glyph::smoothing);
+
 
 our $VERSION = '1.0';
 
@@ -46,8 +47,8 @@ sub my_options {
             'vista',
             "What to show, peaks or signal, both (vista plot) or density graph."],
         graph_type => [
-	     ['whiskers','histogram','line','points','linepoints'],
-            'histogram',
+	     ['whiskers','histogram','boxes','line','points','linepoints'],
+            'boxes',
             "Type of signal graph to show."],
 	alpha  => [
 	    'integer',
@@ -160,9 +161,9 @@ sub draw {
 		    peak => (eval{$feature->get_tag_values('peak_type')})[0],
 		    fasta=> (eval{$feature->get_tag_values('fasta')})[0]);
     $self->panel->startGroup($gd);
-    $self->configure(opacity => 0.5)             if $only_show eq 'vista';
+
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
-    $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista/;
+    $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
@@ -206,7 +207,6 @@ sub draw_signal {
 	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
 	    $self->bigwig_summary($summary);
 	    if ($signal_type eq 'density') {
-#              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($summary,\@vals,@_);
 		$self->Bio::Graphics::Glyph::wiggle_density::_draw_coverage($summary,\@vals,@_);
             } else {
 		$self->Bio::Graphics::Glyph::wiggle_data::_draw_coverage($summary,\@vals,@_);
