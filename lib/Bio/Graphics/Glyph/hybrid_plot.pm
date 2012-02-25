@@ -5,7 +5,6 @@ use base qw(Bio::Graphics::Glyph::wiggle_xyplot Bio::Graphics::Glyph::smoothing)
 use constant DEBUG=>0;
 use constant NEGCOL=>"orange";
 use constant POSCOL=>"blue";
-
 our $VERSION = '1.0';
 
 sub my_options {
@@ -100,7 +99,7 @@ sub draw {
     $self->configure(-pos_color, POSCOL);
   }
   if ($wiggles[$w] =~ /\.wi\w{1,3}$/) {
-   $self->draw_wigfile($feature,$wiggles[$w],@_);
+   $self->Bio::Graphics::Glyph::wiggle_data::draw_wigfile($feature,$wiggles[$w],@_);
   } elsif ($wiggles[$w] =~ /\.bw$/ && $fasta) {
    my $flip = ($w > 0 && $set_flip) ? -1 : 1;
    use Bio::DB::BigWig 'binMean';
