@@ -1,5 +1,4 @@
 package Bio::Graphics::Glyph::wiggle_density;
-
 use strict;
 use base qw(Bio::Graphics::Glyph::wiggle_data
             Bio::Graphics::Glyph::box 
@@ -90,8 +89,16 @@ sub draw_coverage {
     my $feature = shift;
     my $array   = shift;
 
-    $array      = [split ',',$array] unless ref $array;
+
+    if (! $array || ref($array) ne 'ARRAY'){
+     unshift(@_,$array);
+     my @arr = (eval{$feature->get_tag_values('coverage')});
+     $array  = $arr[0];
+    } else {
+     $array   = [split ',',$array] unless ref $array;
+    }
     return unless @$array;
+
     my ($gd,$left,$top) = @_;
 
     my ($start,$end)    = $self->effective_bounds($feature);
@@ -107,6 +114,7 @@ sub draw_coverage {
         my $v      = $array->[$offset/$bases_per_bin];
         push @parts,$v;
     }
+
     my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
     $self->draw_segment($gd,
              	        $start,$end,
@@ -198,15 +206,15 @@ sub draw_segment {
   # from 0 to max. The latter behavior is triggered when the config file contains
   # entries for "pos_color" and "neg_color" and the data ranges from < 0 to > 0.
 
-  my $poscolor       = $self->pos_color;
-  my $negcolor       = $self->neg_color;
+  my $poscolor       = $self->pos_color || $self->fgcolor;
+  my $negcolor       = $self->neg_color || $self->bgcolor;
 
   my $data_midpoint  =   $self->midpoint;
   $data_midpoint     =   0 if $rescale;
   my $bicolor   = $poscolor != $negcolor
                        && $scaled_min < $data_midpoint
                        && $scaled_max > $data_midpoint;
-
+  
   my ($rgb_pos,$rgb_neg,$rgb);
   if ($bicolor) {
       $rgb_pos = [$self->panel->rgb($poscolor)];
@@ -227,6 +235,10 @@ sub draw_segment {
     $pixels_per_step = 1 if $pixels_per_step < 1;
     my $datapoints_per_base  = @$data/$length;
     my $pixels_per_datapoint = $self->panel->width/@$data * $data_width_ratio;
+
+    my %temps;
+    map{$temps{$_}++} (@$data);
+    my %colorss = (); 
     for (my $i = 0; $i <= @$data ; $i++) {
       my $x          = $x1 + $pixels_per_datapoint * $i;
       my $data_point = $data->[$i];
@@ -234,7 +246,6 @@ sub draw_segment {
       $data_point    = ($data_point-$mean)/$stdev if $rescale;
       $data_point    = $scaled_min if $scaled_min > $data_point;
       $data_point    = $scaled_max if $scaled_max < $data_point;
-
       my ($r,$g,$b)  = $bicolor
           ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
                                                                   $data_midpoint,$scaled_max)
@@ -242,10 +253,12 @@ sub draw_segment {
                                                                   $data_midpoint,$scaled_min)
           : $self->calculate_color($data_point,$rgb,
                                    $scaled_min,$scaled_max);
+
       my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
+      $colorss{$idx} = $data_point;
       $self->filled_box($gd,$x,$y1,$x+$pixels_per_datapoint,$y2,$idx,$idx);
     }
-
+  (keys %colorss);  # Alleviate a silent crash somewhere in GD that causes density graph get drawn as a solid-colored box
   } else {     # use Sheldon's code to subsample data
       $pixels_per_step = $scale * $step;
       my $pixels = 0;
