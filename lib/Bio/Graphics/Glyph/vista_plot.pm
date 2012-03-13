@@ -204,9 +204,10 @@ sub draw_signal {
 	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
 	    $self->bigwig_summary($summary);
 	    if ($signal_type eq 'density') {
-              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($summary,\@vals,@_);
+#              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($summary,\@vals,@_);
+		$self->Bio::Graphics::Glyph::wiggle_density::_draw_coverage($summary,\@vals,@_);
             } else {
-	      $self->Bio::Graphics::Glyph::wiggle_data::_draw_coverage($summary,\@vals,@_);
+		$self->Bio::Graphics::Glyph::wiggle_data::_draw_coverage($summary,\@vals,@_);
             }
 	}
     }
