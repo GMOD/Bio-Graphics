@@ -3,6 +3,7 @@ package Bio::Graphics::Glyph::wiggle_data;
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);
 use File::Spec;
+
 sub minmax {
     my $self   = shift;
     my $parts  = shift;
@@ -156,6 +157,7 @@ sub datatype {
     my $self = shift;
     my $feature = $self->feature;
     my ($tag,$value);
+
     for my $t ('wigfile','wigdata','densefile','coverage') {
 	if (my ($v) = eval{$feature->get_tag_values($t)}) {
 	    $value = $v;
@@ -176,6 +178,7 @@ sub get_parts {
     my $feature = $self->feature;
     my ($start,$end) = $self->effective_bounds($feature);
     my ($datatype,$data) = $self->datatype;
+
     return $self->subsample($data,$start,$end)                      if $datatype eq 'wigdata';
     return $self->create_parts_from_wigfile($data,$start,$end)      if $datatype eq 'wigfile';
     return $self->create_parts_for_dense_feature($data,$start,$end) if $datatype eq 'densefile';
@@ -248,9 +251,6 @@ sub create_parts_from_summary {
 sub create_parts_from_wigfile {
     my $self = shift;
     my ($path,$start,$end) = @_;
-    if (ref $path && $path->isa('Bio::Graphics::Wiggle')) {
-     return $self->create_parts_for_dense_feature($path,$start,$end);
-    }
     $path = $self->rel2abs($path);
     if ($path =~ /\.wi\w{1,3}$/) {
 	eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
@@ -313,8 +313,8 @@ sub draw {
 sub draw_wigfile {
   my $self = shift;
   my $feature = shift;
-  my $wigfile = shift;
-  $wigfile ||= eval{$feature->get_tag_values('wigfile')};
+
+  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
   $wigfile      = $self->rel2abs($wigfile);
 
   eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
@@ -325,7 +325,7 @@ sub draw_wigfile {
       warn $@;
       return $self->SUPER::draw(@_);
   }
-  $self->_draw_wigfile($feature,$wigfile,@_);
+  $self->_draw_wigfile($feature,$wig,@_);
 }
 
 sub draw_wigdata {
@@ -424,15 +424,7 @@ sub _draw_coverage {
 sub _draw_wigfile {
     my $self    = shift;
     my $feature = shift;
-    my $wigfile = shift;
-
-     $self->feature->remove_tag('wigfile') if $self->feature->has_tag('wigfile');
-     $self->feature->add_tag_value('wigfile',$wigfile);
-
-    eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-    my $wig = ref $wigfile && $wigfile->isa('Bio::Graphics::Wiggle')
-      ? $wigfile
-      : eval { Bio::Graphics::Wiggle->new($wigfile) };
+    my $wig     = shift;
 
     $wig->smoothing($self->get_smoothing);
     $wig->window($self->smooth_window);
