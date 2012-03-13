@@ -123,8 +123,10 @@ sub bigwig_summary {
 sub global_mean_and_variance {
     my $self = shift;
     if (my $wig = $self->wig) {
-        return ($wig->mean,$wig->stdev);
-    } elsif (my $sum = $self->bigwig_summary){
+	my @result = eval{($wig->mean,$wig->stdev)};
+        return @result if @result;
+    } 
+    if (my $sum = $self->bigwig_summary){
         use Bio::DB::BigWig qw(binMean binStdev);
         my $stats = $sum->statistical_summary(1);
         return eval{(binMean($stats->[0]),binStdev($stats->[0]))};

@@ -110,7 +110,7 @@ sub draw_plot {
 
     # There is a minmax inherited from xyplot as well as wiggle_data, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
-    my ($min_score,$max_score,$mean,$stdev)     = $self->minmax($parts);
+    my ($min_score,$max_score,$mean,$stdev)  = $self->minmax($parts);
     my $rescale  = $self->option('autoscale') eq 'z_score';
     my $side    = $self->_determine_side();
 
