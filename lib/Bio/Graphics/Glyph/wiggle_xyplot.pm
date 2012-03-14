@@ -142,8 +142,8 @@ sub draw_plot {
 	$scaled_min = int(($min_score-$mean)/$stdev + 0.5);
 	$scaled_max = int(($max_score-$mean)/$stdev + 0.5);
 	my $bound  = $self->z_score_bound;
-	$scaled_max = $bound  if $scaled_max > $bound;
-	$scaled_min = -$bound if $scaled_min < -$bound;
+	$scaled_max = $bound  if $scaled_max > 0;
+	$scaled_min = -$bound if $scaled_min < 0;
     }
     elsif ($side) {
 	$scaled_min = int($min_score - 0.5);
@@ -171,9 +171,11 @@ sub draw_plot {
     my $y_origin = $scaled_min <= 0 && $pivot ne 'min' ? $bottom - (0 - $scaled_min) * $y_scale : $bottom;
     $y_origin    = int($y_origin+0.5);
 
+
     $self->panel->startGroup($gd);
-    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
+    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless $self->option('no_grid');
     $self->panel->endGroup($gd);
+
 
     return unless $scaled_max > $scaled_min;
 
