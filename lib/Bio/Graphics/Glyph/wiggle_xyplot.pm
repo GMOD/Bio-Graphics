@@ -100,10 +100,15 @@ sub draw {
 
 sub draw_coverage {
     my $self    = shift;
-    my $feature = shift;
+    my $feature = shift;   
     my $array   = shift;
-
-    $array      = [split ',',$array] unless ref $array;
+    if (! $array || ref($array) ne 'ARRAY'){
+     unshift(@_,$array);
+     my @arr = (eval{$feature->get_tag_values('coverage')});
+     $array  = $arr[0];
+    } else {
+     $array   = [split ',',$array] unless ref $array;
+    }
     return unless @$array;
 
     my ($start,$end)    = $self->effective_bounds($feature);
