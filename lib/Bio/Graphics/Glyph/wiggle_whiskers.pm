@@ -140,7 +140,7 @@ sub draw {
 
   my $feature = $self->feature;
   my $stats = eval {$feature->statistical_summary($self->width)};
-  if ($@ =~ /can't locate object method/i) {
+  if ($@ =~ /can\'t locate object method/i) {
       warn "This glyph only works properly with features that have a statistical_summary() method, but you passed a ",ref($feature)," object";
       return;
   }
