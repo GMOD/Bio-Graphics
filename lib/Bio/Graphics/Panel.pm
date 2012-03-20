@@ -1014,7 +1014,7 @@ sub _translate_color {
 	 $colors[0] =~ /^rgb\((\d+),(\d+),(\d+)\)$/i
       ) {
       my (@rgb) = map {/(\d+)%/ ? int(255 * $1 / 100) : $_} ($1,$2,$3);
-      $index = $self->colorAllocateAlpha($gd,@rgb,$default_alpha);
+      $index = $gd->colorAllocateAlpha(@rgb,$default_alpha);
   }
   elsif ($colors[0] eq 'transparent') {
       $index = $gd->colorAllocateAlpha(255,255,255,127);
