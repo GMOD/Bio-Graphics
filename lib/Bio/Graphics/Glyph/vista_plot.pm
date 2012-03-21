@@ -242,6 +242,8 @@ sub draw_peaks {
 
     my $flip     = $self->{flip};
 
+    $self->{peak_cache} = [];  # remember coordinates of the peaks
+
     foreach my $peak (@peaks) {
 	my $x1     = $left    + ($peak->{start} - $f_start) * $x_scale;
 	my $x2     = $left    + ($peak->{stop}  - $f_start) * $x_scale;
@@ -277,10 +279,12 @@ sub draw_peaks {
 		($x1,$x2) = ($x2,$x1);
 	    }
 	    
-	    $self->filled_box($gd,int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
+	    my @rect = (int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5));
+	    $self->filled_box($gd,@rect,$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
 	    $gd->setThickness($lw);
 	    $gd->line(int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y1+0.5),$color);
 	    $gd->setThickness(1);
+	    push @{$self->{peak_cache}},[$peak,@rect];
 	}
     }
 }
@@ -403,46 +407,16 @@ sub level { -1 }
 
 # Need to override this so we have a nice image map for overlayed peaks
 sub boxes {
-  my $self = shift;
+    my $self = shift;
+    my($left,$top,$parent) = @_;
 
-  return if $self->glyph_subtype eq 'density'; # No boxes for density plot
-  my($left,$top,$parent) = @_;
-  
-  my $feature = $self->feature;
-  my @result;
-  my ($handle) = eval{$feature->get_tag_values('peak_type')};
-  
-  if (!$handle) {
-   return wantarray ? () : \();
-  }
-
-  $parent ||=$self;
-  $top  += 0; $left += 0;
-  
-  if ($handle)  {
-   my @peaks = $self->peaks;
-   $self->add_feature(@peaks);
- 
-   my $x_scale = $self->scale;
-   my $panel_start = $self->panel->start;
-   my $f_start     = $feature->start > $panel_start
-                      ? $feature->start
-                      : $panel_start;
-   for my $part ($self->parts) { 
-    my $x1 = $f_start < $part->{start} ? int(($part->{start} - $f_start) * $x_scale) : 1;
-    my $x2 = int(($part->{stop}  - $f_start) * $x_scale);
-    my $y1 = 0;
-    my $y2 = $part->height + $self->pad_top;
-    $x2++ if $x1==$x2;
-    next if $x1 <= 0;
-    push @result,[$part->feature,
-                  $left + $x1,$top+$self->top+$self->pad_top+$y1,
-                  $left + $x2,$top+$self->top+$self->pad_top+$y2,
-                  $parent];
-   }
-  }
-
-  return wantarray ? @result : \@result;
+    return if $self->glyph_subtype eq 'density'; # No boxes for density plot
+    my @boxes = $self->SUPER::boxes(@_);
+    
+    if (my $rects = $self->{peak_cache}) {
+	push @boxes,[@$_,$parent] foreach @$rects;
+    }
+    return wantarray ? @boxes : \@boxes;
 }
 
 
