@@ -2,7 +2,7 @@ package Bio::Graphics::Glyph::diamond;
 # DAS-compatible package to use for drawing a colored diamond
 
 use strict;
-use base qw(Bio::Graphics::Glyph::generic);
+use base qw(Bio::Graphics::Glyph::point_glyph);
 
 sub my_description {
     return <<END;
@@ -70,16 +70,6 @@ sub draw_component {
   }
 }
 
-sub box {
-  my $self = shift;
-  my @result = $self->SUPER::box();
-  return @result unless $self->option('point');
-  my $h   = $self->option('height')/2;
-  my $mid = int(($result[2]+$result[0])/2);
-  $result[0] = $mid-$h-1;  # fudge a little to make it easier to click on
-  $result[2] = $mid+$h+1;
-  return @result;
-}
 
 1;
 

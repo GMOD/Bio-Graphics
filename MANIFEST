@@ -59,6 +59,7 @@ lib/Bio/Graphics/Glyph/pairplot.pm
 lib/Bio/Graphics/Glyph/pentagram.pm
 lib/Bio/Graphics/Glyph/phylo_align.pm
 lib/Bio/Graphics/Glyph/pinsertion.pm
+lib/Bio/Graphics/Glyph/point_glyph.pm
 lib/Bio/Graphics/Glyph/primers.pm
 lib/Bio/Graphics/Glyph/processed_transcript.pm
 lib/Bio/Graphics/Glyph/protein.pm
