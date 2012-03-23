@@ -66,6 +66,17 @@ sub draw_component {
   $gd->polygon($poly,$fg);
 }
 
+sub box {
+  my $self = shift;
+  my @result = $self->SUPER::box();
+  return @result unless $self->option('point');
+  my $h   = $self->option('height')/2;
+  my $mid = int(($result[2]+$result[0])/2);
+  $result[0] = $mid-$h-1;  # fudge a little to make it easier to click on
+  $result[2] = $mid+$h+1;
+  return @result;
+}
+
 1;
 
 __END__
