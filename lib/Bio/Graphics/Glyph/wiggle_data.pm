@@ -313,8 +313,8 @@ sub draw {
 sub draw_wigfile {
   my $self = shift;
   my $feature = shift;
-  my $wigfile = shift;
-  $wigfile ||= eval{$feature->get_tag_values('wigfile')};
+
+  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
   $wigfile      = $self->rel2abs($wigfile);
 
   eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
@@ -425,9 +425,9 @@ sub _draw_wigfile {
     my $self    = shift;
     my $feature = shift;
     my $wigfile = shift;
-
-     $self->feature->remove_tag('wigfile') if $self->feature->has_tag('wigfile');
-     $self->feature->add_tag_value('wigfile',$wigfile);
+    
+    $self->feature->remove_tag('wigfile') if $self->feature->has_tag('wigfile');
+    $self->feature->add_tag_value('wigfile',$wigfile);
 
     eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
     my $wig = ref $wigfile && $wigfile->isa('Bio::Graphics::Wiggle')
