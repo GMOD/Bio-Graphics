@@ -1,0 +1,12 @@
+^MYMETA.yml$
+^MYMETA\.json$
+^_build
+\.tar\.gz$
+^blib/
+^\.
+Build$
+^[^/]+\.pl$
+^[^/]+\.t$
+^[^/]+\.gff3
+MANIFEST\.bak
+~$
