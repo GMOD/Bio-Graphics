@@ -1,5 +1,18 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.28
+    - Fixes to restore density plot functionality in hybrid_plot and vista_plot.
+    - Fix handling of Bio::Graphics::Wiggle files in xyplots.
+
+2.27
+    - Fix handling of code ref subs to allow for option=>\&Packagename::functionname.
+
+2.26
+    - Support for normalizing quantitative plots across entire track.
+    - Support for transparency within tracks, allowing features to overlap.
+    - Support for -color_series and -color_cycle options (see Bio::Graphics::Panel)
+      which cycle dynamically among a fixed series of background colors.
+
 2.25
     - Deprecate xyplot "histogram" subtype and default to "boxes".
     - Add xyplot overlay feature.

@@ -30,6 +30,25 @@ sub draw {
   }
 
   my @parts = $self->parts;
+
+  # give the glyph a chance to do track-wide normalization if it supports it
+  $self->normalize_track(@parts);
+
+  # dynamic assignment of colors
+  if ($self->option('color_series') || $self->option('color_cycle')) {
+      my $series = $self->option('color_cycle');
+      $series ||= 'red blue green yellow orange brown aqua black fuchsia green lime maroon navy olive purple silver teal magenta';
+      my @color_series    = ref($series) eq 'ARRAY' ? @$series : split /\s+/,$series;
+      my $index           = 0;
+      my %color_cache;
+      my $closure = sub {
+	  my $glyph = pop;
+	  return $color_cache{$glyph} ||= $color_series[$index++ % @color_series];
+      };
+      $self->configure(bgcolor   => $closure);
+  }
+
+  local $Bio::Graphics::Panel::GlyphScratch;  # set $GlyphScratch to undef
   for (my $i=0; $i<@parts; $i++) {
     $parts[$i]->draw_highlight($gd,$left,$top);
     $parts[$i]->draw($gd,$left,$top,0,1);
@@ -40,6 +59,13 @@ sub draw {
 
 # do nothing for components
 # sub draw_component { }
+
+sub normalize_track {
+    my $self  = shift;
+    my @parts = @_;
+    @parts    = map {$_->isa('Bio::Graphics::Glyph::group') ? $_->parts : $_} @parts;
+    $parts[0]->normalize_track(@parts) if $parts[0] && $parts[0]->can('normalize_track');
+}
 
 sub bump { 
     my $self = shift;

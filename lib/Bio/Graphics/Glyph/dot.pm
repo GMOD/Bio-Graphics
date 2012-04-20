@@ -2,7 +2,7 @@ package Bio::Graphics::Glyph::dot;
 # DAS-compatible package to use for drawing a ring or filled circle
 
 use strict;
-use base qw(Bio::Graphics::Glyph::generic);
+use base qw(Bio::Graphics::Glyph::point_glyph);
 use constant PI => 3.14159;
 sub my_description {
     return <<END;

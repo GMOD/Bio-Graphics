@@ -41,11 +41,11 @@ sub my_options {
 	     'range to be clipped.'
 	    ],
 	 graph_type => [
-	     ['boxes','line','points','linepoints'],
-	     'boxes',
+	     ['histogram','line','points','linepoints'],
+	     'histogram',
 	     'Type of graph to generate. Options are "boxes",',
 	     '"line","points", or "linepoints".',
-	     'The deprecated "histogram" subtype is equivalent to "boxes".'
+	     'The deprecated "boxes" subtype is equivalent to "histogram".'
 	     ],
 	 point_symbol => [
 	     'string',
@@ -107,8 +107,8 @@ sub point_radius {
 sub pad_top {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height+2)) {
-    $pad = $self->font('gdTinyFont')->height+2;  # extra room for the scale
+  if ($pad < ($self->font('gdTinyFont')->height+8)) {
+    $pad = $self->font('gdTinyFont')->height+8;  # extra room for the scale
   }
   $pad;
 }
@@ -124,6 +124,7 @@ sub pad_bottom {
 
 sub scalecolor {
   my $self = shift;
+  local $self->{default_opacity} = 1;
   my $color = $self->color('scale_color') || $self->fgcolor;
 }
 
@@ -136,7 +137,7 @@ sub record_label_positions {
     my $self = shift;
     my $rlp  = $self->option('record_label_positions');
     return $rlp if defined $rlp;
-    return 1;
+    return -1;
 }
 
 sub graph_type {
@@ -208,9 +209,9 @@ sub draw {
   $self->panel->startGroup($gd);
   $self->_draw_scale($gd,$scale,$min_score,$max_score,$dx,$dy,$y_origin);
   $self->panel->endGroup($gd);
-
-  $self->draw_label(@_)       if ($self->option('label') && !$self->option('overlay'));
-  $self->draw_description(@_) if ($self->option('description') && !$self->option('overlay'));
+  
+  $self->draw_label(@_)       if $self->option('label') or $self->record_label_positions;
+  $self->draw_description(@_) if $self->option('description');
   $self->draw_legend(@_)      if $self->option('overlay');
 
   $self->panel->endGroup($gd);
@@ -226,6 +227,26 @@ sub lookup_draw_method {
   return '_draw_line'                 if $type eq 'line';
   return '_draw_points'               if $type eq 'points';
   return;
+}
+
+sub normalize_track {
+    my $self  = shift;
+    my @glyphs_in_track = @_;
+    my ($global_min,$global_max);
+    for my $g (@glyphs_in_track) {
+	my ($min_score,$max_score) = $g->minmax($g->get_parts);
+	$global_min = $min_score if !defined $global_min || $min_score < $global_min;
+	$global_max = $max_score if !defined $global_max || $max_score > $global_max;
+    }
+    # note that configure applies to the whole track
+    $glyphs_in_track[0]->configure(-min_score => $global_min);
+    $glyphs_in_track[0]->configure(-max_score => $global_max);
+}
+
+sub get_parts {
+    my $self = shift;
+    my @parts = $self->parts;
+    return \@parts;
 }
 
 sub score {
@@ -283,41 +304,6 @@ sub min10 {
   return $l*int($a/$l);
 }
 
-# sub _draw_histogram {
-#   my $self = shift;
-#   my ($gd,$left,$top,$bottom) = @_;
-
-#   my @parts   = $self->parts;
-#   my $fgcolor = $self->fgcolor;
-
-#   # draw each of the component lines of the histogram surface
-#   for (my $i = 0; $i < @parts; $i++) {
-#     my $part = $parts[$i];
-#     my $next = $parts[$i+1];
-#     my ($x1,$y1,$x2,$y2) = $part->calculate_boundaries($left,$top);
-#     next unless defined $part->{_y_position};
-#     $gd->line($x1,$part->{_y_position},$x2,$part->{_y_position},$fgcolor);
-#     next unless $next;
-#     my ($x3,$y3,$x4,$y4) = $next->calculate_boundaries($left,$top);
-#     if ($x2 == $x3) {# connect vertically to next level
-#       $gd->line($x2,$part->{_y_position},$x2,$next->{_y_position},$fgcolor); 
-#     } else {
-#       $gd->line($x2,$part->{_y_position},$x2,$bottom,$fgcolor); # to bottom
-#       $gd->line($x2,$bottom,$x3,$bottom,$fgcolor);              # to right
-#       $gd->line($x3,$bottom,$x3,$next->{_y_position},$fgcolor); # up
-#     }
-#   }
-
-#   # end points: from bottom to first
-#   my ($x1,$y1,$x2,$y2) = $parts[0]->calculate_boundaries($left,$top);
-#   $gd->line($x1,$bottom,$x1,$parts[0]->{_y_position},$fgcolor);
-#   # from last to bottom
-#   my ($x3,$y3,$x4,$y4) = $parts[-1]->calculate_boundaries($left,$top);
-#   $gd->line($x4,$parts[-1]->{_y_position},$x4,$bottom,$fgcolor);
-
-#   # That's it.  Not too hard.
-# }
-
 sub _draw_boxes {
   my $self = shift;
   my ($gd,$left,$top,$y_origin) = @_;
@@ -346,7 +332,7 @@ sub _draw_boxes {
     # special check here for the part_color being defined so as not to introduce lots of
     # checking overhead when it isn't
     if ($partcolor) {
-	$color    = $factory->translate_color($factory->option($part,'part_color',0,0));
+	$color    = $self->translate_color($factory->option($part,'part_color',0,0));
 	$negcolor = $color;
     } else {
 	$color    = $positive;
@@ -416,7 +402,7 @@ sub _draw_points {
 
     my $color;
     if ($partcolor) {
-      $color    = $factory->translate_color($factory->option($part,'part_color',0,0));
+      $color    = $self->translate_color($factory->option($part,'part_color',0,0));
     } else {
       $color    = $fgcolor;
     }
@@ -441,7 +427,7 @@ sub _draw_scale {
 
   my $crosses_origin = $min < 0 && $max > 0;
 
-  my $side = $self->_determine_side();
+  my $side = $self->_determine_side() or return;
 
   my $fg    = $self->scalecolor;
   my $font  = $self->font('gdTinyFont');
@@ -452,8 +438,8 @@ sub _draw_scale {
   my $y_scale = $self->minor_ticks($min,$max,$y1,$y2);
 
   my $p  = $self->panel;
-  my $gc = $p->translate_color($p->gridcolor);
-  my $mgc= $p->translate_color($p->gridmajorcolor);
+  my $gc = $self->translate_color($p->gridcolor);
+  my $mgc= $self->translate_color($p->gridmajorcolor);
 
   # if ($side ne 'none') {
   #     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
@@ -520,11 +506,11 @@ sub _draw_grid {
     my $self = shift;
     my ($gd,$scale,$min,$max,$dx,$dy,$y_origin) = @_;
     my $side = $self->_determine_side();
-    return if $side eq 'none';
+    return unless $side;
 
     my ($x1,$y1,$x2,$y2) = $self->calculate_boundaries($dx,$dy);
     my $p  = $self->panel;
-    my $gc = $p->translate_color($p->gridcolor);
+    my $gc = $self->translate_color($p->gridcolor);
     my $y_scale = $self->minor_ticks($min,$max,$y1,$y2);
 
     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
@@ -571,6 +557,12 @@ sub connector {
 sub height {
   my $self = shift;
   return $self->option('graph_height') || $self->SUPER::height;
+}
+
+sub draw_description {
+    my $self = shift;
+    return  if $self->bump eq 'overlap';
+    return $self->SUPER::draw_description(@_);
 }
 
 sub draw_triangle {
@@ -647,26 +639,55 @@ sub symbols {
 }
 
 sub draw_label {
-  my $self = shift;
-  my ($gd,$left,$top,$partno,$total_parts) = @_;
+    my $self = shift;
+    my ($gd,$left,$top,$partno,$total_parts) = @_;
+    my $label = $self->label or return;
 
-  my $label = $self->label or return;
-  return $self->SUPER::draw_label(@_) unless $self->label_position eq 'left';
+    if ($self->bump eq 'overlap') {
+	my $x    = $self->left + $left + $self->pad_left;
+	$x  = $self->panel->left + 1 if $x <= $self->panel->left;
+	$x += ($self->panel->glyph_scratch||0);
 
-  my $font = $self->labelfont;
-  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
-  my $y = $self->{top} + $top;
+	my $font  = $self->labelfont;
+	my $width = $font->width*(length($label)+4);
+	unless ($self->record_label_positions) {
+	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$font->height,$self->bgcolor);
+	    local $self->{default_opacity} = 1;
+	    $gd->string($font,$x+3,$top,$label,$self->contrasting_label_color($gd,$self->bgcolor));
+	}
+	$self->panel->glyph_scratch($self->panel->glyph_scratch + $width);
+	$self->panel->add_key_box($self,$label,$x,$top) if $self->record_label_positions;
 
-  $self->render_label($gd,
-		      $font,
-		      $x,
-		      $y,
-		      $label);
+    } elsif ($self->label_position eq 'left') {
+	  my $font = $self->labelfont;
+	  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+	  my $y = $self->{top} + $top;
+
+	  $self->render_label($gd,
+			      $font,
+			      $x,
+			      $y,
+			      $label);
+
+    } else {
+	$self->SUPER::draw_label(@_);
+    }
+
+}
+
+sub contrasting_label_color {
+    my $self = shift;
+    my ($gd,$bgcolor) = @_;
+    my ($r,$g,$b)   = $gd->rgb($bgcolor);
+    my $avg         = ($r+$g+$b)/3;
+    return $self->translate_color($avg > 128 ? 'black' : 'white');
 }
 
 sub draw_legend {
   my $self = shift;
   my ($gd,$left,$top,$partno,$total_parts) = @_;
+  return  if $self->bump eq 'overlap';
+
   my $color = $self->option('fgcolor'); 
   my $name = $self->feature->{name};
 

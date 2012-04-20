@@ -1,12 +1,11 @@
 package Bio::Graphics::Glyph::wiggle_xyplot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_minmax 
+use base qw(Bio::Graphics::Glyph::wiggle_data
             Bio::Graphics::Glyph::xyplot 
             Bio::Graphics::Glyph::smoothing);
 use IO::File;
 use File::Spec;
-
 
 sub my_description {
     return <<END;
@@ -70,14 +69,7 @@ sub my_options {
 
 # Added pad_top subroutine (pad_top of Glyph.pm, which is called when executing $self->pad_top
 # returns 0, so we need to override it here)
-sub pad_top {
-  my $self = shift;
-  my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height)) {
-    $pad = $self->font('gdTinyFont')->height;  # extra room for the scale
-  }
-  $pad;
-}
+sub pad_top { shift->Bio::Graphics::Glyph::xyplot::pad_top(@_) }
 
 sub pad_left {
     my $self = shift;
@@ -87,81 +79,36 @@ sub pad_left {
     return $pad;
 }
 
+sub clip_color {
+    my $self = shift;
+    return $self->translate_color('orange');
+}
+
 # we override the draw method so that it dynamically creates the parts needed
 # from the wig file rather than trying to fetch them from the database
+
+# sub draw() { } is now mostly in wiggle_data.pm 
 sub draw {
   my $self = shift;
   my ($gd,$dx,$dy) = @_;
+  my $result = $self->Bio::Graphics::Glyph::wiggle_data::draw(@_);
 
-  my $feature     = $self->feature;
-  my ($wigfile)   = eval{$feature->get_tag_values('wigfile')};
-  return $self->draw_wigfile($feature,$self->rel2abs($wigfile),@_) if $wigfile;
-
-  my ($wigdata) = eval{$feature->get_tag_values('wigdata')};
-  return $self->draw_wigdata($feature,$wigdata,@_) if $wigdata;
-
-  my ($densefile) = eval{$feature->get_tag_values('densefile')};
-  return $self->draw_densefile($feature,$self->rel2abs($densefile),@_) if $densefile;
-
-  my ($coverage)  = eval{$feature->get_tag_values('coverage')};
-  return $self->draw_coverage($feature,$coverage,@_) if $coverage;
-
-  # support for BigWig/BigBed
-  if ($feature->can('statistical_summary')) {
-      my $stats = $feature->statistical_summary($self->width);
-      $stats   ||= [];
-      my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
-      return $self->draw_coverage($feature,\@vals,@_);
-  }
-
-  return $self->SUPER::draw(@_);
-}
-
-sub draw_wigfile {
-  my $self = shift;
-  my $feature = shift;
-  my $wigfile = shift;
-
-  eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = ref $wigfile && $wigfile->isa('Bio::Graphics::Wiggle') 
-      ? $wigfile
-      : eval { Bio::Graphics::Wiggle->new($wigfile) };
-  unless ($wig) {
-      warn $@;
-      return $self->SUPER::draw(@_);
-  }
-  $self->_draw_wigfile($feature,$wig,@_);
-}
-
-sub draw_wigdata {
-    my $self    = shift;
-    my $feature = shift;
-    my $data    = shift;
-
-    if (ref $data eq 'ARRAY') {
-	my ($start,$end) = $self->effective_bounds($feature);
-	my $parts = $self->subsample($data,$start,$end);
-	$self->draw_plot($parts,@_);
-    }
-
-    else {
-	my $wig = eval { Bio::Graphics::Wiggle->new() };
-	unless ($wig) {
-	    warn $@;
-	    return $self->SUPER::draw(@_);
-	}
-
-	$wig->import_from_wif64($data);
-	$self->_draw_wigfile($feature,$wig,@_);
-    }
+  # inhibit the scale if we are non-bumping
+  $self->configure(-scale => 'none') if $self->bump eq 'overlap';
+  return $result;
 }
 
 sub draw_coverage {
     my $self    = shift;
-    my $feature = shift;
+    my $feature = shift;   
     my $array   = shift;
-
-    $array      = [split ',',$array] unless ref $array;
+    if (! $array || ref($array) ne 'ARRAY'){
+     unshift(@_,$array);
+     my @arr = (eval{$feature->get_tag_values('coverage')});
+     $array  = $arr[0];
+    } else {
+     $array   = [split ',',$array] unless ref $array;
+    }
     return unless @$array;
 
     my ($start,$end)    = $self->effective_bounds($feature);
@@ -169,43 +116,15 @@ sub draw_coverage {
     my $pixels_per_base = $self->scale;
     my @parts;
     for (my $pixel=0;$pixel<$self->width;$pixel++) {
-	my $offset = $pixel/$pixels_per_base;
-	my $s      = $start + $offset;
-	my $e      = $s+1;  # fill in gaps
-	my $v      = $array->[$offset/$bases_per_bin];
-	push @parts,[$s,$s,$v];
+        my $offset = $pixel/$pixels_per_base;
+        my $s      = $start + $offset;
+        my $e      = $s+1;  # fill in gaps
+        my $v      = $array->[$offset/$bases_per_bin];
+        push @parts,[$s,$s,$v];
     }
     $self->draw_plot(\@parts,@_);
 }
 
-sub _draw_wigfile {
-    my $self    = shift;
-    my $feature = shift;
-    my $wig     = shift;
-
-    $wig->smoothing($self->get_smoothing);
-    $wig->window($self->smooth_window);
-
-    my ($start,$end) = $self->effective_bounds($feature);
-
-    $self->wig($wig);
-    my $parts = $self->create_parts_for_dense_feature($wig,$start,$end);
-    $self->draw_plot($parts,@_);
-}
-
-sub effective_bounds {
-    my $self    = shift;
-    my $feature = shift;
-    my $panel_start = $self->panel->start;
-    my $panel_end   = $self->panel->end;
-    my $start       = $feature->start>$panel_start 
-                         ? $feature->start 
-                         : $panel_start;
-    my $end         = $feature->end<$panel_end   
-                         ? $feature->end   
-                         : $panel_end;
-    return ($start,$end);
-}
 
 sub draw_plot {
     my $self            = shift;
@@ -217,17 +136,19 @@ sub draw_plot {
 
     my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
 
-    # There is a minmax inherited from xyplot as well as wiggle_minmax, and I don't want to
+    # There is a minmax inherited from xyplot as well as wiggle_data, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
-    my ($min_score,$max_score,$mean,$stdev)     = $self->Bio::Graphics::Glyph::wiggle_minmax::minmax($parts);
+    my ($min_score,$max_score,$mean,$stdev)  = $self->minmax($parts);
     my $rescale  = $self->option('autoscale') eq 'z_score';
     my $side    = $self->_determine_side();
 
     my ($scaled_min,$scaled_max);
     if ($rescale) {
+	$scaled_min = int(($min_score-$mean)/$stdev + 0.5);
+	$scaled_max = int(($max_score-$mean)/$stdev + 0.5);
 	my $bound  = $self->z_score_bound;
-	$scaled_min = -$bound;
-	$scaled_max = +$bound;
+	$scaled_max = $bound  if $scaled_max > 0;
+	$scaled_min = -$bound if $scaled_min < 0;
     }
     elsif ($side) {
 	$scaled_min = int($min_score - 0.5);
@@ -255,9 +176,11 @@ sub draw_plot {
     my $y_origin = $scaled_min <= 0 && $pivot ne 'min' ? $bottom - (0 - $scaled_min) * $y_scale : $bottom;
     $y_origin    = int($y_origin+0.5);
 
+
     $self->panel->startGroup($gd);
-    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
+    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless $self->option('no_grid');
     $self->panel->endGroup($gd);
+
 
     return unless $scaled_max > $scaled_min;
 
@@ -265,8 +188,11 @@ sub draw_plot {
     my $positive = $self->pos_color;
     my $negative = $self->neg_color;
     my $midpoint = $self->midpoint;
+    my $clip_color =  $self->clip_color;
     my $flip     = $self->{flip};
     $midpoint    = ($midpoint - $mean)/$stdev if $rescale;
+
+    my ($clip_top,$clip_bottom);
 
     my @points = map {
 	my ($start,$end,$score) = @$_;
@@ -278,6 +204,7 @@ sub draw_plot {
 	    my $y2     = $y_origin;
 	    $y1        = $top    if $y1 < $top;
 	    $y1        = $bottom if $y1 > $bottom;
+
 	    $x1        = $left   if $x1 < $left;
 	    $x2        = $right  if $x2 > $right;
 
@@ -295,7 +222,7 @@ sub draw_plot {
 
     $self->panel->startGroup($gd);
     my $type           = $self->graph_type;
-    if ($type eq 'boxes') {
+    if ($type eq 'boxes' or $type eq 'histogram') {
 	for (@points) {
 	    my ($x1,$y1,$x2,$y2,$color,$lw) = @$_;
 	    next unless abs($y2-$y1) > 0;
@@ -304,6 +231,9 @@ sub draw_plot {
 	    } else {
 		$gd->filledRectangle($x1,$y1,$x2,$y2,$color);
 	    }
+# this tops off clipped peaks with a distinct color, but I just don't like how it looks
+#	    $gd->line($x1+1,$top-2,     $x1-1,$top,      $clip_color) if $y1 == $top;
+#	    $gd->line($x1+1,$bottom,    $x1-1,$bottom+2, $clip_color) if $y1 == $bottom;
 	}
     }
 
@@ -330,20 +260,6 @@ sub draw_plot {
 	}
     }
 
-    if ($type eq 'histogram') {
-	my $current = shift @points;
-	for (@points) {
-	    my ($x1, $y1, $x2, $y2, $color, $lw)  = @$_;
-	    my ($y_start,$y_end) = $y1 < $y_origin ? ($y1,$y_origin) : ($y_origin,$y1);
-	    if ($y1-$y2) {
-		my $delta = abs($x2-$current->[0]);
-		$gd->filledRectangle($current->[0],$y_start,$x2,$y_end,$color) if $delta > 1;
-		$gd->line($current->[0],$y_start,$current->[0],$y_end,$color)  if $delta == 1;
-		$current = $_;
-	    }
-	}	
-    }
-
     if ($self->option('variance_band') && 
 	(my ($mean,$variance) = $self->global_mean_and_variance())) {
 	if ($rescale) {
@@ -359,8 +275,16 @@ sub draw_plot {
 	    $y1                = $top;
 	    $clip_top++;
 	}
+	if ($yy1 < $top) {
+	    $yy1 = $top;
+	    $clip_top++;
+	}
 	if ($y2 > $bottom) {
 	    $y2                = $bottom;
+	    $clip_bottom++;
+	}
+	if ($yy2 > $bottom) {
+	    $yy2 = $bottom;
 	    $clip_bottom++;
 	}
 	my $y              = $bottom - ($mean - $scaled_min) * $y_scale;
@@ -386,94 +310,11 @@ sub draw_plot {
     $self->_draw_scale($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin);
     $self->panel->endGroup($gd);
 
-    $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
+    $self->draw_label(@_)       if $self->option('label') || $self->record_label_positions;
     $self->draw_description(@_) if $self->option('description');
 
-  $self->panel->endGroup($gd);
+    $self->panel->endGroup($gd);
 }
-
-sub draw_label {
-    my $self = shift;
-    my ($gd,$left,$top,$partno,$total_parts) = @_;
-    return $self->Bio::Graphics::Glyph::xyplot::draw_label(@_) unless $self->option('variance_band');
-    return $self->Bio::Graphics::Glyph::xyplot::draw_label($gd,$left,$top,$partno,$total_parts);
-}
-
-
-sub draw_densefile {
-    my $self = shift;
-    my $feature = shift;
-    my $densefile = shift;
-    
-    my ($denseoffset) = eval{$feature->get_tag_values('denseoffset')};
-    my ($densesize)   = eval{$feature->get_tag_values('densesize')};
-    $denseoffset ||= 0;
-    $densesize   ||= 1;
-    
-    my $smoothing      = $self->get_smoothing;
-    my $smooth_window  = $self->smooth_window;
-    my $start          = $self->smooth_start;
-    my $end            = $self->smooth_end;
-
-    my $fh         = IO::File->new($densefile) or die "can't open $densefile: $!";
-    eval "require Bio::Graphics::DenseFeature" unless Bio::Graphics::DenseFeature->can('new');
-    my $dense = Bio::Graphics::DenseFeature->new(-fh=>$fh,
-						 -fh_offset => $denseoffset,
-						 -start     => $feature->start,
-						 -smooth    => $smoothing,
-						 -recsize   => $densesize,
-						 -window    => $smooth_window,
-	) or die "Can't initialize DenseFeature: $!";
-    my $parts = $self->create_parts_for_dense_feature($dense,$start,$end);
-    $self->draw_plot($parts);
-}
-
-# BUG: the next two subroutines should be merged
-sub create_parts_for_dense_feature {
-    my $self = shift;
-    my ($dense,$start,$end) = @_;
-
-    my $span = $self->scale> 1 ? $end - $start : $self->width;
-    my $data = $dense->values($start,$end,$span);
-    my $points_per_span = ($end-$start+1)/$span;
-    my @parts;
-
-    for (my $i=0; $i<$span;$i++) {
-	my $offset = $i * $points_per_span;
-	my $value  = shift @$data;
-	next unless defined $value;
-	push @parts,[$start + int($i * $points_per_span),
-		     $start + int($i * $points_per_span),
-		     $value];
-    }
-    return \@parts;
-}
-
-sub subsample {
-  my $self = shift;
-  my ($data,$start,$end) = @_;
-  my $span = $self->scale > 1 ? $end - $start 
-                              : $self->width;
-  my $points_per_span = ($end-$start+1)/$span;
-  my @parts;
-  for (my $i=0; $i<$span;$i++) {
-    my $offset = $i * $points_per_span;
-    my $value  = $data->[$offset + $points_per_span/2];
-    push @parts,[$start + int($i*$points_per_span),
-		 $start + int($i*$points_per_span),
-		 $value];
-  }
-  return \@parts;
-}
-
-sub rel2abs {
-    my $self = shift;
-    my $wig  = shift;
-    return $wig if ref $wig;
-    my $path = $self->option('basedir');
-    return File::Spec->rel2abs($wig,$path);
-}
-
 
 1;
 

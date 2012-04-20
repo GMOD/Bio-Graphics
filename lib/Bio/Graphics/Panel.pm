@@ -17,6 +17,7 @@ use constant MISSING_TRACK_COLOR =>'gray';
 use constant EXTRA_RIGHT_PADDING => 30;
 
 use base qw(Bio::Root::Root);
+our $GlyphScratch;
 
 my %COLORS;  # translation table for symbolic color names to RGB triple
 my $IMAGEMAP = 'bgmap00001';
@@ -82,6 +83,7 @@ sub new {
 		pad_bottom => $options{-pad_bottom}||0,
 		pad_left   => $options{-pad_left}||0,
 		pad_right  => $options{-pad_right}||0,
+		global_alpha => $options{-alpha} || 0,
 		length => $length,
 		offset => $offset,
 		gridcolor => $gridcolor,
@@ -516,6 +518,7 @@ sub gd {
   }
 
   my %translation_table;
+  my $global_alpha = $self->{global_alpha} || 0;
   for my $name (keys %COLORS) {
     my $idx = $gd->colorAllocate(@{$COLORS{$name}});
     $translation_table{$name} = $idx;
@@ -523,7 +526,6 @@ sub gd {
 
   $self->{translations} = \%translation_table;
   $self->{gd}           = $gd;
-
   
   eval {$gd->alphaBlending(0)};
   if ($self->bgcolor) {
@@ -965,18 +967,34 @@ sub rgb {
   return $gd->rgb($idx);
 }
 
-sub translate_color {
-  my $self    = shift;
-  my @colors  = @_;
+sub transparent_color {
+    my $self = shift;
+    my ($opacity,@colors) = @_;
+    return $self->_translate_color($opacity,@colors);
+}
 
-  return $self->{closestcache}{"@colors"} if exists $self->{closestcache}{"@colors"};
+sub translate_color {
+    my $self = shift;
+    my @colors = @_;
+    return $self->_translate_color(1.0,@colors);
+}
+
+sub _translate_color {
+  my $self    = shift;
+  my ($opacity,@colors)  = @_;
+  $opacity    = '1.0' if $opacity == 1;
+  my $default_alpha   = $self->adjust_alpha($opacity);
+  $default_alpha    ||= 0;
+
+  my $ckey = "@{colors}_${default_alpha}";
+  return $self->{closestcache}{$ckey} if exists $self->{closestcache}{$ckey};
 
   my $index;
   my $gd    = $self->gd             or return 1;
   my $table = $self->{translations} or return 1;
 
   if (@colors == 3) {
-    $index = $self->colorClosest($gd,@colors);
+      $index = $gd->colorAllocateAlpha(@colors,$default_alpha);
   }
   elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
     my ($r,$g,$b,$alpha) = (hex($1),hex($2),hex($3),hex($4));
@@ -984,7 +1002,7 @@ sub translate_color {
   }
   elsif ($colors[0] =~ /^\#([0-9A-F]{2})([0-9A-F]{2})([0-9A-F]{2})$/i) {
     my ($r,$g,$b) = (hex($1),hex($2),hex($3));
-    $index = $self->colorClosest($gd,$r,$g,$b);
+    $index = $gd->colorAllocateAlpha($r,$g,$b,$default_alpha);
   }
   elsif ($colors[0] =~ /^(\d+),(\d+),(\d+),([\d.]+)$/i ||
 	 $colors[0] =~ /^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/) {
@@ -996,20 +1014,26 @@ sub translate_color {
 	 $colors[0] =~ /^rgb\((\d+),(\d+),(\d+)\)$/i
       ) {
       my (@rgb) = map {/(\d+)%/ ? int(255 * $1 / 100) : $_} ($1,$2,$3);
-      $index = $self->colorClosest($gd,@rgb);
+      $index = $gd->colorAllocateAlpha(@rgb,$default_alpha);
   }
   elsif ($colors[0] eq 'transparent') {
       $index = $gd->colorAllocateAlpha(255,255,255,127);
   }
   elsif ($colors[0] =~ /^(\w+):([\d.]+)/) {  # color:alpha
       my @rgb   = $self->color_name_to_rgb($1);
+      @rgb      = (0,0,0) unless @rgb;
       my $alpha = $self->adjust_alpha($2);
       $index = $gd->colorAllocateAlpha(@rgb,$alpha);
+  }
+  elsif ($default_alpha < 127) {
+      my @rgb   = $self->color_name_to_rgb($colors[0]);
+      @rgb      = (0,0,0) unless @rgb;
+      $index    = $gd->colorAllocateAlpha(@rgb,$default_alpha);
   }
   else {
       $index = defined $table->{$colors[0]} ? $table->{$colors[0]} : 1;
   }
-  return $self->{closestcache}{"@colors"} = $index;
+  return $self->{closestcache}{$ckey} = $index;
 }
 
 # change CSS opacity values (0-1.0) into GD opacity values (127-0)
@@ -1211,6 +1235,13 @@ sub color_names {
     my $class = shift;
     $class->read_colors unless %COLORS;
     return wantarray ? keys %COLORS : [keys %COLORS];
+}
+
+sub glyph_scratch {
+    my $self = shift;
+    my $d = $GlyphScratch;
+    $GlyphScratch = shift if @_;
+    $d;
 }
 
 sub finished {
@@ -1896,6 +1927,9 @@ L<"GLYPH OPTIONS">).  The following options are track-specific:
 
   -glyph      Glyph class to use.         "generic"
 
+  -color_series Dynamically choose         false
+                bgcolor.
+
   -stylesheet Bio::Das::Stylesheet to     none
               use to generate glyph
 	      classes and options.
@@ -1926,6 +1960,15 @@ The B<-stylesheet> argument is used to pass a Bio::Das stylesheet
 object to the panel.  This stylesheet will be called to determine both
 the glyph and the glyph options.  If both a stylesheet and direct
 options are provided, the latter take precedence.
+
+The B<-color_series> argument causes the track to ignore the -bgcolor
+setting and instead to assign glyphs a series of contrasting
+colors. This is usually used in combination with -bump=>'overlap' in
+order to create overlapping features. A true value activates the color
+series. You may adjust the default color series using the
+B<-color_cycle> option, which is either a reference to an array of
+Bio::Graphics color values, or a space-delimited string of color
+names/value.
 
 If successful, add_track() returns an Bio::Graphics::Glyph object.
 You can use this object to add additional features or to control the
@@ -2121,6 +2164,11 @@ some are shared by all glyphs:
 
   -font2color Secondary font color	   turquoise
 
+  -opacity    Value from 0.0 (invisible)   1.0
+                to 1.0 (opaque) which
+                controls the translucency
+                of overlapping features.
+
   -label      Whether to draw a label	   false
 
   -description  Whether to draw a          false
@@ -2218,6 +2266,12 @@ for filled boxes and other "solid" glyphs.  The foreground color
 controls the color of lines and strings.  The -tkcolor argument
 controls the background color of the entire track.
 
+B<Default opacity:>For truecolor images, you can apply a default opacity
+value to both foreground and background colors by supplying a B<-opacity>
+argument. This is specified as a CSS-style floating point number from
+0.0 to 1.0. If the color has an explicit alpha, then the default is
+ignored.
+
 B<Track color:> The -tkcolor option used to specify the background of
 the entire track.
 
@@ -2285,11 +2339,17 @@ until there is room for them.  A -bump value of -1 will cause
 overlapping glyphs to bump upwards.  You may also provide a -bump
 value of +2 or -2 to activate a very simple type of collision control
 in which each feature occupies its own line. This is useful for
-showing dense, nearly-full length features such as similarity hits.
-Finally, a bump of 3 or the string "fast" will turn on a faster
+showing dense, nearly-full length features such as similarity hits.  A
+bump of 3 or the string "fast" will turn on a faster
 collision-detection algorithm that only works properly with the
-default "left" sort order.  The bump argument can also be a code reference; see
-below.
+default "left" sort order.
+
+Finally, a bump value of "overlap" will cause features to overlap each
+other and to made partially translucent (the translucency can be
+controlled with the -opacity setting). Features that are on opposite
+strands will bump, but those on the same strand will not.
+
+The bump argument can also be a code reference; see below.
 
 For convenience and backwards compatibility, if you specify a -bump
 of 1 and use the default sort order, the faster algorithm will be

@@ -1,8 +1,10 @@
 package Bio::Graphics::Glyph::wiggle_density;
-
 use strict;
-use base qw(Bio::Graphics::Glyph::box Bio::Graphics::Glyph::smoothing Bio::Graphics::Glyph::wiggle_minmax);
-use File::Spec;
+use base qw(Bio::Graphics::Glyph::wiggle_data
+            Bio::Graphics::Glyph::box 
+            Bio::Graphics::Glyph::smoothing
+            Bio::Graphics::Glyph::xyplot
+ );
 
 sub my_description {
     return <<END;
@@ -52,93 +54,34 @@ sub my_options {
 	    'scaled to the minimum and maximum values of the region currently on display.',
 	    'min_score and max_score override autoscaling if one or both are defined'
         ],
+	 graph_type => [
+	     undef,
+	     undef,
+	     'Unused option',
+	     ],
     };
 }
 
-
+sub pad_top { 
+    my $self = shift;
+    my $overlap = $self->bump eq 'overlap';
+    return $overlap ?$self->Bio::Graphics::Glyph::xyplot::pad_top(@_)
+	            :$self->SUPER::pad_top(@_);
+}
 
 sub draw {
   my $self = shift;
-  my ($gd,$left,$top,$partno,$total_parts) = @_;
-  my $feature   = $self->feature;
+  my ($gd,$dx,$dy) = @_;
 
-  my $drawnit;
-  $self->panel->startGroup($gd);
-  my ($wigfile) = eval{$feature->get_tag_values('wigfile')};
-  if ($wigfile) {
-    $self->draw_wigfile($self->rel2abs($wigfile),@_);
-    $drawnit++;
-  }
-
-  my ($wigdata) = eval{$feature->get_tag_values('wigdata')};
-  if ($wigdata) {
-      $self->draw_wigdata($wigdata,@_);
-      $drawnit++;
-  }
-  my ($densefile) = eval{$feature->get_tag_values('densefile')};
-  if ($densefile) {
-    $self->draw_densefile($self->rel2abs($feature),$densefile,@_);
-    $drawnit++;
-  }
-  my ($coverage)  = eval{$feature->get_tag_values('coverage')};
-  if ($coverage) {
-      $self->draw_coverage($feature,$coverage,@_);
-      $drawnit++;
-  }
-  # support for BigWig/BigBed
-  if ($feature->can('statistical_summary')) {
-      my $stats = $feature->statistical_summary($self->width);
-      my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
-      $self->draw_coverage($feature,\@vals,@_);
-      $drawnit++;
-  }
-
-  if ($drawnit) {
+  my $retval    = $self->SUPER::draw(@_);
+  if ($retval) {
     $self->draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
-    return;
+    return $retval;
+  } else {
+      return $self->Bio::Graphics::Glyph::box::draw(@_);
   }
-
-  else {
-      $self->panel->endGroup($gd);
-  }
-
-  return $self->SUPER::draw(@_);
-}
-
-sub draw_wigfile {
-  my $self    = shift;
-  my $wigfile = shift;
-
-  eval "require Bio::Graphics::Wiggle" unless Bio::Graphics::Wiggle->can('new');
-  my $wig = ref $wigfile &&a $wigfile->isa('Bio::Graphics::Wiggle') 
-      ? $wigfile
-      : eval { Bio::Graphics::Wiggle->new($wigfile) };
-
-  unless ($wig) {
-      warn $@;
-      return $self->SUPER::draw(@_);
-  }
-  $self->wig($wig);
-
-  $self->_draw_wigfile(@_);
-}
-
-sub draw_wigdata {
-    my $self = shift;
-    my $data = shift;
-
-    my $wig = eval { Bio::Graphics::Wiggle->new() };
-    unless ($wig) {
-	warn $@;
-	return $self->SUPER::draw(@_);
-    }
-
-    $wig->import_from_wif64($data);
-
-    $self->wig($wig);
-    $self->_draw_wigfile(@_);
 }
 
 sub draw_coverage {
@@ -146,99 +89,39 @@ sub draw_coverage {
     my $feature = shift;
     my $array   = shift;
 
-    $array      = [split ',',$array] unless ref $array;
+
+    if (! $array || ref($array) ne 'ARRAY'){
+     unshift(@_,$array);
+     my @arr = (eval{$feature->get_tag_values('coverage')});
+     $array  = $arr[0];
+    } else {
+     $array   = [split ',',$array] unless ref $array;
+    }
     return unless @$array;
+
     my ($gd,$left,$top) = @_;
 
     my ($start,$end)    = $self->effective_bounds($feature);
     my $length          = $end - $start + 1;
     my $bases_per_bin   = ($end-$start)/@$array;
     my @parts;
-    my $samples = $length < $self->panel->width ? $length 
+    my $samples = $length < $self->panel->width ? $length
                                                 : $self->panel->width;
     my $samples_per_base = $samples/$length;
 
     for (my $i=0;$i<$samples;$i++) {
-	my $offset = $i/$samples_per_base;
-	my $v      = $array->[$offset/$bases_per_bin];
-	push @parts,$v;
+        my $offset = $i/$samples_per_base;
+        my $v      = $array->[$offset/$bases_per_bin];
+        push @parts,$v;
     }
+
     my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
     $self->draw_segment($gd,
-			$start,$end,
-			\@parts,
-			$start,$end,
-			1,1,
-			$x1,$y1,$x2,$y2);
-}
-
-sub effective_bounds { # copied from wiggle_xyplot -- ouch!
-    my $self    = shift;
-    my $feature = shift;
-    my $panel_start = $self->panel->start;
-    my $panel_end   = $self->panel->end;
-    my $start       = $feature->start>$panel_start 
-                         ? $feature->start 
-                         : $panel_start;
-    my $end         = $feature->end<$panel_end   
-                         ? $feature->end   
-                         : $panel_end;
-    return ($start,$end);
-}
-
-sub _draw_wigfile {
-    my $self = shift;
-    my $wig  = $self->wig;
-    my ($gd,$left,$top) = @_;
-
-    my $smoothing      = $self->get_smoothing;
-    my $smooth_window  = $self->smooth_window;
-    my $start          = $self->smooth_start;
-    my $end            = $self->smooth_end;
-
-    $wig->window($smooth_window);
-    $wig->smoothing($smoothing);
-    my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-    $self->draw_segment($gd,
-			$start,$end,
-			$wig,$start,$end,
-			1,1,
-			$x1,$y1,$x2,$y2);
-}
-
-sub draw_densefile {
-  my $self = shift;
-  my $feature   = shift;
-  my $densefile = shift;
-  my ($gd,$left,$top) = @_;
-
-  my ($denseoffset) = eval{$feature->get_tag_values('denseoffset')};
-  my ($densesize)   = eval{$feature->get_tag_values('densesize')};
-  $denseoffset ||= 0;
-  $densesize   ||= 1;
-
-  my $smoothing      = $self->get_smoothing;
-  my $smooth_window  = $self->smooth_window;
-  my $start          = $self->smooth_start;
-  my $end            = $self->smooth_end;
-
-  my $fh         = IO::File->new($densefile) or die "can't open $densefile: $!";
-  eval "require Bio::Graphics::DenseFeature" unless Bio::Graphics::DenseFeature->can('new');
-
-  my $dense = Bio::Graphics::DenseFeature->new(-fh=>$fh,
-					       -fh_offset => $denseoffset,
-					       -start     => $feature->start,
-					       -smooth    => $smoothing,
-					       -recsize   => $densesize,
-					       -window    => $smooth_window,
-					      ) or die "Can't initialize DenseFeature: $!";
-
-  my ($x1,$y1,$x2,$y2) = $self->bounds($left,$top);
-  $self->draw_segment($gd,
-		      $start,$end,
-		      $dense,$start,$end,
-		      1,1,
-		      $x1,$y1,$x2,$y2);
+             	        $start,$end,
+                        \@parts,
+                        $start,$end,
+                        1,1,
+                        $x1,$y1,$x2,$y2);
 }
 
 sub draw_segment {
@@ -280,7 +163,7 @@ sub draw_segment {
   return unless $start < $end;
 
   # get data values across the area
-  my $samples = $length < $self->panel->width ? $length 
+  my $samples = $length < $self->panel->width ? $length
                                               : $self->panel->width;
   my $data    = ref $seg_data eq 'ARRAY' ? $seg_data
                                          : $seg_data->values($start,$end,$samples);
@@ -294,8 +177,7 @@ sub draw_segment {
   else {
     $data_width_ratio = 1;
   }
-
-  return unless $data && ref $data && @$data > 0;
+ return unless $data && ref $data && @$data > 0;
 
   my $min_value = $self->min_score;
   my $max_value = $self->max_score;
@@ -324,21 +206,21 @@ sub draw_segment {
   # from 0 to max. The latter behavior is triggered when the config file contains
   # entries for "pos_color" and "neg_color" and the data ranges from < 0 to > 0.
 
-  my $poscolor       = $self->pos_color;
-  my $negcolor       = $self->neg_color;
+  my $poscolor       = $self->pos_color || $self->fgcolor;
+  my $negcolor       = $self->neg_color || $self->bgcolor;
 
   my $data_midpoint  =   $self->midpoint;
   $data_midpoint     =   0 if $rescale;
   my $bicolor   = $poscolor != $negcolor
                        && $scaled_min < $data_midpoint
-		       && $scaled_max > $data_midpoint;
-
+                       && $scaled_max > $data_midpoint;
+  
   my ($rgb_pos,$rgb_neg,$rgb);
   if ($bicolor) {
       $rgb_pos = [$self->panel->rgb($poscolor)];
       $rgb_neg = [$self->panel->rgb($negcolor)];
   } else {
-      $rgb = $scaled_max > $scaled_min ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)]) 
+      $rgb = $scaled_max > $scaled_min ? ([$self->panel->rgb($poscolor)] || [$self->panel->rgb($self->bgcolor)])
                                        : ([$self->panel->rgb($negcolor)] || [$self->panel->rgb($self->bgcolor)]);
   }
 
@@ -353,6 +235,10 @@ sub draw_segment {
     $pixels_per_step = 1 if $pixels_per_step < 1;
     my $datapoints_per_base  = @$data/$length;
     my $pixels_per_datapoint = $self->panel->width/@$data * $data_width_ratio;
+
+    my %temps;
+    map{$temps{$_}++} (@$data);
+    my %colorss = (); 
     for (my $i = 0; $i <= @$data ; $i++) {
       my $x          = $x1 + $pixels_per_datapoint * $i;
       my $data_point = $data->[$i];
@@ -360,18 +246,19 @@ sub draw_segment {
       $data_point    = ($data_point-$mean)/$stdev if $rescale;
       $data_point    = $scaled_min if $scaled_min > $data_point;
       $data_point    = $scaled_max if $scaled_max < $data_point;
-
       my ($r,$g,$b)  = $bicolor
-	  ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
-								  $data_midpoint,$scaled_max)
-	                                 : $self->calculate_color($data_point,$rgb_neg,
-								  $data_midpoint,$scaled_min)
+          ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
+                                                                  $data_midpoint,$scaled_max)
+                                         : $self->calculate_color($data_point,$rgb_neg,
+                                                                  $data_midpoint,$scaled_min)
           : $self->calculate_color($data_point,$rgb,
-				   $scaled_min,$scaled_max);
+                                   $scaled_min,$scaled_max);
+
       my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
+      $colorss{$idx} = $data_point;
       $self->filled_box($gd,$x,$y1,$x+$pixels_per_datapoint,$y2,$idx,$idx);
     }
-
+  (keys %colorss);  # Alleviate a silent crash somewhere in GD that causes density graph get drawn as a solid-colored box
   } else {     # use Sheldon's code to subsample data
       $pixels_per_step = $scale * $step;
       my $pixels = 0;
@@ -388,38 +275,135 @@ sub draw_segment {
       my $defined;
 
       for (my $i = $start; $i < $end ; $i += $step) {
-	# draw the box if we have accumulated >= 2 pixel's worth of data.
-	if ($pixels >= 2) {
-	  my $data_point = $defined ? $scores/$defined : 0;
-	  $scores  = 0;
-	  $defined = 0;
+        # draw the box if we have accumulated >= 2 pixel's worth of data.
+        if ($pixels >= 2) {
+          my $data_point = $defined ? $scores/$defined : 0;
+          $scores  = 0;
+          $defined = 0;
 
-	  $data_point    = $scaled_min if $scaled_min > $data_point;
-	  $data_point    = $scaled_max if $scaled_max < $data_point;
-	  my ($r,$g,$b)  = $bicolor
-	      ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
-								      $data_midpoint,$scaled_max)
-	                                     : $self->calculate_color($data_point,$rgb_neg,
-								      $data_midpoint,$scaled_min)
-	      : $self->calculate_color($data_point,$rgb,
-				       $scaled_min,$max_value);
-	  my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
-	  $self->filled_box($gd,$x1,$y1,$x1+$pixels_per_span,$y2,$idx,$idx);
-	  $x1 += $pixels;
-	  $pixels = 0;
-	}
+          $data_point    = $scaled_min if $scaled_min > $data_point;
+          $data_point    = $scaled_max if $scaled_max < $data_point;
+          my ($r,$g,$b)  = $bicolor
+              ? $data_point > $data_midpoint ? $self->calculate_color($data_point,$rgb_pos,
+                                                                      $data_midpoint,$scaled_max)
+                                             : $self->calculate_color($data_point,$rgb_neg,
+                                                                      $data_midpoint,$scaled_min)
+              : $self->calculate_color($data_point,$rgb,
+                                       $scaled_min,$max_value);
+          my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
+          $self->filled_box($gd,$x1,$y1,$x1+$pixels_per_span,$y2,$idx,$idx);
+          $x1 += $pixels;
+          $pixels = 0;
+        }
 
-	my $val = shift @$data;
-	# don't include undef scores in the mean calculation
-	# $scores is the numerator; $defined is the denominator
-	$scores += $val if defined $val;
-	$defined++ if defined $val;
+        my $val = shift @$data;
+        # don't include undef scores in the mean calculation
+        # $scores is the numerator; $defined is the denominator
+        $scores += $val if defined $val;
+        $defined++ if defined $val;
 
-	# keep incrementing until we exceed 2 pixels
-	# the step is a fraction of a pixel, not an integer
-	$pixels += $pixelstep;
+        # keep incrementing until we exceed 2 pixels
+        # the step is a fraction of a pixel, not an integer
+        $pixels += $pixelstep;
       }
   }
+}
+
+sub draw_plot {
+    my $self            = shift;
+    my $parts           = shift;
+    my ($gd,$dx,$dy)    = @_;
+
+    my $x_scale     = $self->scale;
+    my $panel_start = $self->panel->start;
+    my $feature     = $self->feature;
+    my $f_start     = $feature->start > $panel_start 
+	                  ? $feature->start 
+			  : $panel_start;
+
+    my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
+
+    # There is a minmax inherited from xyplot as well as wiggle_data, and I don't want to
+    # rely on Perl's multiple inheritance DFS to find the right one.
+    my ($min_score,$max_score,$mean,$stdev)     = $self->minmax($parts);
+    my $rescale  = $self->option('autoscale') eq 'z_score';
+
+    my ($scaled_min,$scaled_max);
+    if ($rescale) {
+	$scaled_min = int(($min_score-$mean)/$stdev + 0.5);
+	$scaled_max = int(($max_score-$mean)/$stdev + 0.5);
+	my $bound  = $self->z_score_bound;
+	$scaled_max = $bound  if $scaled_max > $bound;
+	$scaled_min = -$bound if $scaled_min < -$bound;
+    } else {
+	($scaled_min,$scaled_max) = ($min_score,$max_score);
+    }
+
+    my $pivot    = $self->bicolor_pivot;
+    my $positive = $self->pos_color;
+    my $negative = $self->neg_color;
+    my $midpoint = $self->midpoint;
+    my ($rgb_pos,$rgb_neg,$rgb);
+    if ($pivot) {
+	$rgb_pos = [$self->panel->rgb($positive)];
+	$rgb_neg = [$self->panel->rgb($negative)];
+    } else {
+	$rgb = $scaled_max > $scaled_min ? ([$self->panel->rgb($positive)] || [$self->panel->rgb($self->bgcolor)]) 
+	                                 : ([$self->panel->rgb($negative)] || [$self->panel->rgb($self->bgcolor)]);
+    }
+
+    my %color_cache;
+    my $flip     = $self->{flip};
+
+    $self->panel->startGroup($gd);
+    foreach (@$parts) {
+	my ($start,$end,$score) = @$_;
+	$score    = ($score-$mean)/$stdev if $rescale;
+	$score    = $scaled_min if $scaled_min > $score;
+	$score    = $scaled_max if $scaled_max < $score;
+
+	my $x1     = $left    + ($start - $f_start) * $x_scale;
+	my $x2     = $left    + ($end   - $f_start) * $x_scale;
+	if ($flip) {
+	    $x1 = $right - ($x1-$left);
+	    $x2 = $right - ($x2-$left);
+	    ($x1,$x2) = ($x2,$x1);
+	}
+
+	my ($r,$g,$b)  = $pivot
+	  ? ($score > $midpoint ? $self->calculate_color($score,$rgb_pos,
+							  $midpoint,$scaled_max)
+	                        : $self->calculate_color($score,$rgb_neg,
+							  $midpoint,$scaled_min)
+	  )
+          : $self->calculate_color($score,$rgb,
+				   $scaled_min,$scaled_max);
+	my $idx        = $color_cache{$r,$g,$b} ||= $self->panel->translate_color($r,$g,$b);
+	$self->filled_box($gd,$x1,$top,$x2,$bottom,$idx,$idx);
+    }
+    return 1;
+}
+
+sub _draw_coverage {
+    my $self    = shift;
+    my $feature = shift;
+    my $array   = shift;
+
+    $array      = [split ',',$array] unless ref $array;
+    return unless @$array;
+
+    my ($start,$end)    = $self->effective_bounds($feature);
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my $pixels_per_base = $self->scale;
+    my @parts;
+    for (my $pixel=0;$pixel<$self->width;$pixel++) {
+	my $offset = $pixel/$pixels_per_base;
+	my $s      = $start + $offset;
+	my $e      = $s+1;  # fill in gaps
+	my $v      = $array->[$offset/$bases_per_bin];
+	push @parts,[$s,$s,$v];
+    }
+    $self->Bio::Graphics::Glyph::wiggle_density::draw_plot(\@parts,@_);
 }
 
 sub calculate_color {
@@ -427,30 +411,26 @@ sub calculate_color {
   my ($s,$rgb,$min_score,$max_score) = @_;
   $s ||= $min_score;
 
-  return 0 if $max_score==$min_score; # avoid div by zero
+  return (255,255,255) if $max_score <= $min_score; # avoid div by zero
 
   my $relative_score = ($s-$min_score)/($max_score-$min_score);
-  $relative_score -= .1 if $relative_score == 1;
-  return map { int(254.9 - (255-$_) * min(max( $relative_score, 0), 1)) } @$rgb;
+  $relative_score    = 0 if $relative_score < 0;
+  $relative_score    = 1 if $relative_score > 1;
+  return map { int(255 - (255-$_) * $relative_score) } @$rgb;
 }
 
 sub min { $_[0] < $_[1] ? $_[0] : $_[1] }
 sub max { $_[0] > $_[1] ? $_[0] : $_[1] }
-
-# repeated in wiggle_xyplot.pm!
-sub rel2abs {
-    my $self = shift;
-    my $wig  = shift;
-    return $wig if ref $wig;
-    my $path = $self->option('basedir');
-    return File::Spec->rel2abs($wig,$path);
-}
 
 sub record_label_positions { 
     my $self = shift;
     my $rlp  = $self->option('record_label_positions');
     return $rlp if defined $rlp;
     return 1;
+}
+
+sub draw_label {
+    shift->Bio::Graphics::Glyph::xyplot::draw_label(@_);
 }
 
 1;

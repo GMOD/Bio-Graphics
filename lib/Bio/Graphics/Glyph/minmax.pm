@@ -88,8 +88,9 @@ sub midpoint {
     my $default = shift;
 
     my $pivot = $self->bicolor_pivot;
-
-    if ($pivot eq 'zero') {
+    if ($pivot eq 'none') {
+	return
+    } elsif ($pivot eq 'zero') {
 	return 0;
     } elsif ($pivot eq 'mean') {
 	return eval {$self->series_mean} || 0;
@@ -111,7 +112,9 @@ sub midpoint {
 
 sub bicolor_pivot {
     my $self = shift;
-    return $self->option('bicolor_pivot');
+    my $pivot = $self->option('bicolor_pivot');
+    return if defined $pivot && $pivot eq 'none';
+    return $pivot;
 }
 
 sub pos_color {
