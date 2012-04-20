@@ -247,6 +247,16 @@ sub all_decorations {
 	return \@all_decorations;
 }
 
+# returns stack offset of decoration (only used if decoration is drawn stacked)
+sub stack_offset_bottom {
+	my $self = shift;
+
+	return $self->{'parent'}->stack_offset_bottom(@_)
+		if ($self->{'parent'} and $self->feature->primary_tag ne "mRNA");
+
+	my $decoration = shift;
+	return $self->{'stack_offset_bottom'}{$decoration}
+}
 
 sub active_decoration {
 	my $self = shift;	
@@ -358,7 +368,23 @@ sub _map_decorations {
 
 #		my $mapped_decoration = "$h:$nt_start:$nt_end";
 		push( @mapped_decorations, $f );
+		
+		# init stack offset for stacked decorations
+		if ($self->decoration_position($f) eq 'stacked_bottom')
+		{			
+			if (!defined $self->{'stack_offset_bottom'}{$f})
+			{				
+				$self->{'cur_stack_offset_bottom'} = 2 
+					if (!defined $self->{'cur_stack_offset_bottom'});
+					
+				$self->{'stack_offset_bottom'}{$f} = $self->{'cur_stack_offset_bottom'};
+				$self->{'cur_stack_offset_bottom'} += $self->decoration_height($f);
 
+				warn "$self: stack offset ".$f->name."($f): ".$self->{'stack_offset_bottom'}{$f}."\n"
+					if (DEBUG);
+			}
+		}
+		
 		warn "DECORATION=$h --> $nt_start:$nt_end\n" if (DEBUG);
 	}
 
@@ -444,10 +470,23 @@ sub decoration_top {
 		return $self->top;
 	}
 
-	$self->{'active_decoration'} = $decoration; # set active decoration for callback
-	my $decoration_height = $self->decoration_height($decoration);
+	my $decoration_height = $self->decoration_height($decoration);	
+	my $decoration_position = $self->decoration_position($decoration);
 	
-	return int(($self->bottom-$self->pad_bottom+$self->top+$self->pad_top)/2 - $decoration_height/2 + 0.5);	
+	if ($decoration_position eq 'stacked_bottom')
+	{			
+		$self->throw("$self: stack offset unknown for decoration ".$decoration->name."($decoration)")
+			if (!defined $self->stack_offset_bottom($decoration) and DEBUG);
+		
+		return $self->bottom + $self->stack_offset_bottom($decoration);
+	}
+	else 
+	{
+		$self->throw("invalid decoration_position: $decoration_position")
+			if (($decoration_position ne 'inside') and DEBUG);
+			
+		return int(($self->bottom-$self->pad_bottom+$self->top+$self->pad_top)/2 - $decoration_height/2 + 0.5);		
+	}
 }
 
 sub decoration_bottom {
@@ -490,6 +529,10 @@ sub _calc_add_padding
 		if (($h_height - $height)/2 + $label_pad_bottom > $add_pad_bottom)
 		{
 			$add_pad_bottom = ($h_height - $height)/2 + $label_pad_bottom;
+		}
+		if ($self->{'stack_offset_bottom'}{$decoration} and $self->{'stack_offset_bottom'}{$decoration}+$h_height > $add_pad_bottom)
+		{
+			$add_pad_bottom = $self->{'stack_offset_bottom'}{$decoration}+$h_height;
 		}
 	}
 			
@@ -563,6 +606,12 @@ sub decoration_position {
 	$decoration_position = 'inside'
 	  if ( !$decoration_position );
 
+	if ($decoration_position ne 'inside' and $decoration_position ne 'stacked_bottom')
+	{
+		$self->throw('invalid decoration_position: '.$decoration_position) if (DEBUG);
+		$decoration_position = 'inside';
+	}
+	
 	return $decoration_position;
 }
 
