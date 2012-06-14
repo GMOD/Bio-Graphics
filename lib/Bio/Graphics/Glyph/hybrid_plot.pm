@@ -138,7 +138,7 @@ sub minmax {
 
     my @wiggles = $self->get_wiggles($self->feature);
     my ($min,$max,$mean,$stdev);
-    my @args = (-seq_id => $self->feature->segment->ref,
+    my @args = (-seq_id => (eval{$self->feature->segment->ref}||''),
 		-start  => $self->panel->start,
 		-end    => $self->panel->end,
 		-type   => 'summary');

@@ -1,5 +1,10 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.29
+    - Fixes for Bio::Graphics::Wiggle to prevent crash when the "bottom" keystyle selected.
+    - Add ability to obtain Bio::Graphics::Wiggle features directly from the 
+    Bio::Graphics::Wiggle::Loader without creating an intermediate gff3 file.
+
 2.28
     - Fixes to restore density plot functionality in hybrid_plot and vista_plot.
     - Fix handling of Bio::Graphics::Wiggle files in xyplots.

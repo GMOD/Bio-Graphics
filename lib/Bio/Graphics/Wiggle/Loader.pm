@@ -8,6 +8,7 @@ package Bio::Graphics::Wiggle::Loader;
 
   my $gff3_file   = $loader->featurefile('gff3',$method,$source);
   my $featurefile = $loader->featurefile('featurefile');
+  my @features    = $loader->features();
 
 =head1 USAGE
 
@@ -51,6 +52,11 @@ may specify an optional method and source for use in describing each
 feature. In the case of "featurefile", the returned file will contain
 GBrowse stanzas that describe a reasonable starting format to display
 the data.
+
+=item @features = $loader->features
+
+Returns one or more Bio::Graphics::Features objects, which can be used to
+create Bio::Graphics tracks with the wiggle_xyplot (and related) glyphs.
 
 =item $loader->allow_sampling(1)
 
@@ -109,6 +115,7 @@ use Statistics::Descriptive;
 use IO::Seekable;
 use File::Spec;
 use Bio::Graphics::Wiggle;
+use Bio::Graphics::FeatureFile;
 use Text::ParseWords();
 use File::stat;
 use CGI 'escape';
@@ -250,6 +257,7 @@ sub featurefile {
 
     for my $seqid (@seqid) {
       $seqid or next;
+      $tracks->{$track}{seqids}{$seqid}{wig}->write();
       my $attributes = join ';',(@attributes,"wigfile=$seqids->{$seqid}{wigpath}");
       if ($type eq 'gff3') {
 	  push @lines,join "\t",($seqid,$source,$method,
@@ -269,6 +277,13 @@ sub featurefile {
   }
 
   return join("\n",@lines)."\n";
+}
+
+sub features {
+    my $self = shift;
+    my $text = $self->featurefile('featurefile');
+    my $file = Bio::Graphics::FeatureFile->new(-text=>$text);
+    return $file->features;
 }
 
 

@@ -316,6 +316,52 @@ sub draw_plot {
     $self->panel->endGroup($gd);
 }
 
+sub make_key_feature {
+    my $self = shift;
+    my $scale = 1/$self->scale;  # base pairs/pixel
+
+    # one segments, at pixels 0->80
+    my $offset = $self->panel->offset;
+
+    my $start = 0 * $scale + $offset;
+    my $end   = 80*$scale+$offset;
+
+    my $span = int(0.5+($end-$start)/50);
+
+    eval "require Bio::Graphics::Wiggle; 1";
+    my $wig = Bio::Graphics::Wiggle->new(undef,
+                                         1,
+                                         {seqid=>'chr1',
+					  start => int($start),
+					  span  => $span});
+
+    my @values = map {
+        (sin($_/60)+sin($_/12))*100+rand(100)
+    } 0..50;
+    my $min = $values[0];
+    my $max = $values[0];
+    my $tot = 0;
+    for (@values) {$min = $_ if $min > $_;
+		   $max = $_ if $max < $_;
+		   $tot += $_;
+    }
+    $wig->min($min);
+    $wig->max($max);
+    $wig->stdev(120); # just make it up
+    $wig->mean($tot/@values);
+
+    $wig->set_value(($_*$span)+$start=>$values[$_-1]) for (0..50);
+
+    my $feature =
+    Bio::Graphics::Feature->new(-start => $start,
+				-end   => $end,
+				-name => $self->make_key_name(),
+				-strand => '+1',
+				-attributes => {wigfile=>$wig},
+    );
+  return $feature;
+}
+
 1;
 
 __END__

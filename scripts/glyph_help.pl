@@ -10,6 +10,7 @@ use File::Temp 'tempfile';
 use Bio::Graphics::Wiggle;
 
 my $MANUAL = 0;
+my $POD    = 0;
 my $LIST   = 0;
 my $PICT   = 0;
 my $VIEW   = 0;
@@ -24,6 +25,8 @@ Give usage information about Bio::Graphics glyphs.
  Options:
     -m --manual   Print the full manual page for the glyph, followed
                      by a summary of its options.
+    -r --raw      Print the quick summary of the glyph\'s options in raw POD
+                     format.
     -l --list     List all glyphs that are available for use.
     -p --picture  Create a PNG picture of what the indicated glyph looks like.
                     The PNG will be written to stdout
@@ -46,6 +49,7 @@ example:
 USAGE
 
 GetOptions ('manual'   => \$MANUAL,
+	    'raw'      => \$POD,
 	    'list'     => \$LIST,
 	    'picture'  => \$PICT,
 	    'view'     => \$VIEW,
@@ -76,9 +80,13 @@ if ($PICT || $VIEW) {
     exit 0;
 }
 
-system "perldoc",$class if $MANUAL;
-$class->options_man();
-
+if ($MANUAL) {
+    system "perldoc",$class;
+} elsif ($POD) {
+    print $class->options_pod();
+} else {
+    print $class->options_man();
+}
 exit 0;
 
 sub print_list {
