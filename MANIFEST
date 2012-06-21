@@ -34,6 +34,7 @@ lib/Bio/Graphics/Glyph/ellipse.pm
 lib/Bio/Graphics/Glyph/ex.pm
 lib/Bio/Graphics/Glyph/extending_arrow.pm
 lib/Bio/Graphics/Glyph/Factory.pm
+lib/Bio/Graphics/Glyph/fb_shmiggle.pm
 lib/Bio/Graphics/Glyph/fixedwidth.pm
 lib/Bio/Graphics/Glyph/flag.pm
 lib/Bio/Graphics/Glyph/gene.pm
@@ -121,6 +122,7 @@ scripts/contig_draw.pl
 scripts/feature_draw.pl
 scripts/frend.pl
 scripts/glyph_help.pl
+scripts/index_cov_files.pl
 scripts/render_msa.pl
 scripts/search_overview.pl
 t/BioGraphics.t
