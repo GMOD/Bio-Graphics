@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.30
+    - Added the glyph for FlyBase's "stacked wiggle" plot (fb_shmiggle.pl) as well as a utility script for preparing the data (index_cov_files.pl).
+
 2.29
     - Fixes for Bio::Graphics::Wiggle to prevent crash when the "bottom" keystyle selected.
     - Add ability to obtain Bio::Graphics::Wiggle features directly from the 
