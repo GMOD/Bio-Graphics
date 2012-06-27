@@ -241,7 +241,23 @@ sub create_parts_from_summary {
     my $self = shift;
     my ($stats,$start,$end) = @_;
     $stats ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    my $interval_method = $self->option('interval_method') || 'mean';
+    my @vals;
+    if ($interval_method eq 'mean') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'sum') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'min') {
+    	@vals  = map {$_->{validCount} ? $_->{minVal} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'max') {
+    	@vals  = map {$_->{validCount} ? $_->{maxVal} : undef} @$stats;
+    }
+    else {
+    	warn "unrecognized interval method $interval_method!";
+    }
     return \@vals;
 }
 
@@ -395,7 +411,23 @@ sub draw_statistical_summary {
     my $feature = shift;
     my $stats = $feature->statistical_summary($self->width);
     $stats   ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    my $interval_method = $self->option('interval_method') || 'mean';
+    my @vals;
+    if ($interval_method eq 'mean') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'sum') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'min') {
+    	@vals  = map {$_->{validCount} ? $_->{minVal} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'max') {
+    	@vals  = map {$_->{validCount} ? $_->{maxVal} : undef} @$stats;
+    }
+    else {
+    	warn "unrecognized interval method $interval_method!";
+    }
     return $self->_draw_coverage($feature,\@vals,@_);
 }
 
@@ -416,6 +448,7 @@ sub _draw_coverage {
 	my $s      = $start + $offset;
 	my $e      = $s+1;  # fill in gaps
 	my $v      = $array->[$offset/$bases_per_bin];
+	next unless defined $v; # skip missing values
 	push @parts,[$s,$s,$v];
     }
     $self->draw_plot(\@parts,@_);

@@ -401,6 +401,7 @@ sub _draw_coverage {
 	my $s      = $start + $offset;
 	my $e      = $s+1;  # fill in gaps
 	my $v      = $array->[$offset/$bases_per_bin];
+	$v         = 0 unless defined $v; # don't want undefined values
 	push @parts,[$s,$s,$v];
     }
     $self->Bio::Graphics::Glyph::wiggle_density::draw_plot(\@parts,@_);
