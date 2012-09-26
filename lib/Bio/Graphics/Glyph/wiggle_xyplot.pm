@@ -147,8 +147,8 @@ sub draw_plot {
 	$scaled_min = int(($min_score-$mean)/$stdev + 0.5);
 	$scaled_max = int(($max_score-$mean)/$stdev + 0.5);
 	my $bound  = $self->z_score_bound;
-	$scaled_max = $bound  if $scaled_max > 0;
-	$scaled_min = -$bound if $scaled_min < 0;
+	$scaled_max = $bound  if $scaled_max >= 0;
+	$scaled_min = -$bound if $scaled_min <= 0;
     }
     elsif ($side) {
 	$scaled_min = int($min_score - 0.5);
