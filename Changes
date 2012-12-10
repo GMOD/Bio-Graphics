@@ -1,5 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.32 Mon Dec 10 05:47:45 EST 2012
+   - Clean up appearance of crossbox to avoid odd black bar in the middle.
+
 2.31 Tue Sep 25 22:39:43 EDT 2012
    - Fix infinite loop when drawing wiggle_xyplots with z-score scaling
      over regions that do not vary much.
