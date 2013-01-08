@@ -106,7 +106,23 @@ sub draw {
 					-end    => $self->panel->end,
 					-type   => 'summary');
 	 my $stats = $summary->statistical_summary($self->width);
-	 my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}*$flip:0} @$stats;
+	 my $interval_method = $self->option('interval_method') || 'mean';
+	 my @vals;
+	 if ($interval_method eq 'mean') {
+		@vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} * $flip : undef} @$stats;
+	 }
+	 elsif ($interval_method eq 'sum') {
+		@vals  = map {$_->{validCount} ? $_->{sumData} * $flip : undef} @$stats;
+	 }
+	 elsif ($interval_method eq 'min') {
+		@vals  = map {$_->{validCount} ? $_->{minVal} * $flip : undef} @$stats;
+	 }
+	 elsif ($interval_method eq 'max') {
+		@vals  = map {$_->{validCount} ? $_->{maxVal} * $flip : undef} @$stats;
+	 }
+	 else {
+		warn "unrecognized interval method $interval_method!";
+	 }
 	 $self->_draw_coverage($summary,\@vals,@_);
      }
  }
