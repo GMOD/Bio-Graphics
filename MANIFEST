@@ -14,6 +14,7 @@ lib/Bio/Graphics/FeatureBase.pm
 lib/Bio/Graphics/FeatureDir.pm
 lib/Bio/Graphics/FeatureFile.pm
 lib/Bio/Graphics/FeatureFile/Iterator.pm
+lib/Bio/Graphics/GDWrapper.pm
 lib/Bio/Graphics/Glyph.pm
 lib/Bio/Graphics/Glyph/alignment.pm
 lib/Bio/Graphics/Glyph/allele_tower.pm
