@@ -494,8 +494,6 @@ sub setup_fonts {
   $self->{key_font} = $font_obj;
 }
 
-sub current_gd { return shift->{gd} }
-
 sub gd {
   my $self        = shift;
   my $existing_gd = shift;
@@ -523,7 +521,6 @@ sub gd {
 				      ($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
 				     );
   $self->{gd} = $gd;
-  warn "setting gd to $self->{gd}";
 
   if ($self->{truecolor} 
       && $pkg->can('saveAlpha')) {
@@ -620,6 +617,32 @@ sub gd {
   $self->endGroup($gd);
 
   return $self->{gd} = $self->rotate ? $gd->copyRotate90 : $gd;
+}
+
+sub string_width {
+    my $self = shift;
+    my ($font,$string) = @_;
+
+    my $class = $self->image_class;
+
+    return $font->width*CORE::length($string) 
+	unless $self->truetype && $class ne 'GD::SVG';
+
+    return Bio::Graphics::GDWrapper->string_width($font,$string); 
+}
+
+sub string_height {
+    my $self = shift;
+    my ($font,$string) = @_;
+
+    my $class = $self->image_class;
+
+    return $font->height
+	unless $self->truetype 
+	&& eval{$class eq 'GD' || $class->isa('GD::Image')};
+
+    return $class->can('string_height') ? $class->string_height($font,$string) 
+          	                        : $font->height;
 }
 
 sub startGroup {

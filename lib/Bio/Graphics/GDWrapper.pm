@@ -2,12 +2,12 @@ package Bio::Graphics::GDWrapper;
 
 use base 'GD::Image';
 use Memoize 'memoize';
-
-#memoize('_match_font');
+memoize('_match_font');
 
 sub new {
     my $self = shift;
     my $gd   = shift;
+    $gd->useFontConfig(1);
     return bless $gd,ref $self || $self;
 }
 
@@ -24,6 +24,7 @@ sub string {
 sub string_width {
     my $self = shift;
     my ($font,$string) = @_;
+    warn "string_width($font,$string)";
     my $fontface = $self->_match_font($font);
     my ($fontsize) = $fontface =~ /-(\d+)/;
     my @bounds   = GD::Image->stringFT(0,$fontface,$fontsize,0,0,0,$string);
@@ -44,7 +45,6 @@ sub _match_font {
     my $self = shift;
     my $font = shift;
     return $font unless ref $font && $font->isa('GD::Font');
-    $self->useFontConfig(1);
     my $height = $font->height-4;
     my $style  = $font eq GD->gdMediumBoldFont ? 'bold'
 	        :$font eq GD->gdGiantFont      ? 'bold'

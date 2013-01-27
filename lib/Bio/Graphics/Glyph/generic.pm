@@ -471,7 +471,7 @@ sub draw_label {
 			$self->top + $top - 1,
 			$label);
   } elsif ($self->label_position eq 'left') {
-      my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
+      my $y = $self->{top} + ($self->height - $self->string_height('',$font))/2 + $top;
       $y    = $self->{top} + $top if $y < $self->{top} + $top;
       $self->render_label($gd,
 			  $font,

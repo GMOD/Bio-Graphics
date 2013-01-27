@@ -648,8 +648,8 @@ sub draw_label {
 	$x += ($self->panel->glyph_scratch||0);
 
 	my $font  = $self->labelfont;
-	my $width = $self->string_width($gd,$font,$label)+4;
-	my $height= $self->string_height($gd,$font);
+	my $width = $self->string_width($label,$font)+4;
+	my $height= $self->string_height('',$font);
 	unless ($self->record_label_positions) {
 	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$height,$self->bgcolor);
 	    local $self->{default_opacity} = 1;
@@ -660,7 +660,7 @@ sub draw_label {
 
     } elsif ($self->label_position eq 'left') {
 	  my $font = $self->labelfont;
-	  my $x = $self->left + $left - $self->string_width($gd,$font,$label) - $self->extra_label_pad;
+	  my $x = $self->left + $left - $self->string_width($label,$font) - $self->extra_label_pad;
 	  my $y = $self->{top} + $top;
 
 	  $self->render_label($gd,
@@ -694,7 +694,7 @@ sub draw_legend {
   my $label = "<a id=\"legend_$name\" target=\"_blank\" href=\"#\"> <font color=\'$color\';\">" . $name . "</font></a>" or return;
 
   my $font = $self->labelfont;
-  my $x = $self->left + $left - $self->string_width($gd,$font,$label) - $self->extra_label_pad;
+  my $x = $self->left + $left - $self->string_width($label,$font) - $self->extra_label_pad;
   my $y = $self->{top} + $top;
   my $is_legend = 1;
   $self->render_label($gd,

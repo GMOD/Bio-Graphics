@@ -8,7 +8,7 @@ use Bio::Graphics::Layout;
 
 use Memoize 'memoize';
 memoize('options') unless $^O =~ /mswin/i;
-# memoize('option'); # helps ??
+memoize('option'); # helps ??
 
 use base qw(Bio::Root::Root);
 
@@ -1470,20 +1470,15 @@ sub linewidth {
 
 sub string_width {
     my $self = shift;
-    my $string = shift;
-    my $gd  = $self->gd || Bio::Graphics::GDWrapper->new(GD::Image->new(100,100));
-    my $font= $self->font;
-    warn "DIRTY HACK gd = $gd";
-    return $gd->can('string_width') ? $gd->string_width($font,$string) 
-	                            : $font->width * CORE::length($string);
+    my ($string,$font) = @_;
+    warn "string_width $string";
+    $self->panel->string_width($font||$self->font,$string||'m');
 }
 
 sub string_height {
     my $self = shift;
-    my ($gd,$font,$string) = @_;
-    $string ||= 'hj'; # something with both an ascent and descent
-    return $gd->can('string_height') ? $gd->string_height($font,$string) 
-	                             : $font->height;
+    my ($string,$font) = @_;
+    $self->panel->string_height($font||$self->font,$string||'hj');
 }
 
 sub fill {
