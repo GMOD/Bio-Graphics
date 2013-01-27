@@ -3,6 +3,7 @@ package Bio::Graphics::Panel;
 use strict;
 use Bio::Graphics::Glyph::Factory;
 use Bio::Graphics::Feature;
+use Bio::Graphics::GDWrapper;
 
 # KEYLABELFONT must be treated as string until image_class is established
 use constant KEYLABELFONT => 'gdMediumBoldFont';
@@ -53,6 +54,7 @@ sub new {
   my $empty_track_style   = $options{-empty_tracks} || 'key';
   my $autopad      = defined $options{-auto_pad} ? $options{-auto_pad} : 1;
   my $truecolor    = $options{-truecolor}  || 0;
+  my $truetype     = $options{-truetype}  || 0;
   my $image_class  = ($options{-image_class} && $options{-image_class} =~ /SVG/)
                       ? 'GD::SVG'
 		      : $options{-image_class} || 'GD';  # Allow users to specify GD::SVG using SVG
@@ -104,6 +106,7 @@ sub new {
 		autopad   => $autopad,
 		all_callbacks => $allcallbacks,
 		truecolor     => $truecolor,
+		truetype      => $truetype,
 		flip          => $flip,
 		linkrule      => $linkrule,
 		titlerule     => $titlerule,
@@ -158,6 +161,12 @@ sub flip {
   my $self = shift;
   my $g = $self->{flip};
   $self->{flip} = shift if @_;
+  $g;
+}
+sub truetype {
+  my $self = shift;
+  my $g = $self->{truetype};
+  $self->{truetype} = shift if @_;
   $g;
 }
 
@@ -525,7 +534,9 @@ sub gd {
   }
 
   $self->{translations} = \%translation_table;
-  $self->{gd}           = $gd;
+  $self->{gd}           = $gd->isa('GD::SVG') ? $gd 
+                        : $self->truetype     ? Bio::Graphics::GDWrapper->new($gd)
+			: $gd;
   
   eval {$gd->alphaBlending(0)};
   if ($self->bgcolor) {
