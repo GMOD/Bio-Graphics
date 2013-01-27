@@ -205,6 +205,7 @@ sub demo_feature {
     return;
 }
 
+sub gd { shift->panel->current_gd }
 
 # a bumpable graphical object that has bumpable graphical subparts
 
@@ -1469,9 +1470,12 @@ sub linewidth {
 
 sub string_width {
     my $self = shift;
-    my ($gd,$font,$string) = @_;
+    my $string = shift;
+    my $gd  = $self->gd || Bio::Graphics::GDWrapper->new(GD::Image->new(100,100));
+    my $font= $self->font;
+    warn "DIRTY HACK gd = $gd";
     return $gd->can('string_width') ? $gd->string_width($font,$string) 
-	                            : $font->width * length($string);
+	                            : $font->width * CORE::length($string);
 }
 
 sub string_height {

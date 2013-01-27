@@ -18,7 +18,7 @@ sub string {
     return $self->SUPER::string(@_) if $self->isa('GD::SVG');
     my $fontface   = $self->_match_font($font);
     my ($fontsize) = $fontface =~ /-(\d+)/;
-    $self->stringFT($color,$fontface,$fontsize,0,$x,$y+$fontsize+1,$string);
+    $self->stringFT(-${color},$fontface,$fontsize,0,$x,$y+$fontsize+1,$string);
 }
 
 sub string_width {

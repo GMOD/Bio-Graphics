@@ -218,7 +218,7 @@ sub descfont {
 }
 sub labelwidth {
   my $self = shift;
-  return $self->{labelwidth} ||= length($self->label||'') * $self->font->width;
+  return $self->{labelwidth} ||= $self->string_width($self->label||'');
 }
 sub descriptionwidth {
   my $self = shift;

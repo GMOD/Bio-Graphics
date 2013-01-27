@@ -494,6 +494,8 @@ sub setup_fonts {
   $self->{key_font} = $font_obj;
 }
 
+sub current_gd { return shift->{gd} }
+
 sub gd {
   my $self        = shift;
   my $existing_gd = shift;
@@ -520,6 +522,8 @@ sub gd {
   my $gd  = $existing_gd || $pkg->new($width,$height,
 				      ($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
 				     );
+  $self->{gd} = $gd;
+  warn "setting gd to $self->{gd}";
 
   if ($self->{truecolor} 
       && $pkg->can('saveAlpha')) {
