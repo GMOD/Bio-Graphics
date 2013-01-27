@@ -849,7 +849,7 @@ sub layout_sort {
 sub layout {
   my $self = shift;
   return $self->{layout_height} if exists $self->{layout_height};
-  
+
   my @parts = $self->parts;
   return $self->{layout_height} = 
       $self->height + $self->pad_top + $self->pad_bottom unless @parts;

@@ -34,6 +34,7 @@ lib/Bio/Graphics/Glyph/ellipse.pm
 lib/Bio/Graphics/Glyph/ex.pm
 lib/Bio/Graphics/Glyph/extending_arrow.pm
 lib/Bio/Graphics/Glyph/Factory.pm
+lib/Bio/Graphics/Glyph/fb_shmiggle.pm
 lib/Bio/Graphics/Glyph/fixedwidth.pm
 lib/Bio/Graphics/Glyph/flag.pm
 lib/Bio/Graphics/Glyph/gene.pm
@@ -59,6 +60,7 @@ lib/Bio/Graphics/Glyph/pairplot.pm
 lib/Bio/Graphics/Glyph/pentagram.pm
 lib/Bio/Graphics/Glyph/phylo_align.pm
 lib/Bio/Graphics/Glyph/pinsertion.pm
+lib/Bio/Graphics/Glyph/point_glyph.pm
 lib/Bio/Graphics/Glyph/primers.pm
 lib/Bio/Graphics/Glyph/processed_transcript.pm
 lib/Bio/Graphics/Glyph/protein.pm
@@ -71,6 +73,7 @@ lib/Bio/Graphics/Glyph/repeating_shape.pm
 lib/Bio/Graphics/Glyph/rndrect.pm
 lib/Bio/Graphics/Glyph/ruler_arrow.pm
 lib/Bio/Graphics/Glyph/saw_teeth.pm
+lib/Bio/Graphics/Glyph/scale.pm
 lib/Bio/Graphics/Glyph/segmented_keyglyph.pm
 lib/Bio/Graphics/Glyph/segments.pm
 lib/Bio/Graphics/Glyph/smoothing.pm
@@ -96,8 +99,8 @@ lib/Bio/Graphics/Glyph/wave.pm
 lib/Bio/Graphics/Glyph/weighted_arrow.pm
 lib/Bio/Graphics/Glyph/whiskerplot.pm
 lib/Bio/Graphics/Glyph/wiggle_box.pm
-lib/Bio/Graphics/Glyph/wiggle_density.pm
 lib/Bio/Graphics/Glyph/wiggle_data.pm
+lib/Bio/Graphics/Glyph/wiggle_density.pm
 lib/Bio/Graphics/Glyph/wiggle_whiskers.pm
 lib/Bio/Graphics/Glyph/wiggle_xyplot.pm
 lib/Bio/Graphics/Glyph/xyplot.pm
@@ -111,6 +114,7 @@ lib/Bio/Graphics/Wiggle/Loader.pm
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
+META.json
 META.yml
 README
 README.bioperl
@@ -118,6 +122,7 @@ scripts/contig_draw.pl
 scripts/feature_draw.pl
 scripts/frend.pl
 scripts/glyph_help.pl
+scripts/index_cov_files.pl
 scripts/render_msa.pl
 scripts/search_overview.pl
 t/BioGraphics.t
@@ -129,6 +134,8 @@ t/data/t1/version11.gif
 t/data/t1/version11.png
 t/data/t1/version12.gif
 t/data/t1/version12.png
+t/data/t1/version13.gif
+t/data/t1/version13.png
 t/data/t1/version2.gif
 t/data/t1/version2.png
 t/data/t1/version3.gif
@@ -155,6 +162,8 @@ t/data/t2/version17.gif
 t/data/t2/version17.png
 t/data/t2/version18.gif
 t/data/t2/version18.png
+t/data/t2/version19.gif
+t/data/t2/version19.png
 t/data/t2/version2.gif
 t/data/t2/version2.png
 t/data/t2/version3.gif
@@ -175,6 +184,8 @@ t/data/t3/version12.gif
 t/data/t3/version12.png
 t/data/t3/version13.gif
 t/data/t3/version13.png
+t/data/t3/version14.gif
+t/data/t3/version14.png
 t/data/t3/version2.gif
 t/data/t3/version2.png
 t/data/t3/version3.gif
@@ -188,4 +199,3 @@ t/data/t3/version8.png
 t/data/t3/version9.png
 t/data/wig_data.wig
 t/Wiggle.t
-META.json

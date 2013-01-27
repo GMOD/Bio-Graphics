@@ -1014,19 +1014,21 @@ sub _translate_color {
 	 $colors[0] =~ /^rgb\((\d+),(\d+),(\d+)\)$/i
       ) {
       my (@rgb) = map {/(\d+)%/ ? int(255 * $1 / 100) : $_} ($1,$2,$3);
-      $index = $self->colorAllocateAlpha($gd,@rgb,$default_alpha);
+      $index = $gd->colorAllocateAlpha(@rgb,$default_alpha);
   }
   elsif ($colors[0] eq 'transparent') {
       $index = $gd->colorAllocateAlpha(255,255,255,127);
   }
   elsif ($colors[0] =~ /^(\w+):([\d.]+)/) {  # color:alpha
       my @rgb   = $self->color_name_to_rgb($1);
+      @rgb      = (0,0,0) unless @rgb;
       my $alpha = $self->adjust_alpha($2);
       $index = $gd->colorAllocateAlpha(@rgb,$alpha);
   }
   elsif ($default_alpha < 127) {
       my @rgb   = $self->color_name_to_rgb($colors[0]);
-      $index = $gd->colorAllocateAlpha(@rgb,$default_alpha);
+      @rgb      = (0,0,0) unless @rgb;
+      $index    = $gd->colorAllocateAlpha(@rgb,$default_alpha);
   }
   else {
       $index = defined $table->{$colors[0]} ? $table->{$colors[0]} : 1;
@@ -1959,10 +1961,14 @@ object to the panel.  This stylesheet will be called to determine both
 the glyph and the glyph options.  If both a stylesheet and direct
 options are provided, the latter take precedence.
 
-The B<-color_series> argument, if true, causes the track to ignore
-the -bgcolor setting and instead to assign glyphs a series of
-contrasting colors. This is usually used in combination with 
--bump=>'overlap' in order to create overlapping features.
+The B<-color_series> argument causes the track to ignore the -bgcolor
+setting and instead to assign glyphs a series of contrasting
+colors. This is usually used in combination with -bump=>'overlap' in
+order to create overlapping features. A true value activates the color
+series. You may adjust the default color series using the
+B<-color_cycle> option, which is either a reference to an array of
+Bio::Graphics color values, or a space-delimited string of color
+names/value.
 
 If successful, add_track() returns an Bio::Graphics::Glyph object.
 You can use this object to add additional features or to control the

@@ -2,7 +2,7 @@ package Bio::Graphics::Glyph::diamond;
 # DAS-compatible package to use for drawing a colored diamond
 
 use strict;
-use base qw(Bio::Graphics::Glyph::generic);
+use base qw(Bio::Graphics::Glyph::point_glyph);
 
 sub my_description {
     return <<END;
@@ -69,6 +69,7 @@ sub draw_component {
     $gd->polygon($polygon,$fg);
   }
 }
+
 
 1;
 

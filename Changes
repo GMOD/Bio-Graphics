@@ -1,8 +1,29 @@
 Revision history for Perl extension Bio::Graphics.
 
+2.31 Tue Sep 25 22:39:43 EDT 2012
+   - Fix infinite loop when drawing wiggle_xyplots with z-score scaling
+     over regions that do not vary much.
+
+2.30
+    - Added the glyph for FlyBase's "stacked wiggle" plot (fb_shmiggle.pm) as well as a utility script for preparing the data (index_cov_files.pl).
+
+2.29
+    - Fixes for Bio::Graphics::Wiggle to prevent crash when the "bottom" keystyle selected.
+    - Add ability to obtain Bio::Graphics::Wiggle features directly from the 
+    Bio::Graphics::Wiggle::Loader without creating an intermediate gff3 file.
+
+2.28
+    - Fixes to restore density plot functionality in hybrid_plot and vista_plot.
+    - Fix handling of Bio::Graphics::Wiggle files in xyplots.
+
+2.27
+    - Fix handling of code ref subs to allow for option=>\&Packagename::functionname.
+
 2.26
     - Support for normalizing quantitative plots across entire track.
     - Support for transparency within tracks, allowing features to overlap.
+    - Support for -color_series and -color_cycle options (see Bio::Graphics::Panel)
+      which cycle dynamically among a fixed series of background colors.
 
 2.25
     - Deprecate xyplot "histogram" subtype and default to "boxes".

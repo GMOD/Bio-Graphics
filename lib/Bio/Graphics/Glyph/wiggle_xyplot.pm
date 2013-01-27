@@ -98,6 +98,34 @@ sub draw {
   return $result;
 }
 
+sub draw_coverage {
+    my $self    = shift;
+    my $feature = shift;   
+    my $array   = shift;
+    if (! $array || ref($array) ne 'ARRAY'){
+     unshift(@_,$array);
+     my @arr = (eval{$feature->get_tag_values('coverage')});
+     $array  = $arr[0];
+    } else {
+     $array   = [split ',',$array] unless ref $array;
+    }
+    return unless @$array;
+
+    my ($start,$end)    = $self->effective_bounds($feature);
+    my $bases_per_bin   = ($end-$start)/@$array;
+    my $pixels_per_base = $self->scale;
+    my @parts;
+    for (my $pixel=0;$pixel<$self->width;$pixel++) {
+        my $offset = $pixel/$pixels_per_base;
+        my $s      = $start + $offset;
+        my $e      = $s+1;  # fill in gaps
+        my $v      = $array->[$offset/$bases_per_bin];
+        push @parts,[$s,$s,$v];
+    }
+    $self->draw_plot(\@parts,@_);
+}
+
+
 sub draw_plot {
     my $self            = shift;
     my $parts           = shift;
@@ -110,7 +138,7 @@ sub draw_plot {
 
     # There is a minmax inherited from xyplot as well as wiggle_data, and I don't want to
     # rely on Perl's multiple inheritance DFS to find the right one.
-    my ($min_score,$max_score,$mean,$stdev)     = $self->minmax($parts);
+    my ($min_score,$max_score,$mean,$stdev)  = $self->minmax($parts);
     my $rescale  = $self->option('autoscale') eq 'z_score';
     my $side    = $self->_determine_side();
 
@@ -119,8 +147,8 @@ sub draw_plot {
 	$scaled_min = int(($min_score-$mean)/$stdev + 0.5);
 	$scaled_max = int(($max_score-$mean)/$stdev + 0.5);
 	my $bound  = $self->z_score_bound;
-	$scaled_max = $bound  if $scaled_max > $bound;
-	$scaled_min = -$bound if $scaled_min < -$bound;
+	$scaled_max = $bound  if $scaled_max >= 0;
+	$scaled_min = -$bound if $scaled_min <= 0;
     }
     elsif ($side) {
 	$scaled_min = int($min_score - 0.5);
@@ -148,9 +176,11 @@ sub draw_plot {
     my $y_origin = $scaled_min <= 0 && $pivot ne 'min' ? $bottom - (0 - $scaled_min) * $y_scale : $bottom;
     $y_origin    = int($y_origin+0.5);
 
+
     $self->panel->startGroup($gd);
-    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless ($self->option('no_grid') == 1);
+    $self->_draw_grid($gd,$x_scale,$scaled_min,$scaled_max,$dx,$dy,$y_origin) unless $self->option('no_grid');
     $self->panel->endGroup($gd);
+
 
     return unless $scaled_max > $scaled_min;
 
@@ -284,6 +314,52 @@ sub draw_plot {
     $self->draw_description(@_) if $self->option('description');
 
     $self->panel->endGroup($gd);
+}
+
+sub make_key_feature {
+    my $self = shift;
+    my $scale = 1/$self->scale;  # base pairs/pixel
+
+    # one segments, at pixels 0->80
+    my $offset = $self->panel->offset;
+
+    my $start = 0 * $scale + $offset;
+    my $end   = 80*$scale+$offset;
+
+    my $span = int(0.5+($end-$start)/50);
+
+    eval "require Bio::Graphics::Wiggle; 1";
+    my $wig = Bio::Graphics::Wiggle->new(undef,
+                                         1,
+                                         {seqid=>'chr1',
+					  start => int($start),
+					  span  => $span});
+
+    my @values = map {
+        (sin($_/60)+sin($_/12))*100+rand(100)
+    } 0..50;
+    my $min = $values[0];
+    my $max = $values[0];
+    my $tot = 0;
+    for (@values) {$min = $_ if $min > $_;
+		   $max = $_ if $max < $_;
+		   $tot += $_;
+    }
+    $wig->min($min);
+    $wig->max($max);
+    $wig->stdev(120); # just make it up
+    $wig->mean($tot/@values);
+
+    $wig->set_value(($_*$span)+$start=>$values[$_-1]) for (0..50);
+
+    my $feature =
+    Bio::Graphics::Feature->new(-start => $start,
+				-end   => $end,
+				-name => $self->make_key_name(),
+				-strand => '+1',
+				-attributes => {wigfile=>$wig},
+    );
+  return $feature;
 }
 
 1;

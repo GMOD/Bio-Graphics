@@ -1,12 +1,12 @@
 package Bio::Graphics::Glyph::vista_plot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_data
-            Bio::Graphics::Glyph::wiggle_xyplot 
+use base qw(Bio::Graphics::Glyph::wiggle_xyplot 
             Bio::Graphics::Glyph::wiggle_density
             Bio::Graphics::Glyph::wiggle_whiskers
             Bio::Graphics::Glyph::heat_map 
-            Bio::Graphics::Glyph::smoothing); 
+            Bio::Graphics::Glyph::smoothing);
+
 
 our $VERSION = '1.0';
 
@@ -46,8 +46,8 @@ sub my_options {
             'vista',
             "What to show, peaks or signal, both (vista plot) or density graph."],
         graph_type => [
-	     ['whiskers','histogram','line','points','linepoints'],
-            'histogram',
+	     ['whiskers','histogram','boxes','line','points','linepoints'],
+            'boxes',
             "Type of signal graph to show."],
 	alpha  => [
 	    'integer',
@@ -123,8 +123,10 @@ sub bigwig_summary {
 sub global_mean_and_variance {
     my $self = shift;
     if (my $wig = $self->wig) {
-        return ($wig->mean,$wig->stdev);
-    } elsif (my $sum = $self->bigwig_summary){
+	my @result = eval{($wig->mean,$wig->stdev)};
+        return @result if @result;
+    } 
+    if (my $sum = $self->bigwig_summary){
         use Bio::DB::BigWig qw(binMean binStdev);
         my $stats = $sum->statistical_summary(1);
         return eval{(binMean($stats->[0]),binStdev($stats->[0]))};
@@ -158,9 +160,9 @@ sub draw {
 		    peak => (eval{$feature->get_tag_values('peak_type')})[0],
 		    fasta=> (eval{$feature->get_tag_values('fasta')})[0]);
     $self->panel->startGroup($gd);
-    $self->configure(opacity => 0.5)             if $only_show eq 'vista';
+
     $self->draw_signal($only_show,\%features,@_) if $only_show =~ /signal|density|vista/;
-    $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista/;
+    $self->draw_peaks(\%features,@_)             if $features{peak} && $only_show =~ /peaks|vista|both/;
     $self->Bio::Graphics::Glyph::xyplot::draw_label(@_)       if $self->option('label');
     $self->draw_description(@_) if $self->option('description');
     $self->panel->endGroup($gd);
@@ -204,9 +206,9 @@ sub draw_signal {
 	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
 	    $self->bigwig_summary($summary);
 	    if ($signal_type eq 'density') {
-              $self->Bio::Graphics::Glyph::wiggle_density::draw_coverage($summary,\@vals,@_);
+		$self->Bio::Graphics::Glyph::wiggle_density::_draw_coverage($summary,\@vals,@_);
             } else {
-	      $self->Bio::Graphics::Glyph::wiggle_data::_draw_coverage($summary,\@vals,@_);
+		$self->Bio::Graphics::Glyph::wiggle_data::_draw_coverage($summary,\@vals,@_);
             }
 	}
     }
@@ -239,6 +241,8 @@ sub draw_peaks {
     }
 
     my $flip     = $self->{flip};
+
+    $self->{peak_cache} = [];  # remember coordinates of the peaks
 
     foreach my $peak (@peaks) {
 	my $x1     = $left    + ($peak->{start} - $f_start) * $x_scale;
@@ -275,10 +279,12 @@ sub draw_peaks {
 		($x1,$x2) = ($x2,$x1);
 	    }
 	    
-	    $self->filled_box($gd,int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5),$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
+	    my @rect = (int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y2+0.5));
+	    $self->filled_box($gd,@rect,$bgcolor,$bgcolor,0.5) if abs($y2-$y1) > 0;
 	    $gd->setThickness($lw);
 	    $gd->line(int($x1+0.5),int($y1+0.5),int($x2+0.5),int($y1+0.5),$color);
 	    $gd->setThickness(1);
+	    push @{$self->{peak_cache}},[$peak,@rect];
 	}
     }
 }
@@ -401,46 +407,16 @@ sub level { -1 }
 
 # Need to override this so we have a nice image map for overlayed peaks
 sub boxes {
-  my $self = shift;
+    my $self = shift;
+    my($left,$top,$parent) = @_;
 
-  return if $self->glyph_subtype eq 'density'; # No boxes for density plot
-  my($left,$top,$parent) = @_;
-  
-  my $feature = $self->feature;
-  my @result;
-  my ($handle) = eval{$feature->get_tag_values('peak_type')};
-  
-  if (!$handle) {
-   return wantarray ? () : \();
-  }
-
-  $parent ||=$self;
-  $top  += 0; $left += 0;
-  
-  if ($handle)  {
-   my @peaks = $self->peaks;
-   $self->add_feature(@peaks);
- 
-   my $x_scale = $self->scale;
-   my $panel_start = $self->panel->start;
-   my $f_start     = $feature->start > $panel_start
-                      ? $feature->start
-                      : $panel_start;
-   for my $part ($self->parts) { 
-    my $x1 = $f_start < $part->{start} ? int(($part->{start} - $f_start) * $x_scale) : 1;
-    my $x2 = int(($part->{stop}  - $f_start) * $x_scale);
-    my $y1 = 0;
-    my $y2 = $part->height + $self->pad_top;
-    $x2++ if $x1==$x2;
-    next if $x1 <= 0;
-    push @result,[$part->feature,
-                  $left + $x1,$top+$self->top+$self->pad_top+$y1,
-                  $left + $x2,$top+$self->top+$self->pad_top+$y2,
-                  $parent];
-   }
-  }
-
-  return wantarray ? @result : \@result;
+    return if $self->glyph_subtype eq 'density'; # No boxes for density plot
+    my @boxes = $self->SUPER::boxes(@_);
+    
+    if (my $rects = $self->{peak_cache}) {
+	push @boxes,[@$_,$parent] foreach @$rects;
+    }
+    return wantarray ? @boxes : \@boxes;
 }
 
 

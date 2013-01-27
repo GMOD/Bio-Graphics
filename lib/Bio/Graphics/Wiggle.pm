@@ -288,12 +288,7 @@ sub end {
   return $self->{end};
 }
 
-sub DESTROY {
-  my $self = shift;
-  if ($self->{dirty} && $self->{write}) {
-    $self->_writeoptions($self->{options});
-  }
-}
+sub DESTROY { shift->write }
 
 sub erase {
   my $self = shift;
@@ -342,6 +337,15 @@ sub smoothing {
   my $d    = $self->{smoothing} || DEFAULT_SMOOTHING;
   $self->{smoothing} = shift if @_;
   $d;
+}
+
+sub write {
+  my $self = shift;
+  if ($self->{dirty} && $self->{write}) {
+    $self->_writeoptions($self->{options});
+    undef $self->{dirty};
+    $self->fh->flush;
+  }
 }
 
 sub _readoptions {

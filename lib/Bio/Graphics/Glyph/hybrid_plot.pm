@@ -1,11 +1,10 @@
 package Bio::Graphics::Glyph::hybrid_plot;
 
 use strict;
-use base qw(Bio::Graphics::Glyph::wiggle_xyplot Bio::Graphics::Glyph::smoothing);
+use base qw(Bio::Graphics::Glyph::wiggle_xyplot);
 use constant DEBUG=>0;
 use constant NEGCOL=>"orange";
 use constant POSCOL=>"blue";
-
 our $VERSION = '1.0';
 
 sub my_options {
@@ -72,19 +71,13 @@ sub draw {
  my $height   = $bottom - $top;
  my $feature  = $self->feature;
  my $set_flip = $self->option('flip_sign') | 0;
- 
- 
+
  #Draw individual features for reads (unlike wiggle features reads will have scores)
  my $t_id = $feature->method;
  if($t_id && $t_id eq $self->_check_uni){return Bio::Graphics::Glyph::generic::draw_component($self,@_);}
 
  #Draw multiple graph if we don't have a score
- my @wiggles = ();
- foreach ('A'..'Z') {
-   my $filename = 'wigfile'.$_;
-   my ($wiggle) = $feature->get_tag_values('wigfile'.$_);
-   push (@wiggles, $wiggle);
- }
+ my @wiggles = $self->get_wiggles($feature);
 
  my ($fasta)   = $feature->get_tag_values('fasta');
  my($scale,$y_origin,$min_score,$max_score);
@@ -93,49 +86,98 @@ sub draw {
 
  #Depending on what we have (wiggle or BigWig) pick the way to paint the signal graph
  for(my $w = 0; $w < @wiggles; $w++){
-  if ($w > 0) {
-    $self->configure(-pos_color, NEGCOL);
-    $self->configure(-no_grid, 1);
-  } else {
-    $self->configure(-pos_color, POSCOL);
-  }
-  if ($wiggles[$w] =~ /\.wi\w{1,3}$/) {
-   $self->draw_wigfile($feature,$wiggles[$w],@_);
-  } elsif ($wiggles[$w] =~ /\.bw$/ && $fasta) {
-   my $flip = ($w > 0 && $set_flip) ? -1 : 1;
-   use Bio::DB::BigWig 'binMean';
-   use Bio::DB::Sam;
-   my $wig = Bio::DB::BigWig->new(-bigwig => "$wiggles[$w]",
-                                  -fasta  => Bio::DB::Sam::Fai->open("$fasta"));
-
-   my ($summary) = $wig->features(-seq_id => $feature->segment->ref,
-                                  -start  => $self->panel->start,
-                                  -end    => $self->panel->end,
-                                  -type   => 'summary');
-   
-   my $stats = $summary->statistical_summary($self->width);
-   my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}*$flip:0} @$stats;
-   $self->draw_coverage($self,\@vals,@_);
-  }
+     if ($w > 0) {
+	 $self->configure('bgcolor', NEGCOL);
+	 $self->configure('no_grid', 1);
+     } else {
+	 $self->configure('bgcolor', POSCOL);
+     }
+     if ($wiggles[$w] =~ /\.wi\w{1,3}$/) {
+	 $self->draw_wigfile($feature,$wiggles[$w],@_);
+     } elsif ($wiggles[$w] =~ /\.bw$/) {
+	 my $flip = ($w > 0 && $set_flip) ? -1 : 1;
+	 eval "require Bio::DB::BigWig;1" or die $@;
+	 eval "require Bio::DB::Sam; 1"   or die $@;
+	 my @args = (-bigwig => "$wiggles[$w]");
+	 push @args,(-fasta  => Bio::DB::Sam::Fai->open($fasta)) if $fasta;
+	 my $wig = Bio::DB::BigWig->new(@args);
+	 my ($summary) = $wig->features(-seq_id => $feature->segment->ref,
+					-start  => $self->panel->start,
+					-end    => $self->panel->end,
+					-type   => 'summary');
+	 my $stats = $summary->statistical_summary($self->width);
+	 my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}*$flip:0} @$stats;
+	 $self->_draw_coverage($summary,\@vals,@_);
+     }
  }
 }
 
-1;
+sub get_wiggles {
+    my $self = shift;
+    my $feature = shift;
+    my @wiggles;
+    foreach ('A'..'Z') {
+	my $filename = 'wigfile'.$_;
+	my ($wiggle) = $feature->get_tag_values('wigfile'.$_);
+	push (@wiggles, $wiggle) if $wiggle;
+    }
+    return @wiggles;
+}
 
+sub minmax {
+    my $self   = shift;
+    my $parts  = shift;
+
+    my $autoscale  = $self->option('autoscale') || 'local';
+
+    my $min_score  = $self->min_score  unless $autoscale eq 'z_score';
+    my $max_score  = $self->max_score  unless $autoscale eq 'z_score';
+
+    my $do_min     = !defined $min_score;
+    my $do_max     = !defined $max_score;
+
+    my @wiggles = $self->get_wiggles($self->feature);
+    my ($min,$max,$mean,$stdev);
+    my @args = (-seq_id => (eval{$self->feature->segment->ref}||''),
+		-start  => $self->panel->start,
+		-end    => $self->panel->end,
+		-type   => 'summary');
+    
+    for my $w (@wiggles) {
+	my ($a,$b,$c,$d);
+	if ($w =~ /\.bw$/) {
+	    eval "require Bio::DB::BigWig;1" or die $@;
+	    my $wig = Bio::DB::BigWig->new(-bigwig=>$w) or next;
+	    ($a,$b,$c,$d) = $self->bigwig_stats($autoscale,$wig->features(@args));
+	} elsif ($w =~ /\.wi\w{1,3}$/) {
+	    eval "require Bio::Graphics::Wiggle;1" or die $@;
+	    my $wig = Bio::Graphics::Wiggle->new($w);
+	    ($a,$b,$c,$d) = $self->wig_stats($autoscale,$wig);
+	}
+	$min    = $a if !defined $min || $min > $a;
+	$max    = $b if !defined $max || $max < $b;
+	$mean  += $c;
+	$stdev += $d**2;
+    }
+    $stdev = sqrt($stdev);
+
+    $min_score = $min if $do_min;
+    $max_score = $max if $do_max;
+    return $self->sanity_check($min_score,$max_score,$mean,$stdev);
+}
+
+1;
 __END__
 
 =head1 NAME
 
-
-Bio::Graphics::Glyph::hybrid_plot - An xyplot plot drawing dual graph using data from two wiggle files per track
+Bio::Graphics::Glyph::hybrid_plot - An xyplot plot drawing dual graph using data from two or more wiggle files per track
 
 =head1 SYNOPSIS
-
 
 See <Bio::Graphics::Panel> <Bio::Graphics::Glyph> and <Bio::Graphics::Glyph::wiggle_xyplot>.
 
 =head1 DESCRIPTION
-
 
 Note that for full functionality this glyph requires Bio::Graphics::Glyph::generic (generic glyph is used for drawing individual
 matches for small RNA alignments at a high zoom level, specified by semantic zooming in GBrowse conf file)
@@ -165,6 +207,8 @@ sequences (signal quality) aligned with the current region so the user can see
 the difference between accumulated signal from overlapping multiple matches 
 (which may likely be just a noise from products of degradation) and high-quality 
 signal from unique sequences.
+
+For a third wiggle file use the attribute "wigfileC" and so forth.
  
 It is essential that wigfile entries in gff file do not have score, because
 score used to differentiate between data for dual graph and data for matches
