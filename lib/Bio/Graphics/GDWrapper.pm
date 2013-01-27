@@ -21,6 +21,24 @@ sub string {
     $self->stringFT($color,$fontface,$fontsize,0,$x,$y+$fontsize+1,$string);
 }
 
+sub string_width {
+    my $self = shift;
+    my ($font,$string) = @_;
+    my $fontface = $self->_match_font($font);
+    my ($fontsize) = $fontface =~ /-(\d+)/;
+    my @bounds   = GD::Image->stringFT(0,$fontface,$fontsize,0,0,0,$string);
+    return abs($bounds[2]-$bounds[0]);
+}
+
+sub string_height {
+    my $self = shift;
+    my ($font,$string) = @_;
+    my $fontface = $self->_match_font($font);
+    my ($fontsize) = $fontface =~ /-(\d+)/;
+    my @bounds   = GD::Image->stringFT(0,$fontface,$fontsize,0,0,0,$string);
+    return abs($bounds[5]-$bounds[3]);
+}
+
 # find a truetype match for a built-in font
 sub _match_font {
     my $self = shift;

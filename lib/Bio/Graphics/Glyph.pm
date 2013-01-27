@@ -1467,6 +1467,21 @@ sub linewidth {
   shift->option('linewidth') || 1;
 }
 
+sub string_width {
+    my $self = shift;
+    my ($gd,$font,$string) = @_;
+    return $gd->can('string_width') ? $gd->string_width($font,$string) 
+	                            : $font->width * length($string);
+}
+
+sub string_height {
+    my $self = shift;
+    my ($gd,$font,$string) = @_;
+    $string ||= 'hj'; # something with both an ascent and descent
+    return $gd->can('string_height') ? $gd->string_height($font,$string) 
+	                             : $font->height;
+}
+
 sub fill {
   my $self = shift;
   my $gd   = shift;

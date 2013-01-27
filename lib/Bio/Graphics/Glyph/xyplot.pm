@@ -472,7 +472,7 @@ sub _draw_scale {
     next unless $font_pos > $last_font_pos + $font->height/2; # prevent labels from clashing
     if ($side eq 'left' or $side eq 'both' or $side eq 'three') {
       $gd->string($font,
-		  $x1 - $font->width * length($_->[1]) - 3,$font_pos,
+		  $x1 - $self->string_width($gd,$font,$_->[1]) - 3,$font_pos,
 		  $_->[1],
 		  $fg);
     }
@@ -482,7 +482,6 @@ sub _draw_scale {
 		  $_->[1],
 		  $fg);
     }
-#    if ($side eq 'three' && $_->[1] != 0) {
     if ($side eq 'three') {
       $gd->string($font,
 		  $middle + 5,$font_pos,
@@ -649,9 +648,10 @@ sub draw_label {
 	$x += ($self->panel->glyph_scratch||0);
 
 	my $font  = $self->labelfont;
-	my $width = $font->width*(length($label)+4);
+	my $width = $self->string_width($gd,$font,$label)+4;
+	my $height= $self->string_height($gd,$font);
 	unless ($self->record_label_positions) {
-	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$font->height,$self->bgcolor);
+	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$height,$self->bgcolor);
 	    local $self->{default_opacity} = 1;
 	    $gd->string($font,$x+3,$top,$label,$self->contrasting_label_color($gd,$self->bgcolor));
 	}
@@ -660,7 +660,7 @@ sub draw_label {
 
     } elsif ($self->label_position eq 'left') {
 	  my $font = $self->labelfont;
-	  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+	  my $x = $self->left + $left - $self->string_width($gd,$font,$label) - $self->extra_label_pad;
 	  my $y = $self->{top} + $top;
 
 	  $self->render_label($gd,
@@ -694,7 +694,7 @@ sub draw_legend {
   my $label = "<a id=\"legend_$name\" target=\"_blank\" href=\"#\"> <font color=\'$color\';\">" . $name . "</font></a>" or return;
 
   my $font = $self->labelfont;
-  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+  my $x = $self->left + $left - $self->string_width($gd,$font,$label) - $self->extra_label_pad;
   my $y = $self->{top} + $top;
   my $is_legend = 1;
   $self->render_label($gd,
