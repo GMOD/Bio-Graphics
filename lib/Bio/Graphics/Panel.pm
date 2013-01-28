@@ -627,7 +627,6 @@ sub string_width {
 
     return $font->width*CORE::length($string) 
 	unless $self->truetype && $class ne 'GD::SVG';
-
     return Bio::Graphics::GDWrapper->string_width($font,$string); 
 }
 

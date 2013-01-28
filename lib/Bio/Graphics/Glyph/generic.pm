@@ -3,6 +3,9 @@ package Bio::Graphics::Glyph::generic;
 use strict;
 use Bio::Graphics::Util qw(frame_and_offset);
 use base qw(Bio::Graphics::Glyph);
+use Memoize 'memoize';
+#memoize('pad_left');
+#memoize('pad_right');
 
 my %complement = (g=>'c',a=>'t',t=>'a',c=>'g',
 		  G=>'C',A=>'T',T=>'A',C=>'G');
@@ -205,7 +208,7 @@ sub pad_left {
   my $self = shift;
   my $pad = $self->SUPER::pad_left;
   return $pad unless $self->label_position eq 'left' && $self->label;
-  $pad += $self->labelwidth;
+  $pad += $self->labelwidth + 3;
   $pad;
 }
 sub labelfont {

@@ -53,6 +53,8 @@ use strict;
 use Carp qw(:DEFAULT cluck);
 use Bio::Root::Version;
 use base qw(Bio::Root::Root);
+#use Memoize 'memoize';
+#memoize('option');
 
 my %LOADED_GLYPHS = ();
 my %GENERIC_OPTIONS = (
@@ -413,6 +415,19 @@ sub set_option {
 #    ...followed by the stylesheet
 #    ...followed by generic options
 sub option {
+    my $self = shift;
+    my $key = "@_";
+#    return $self->{_option_cache}{$key} if exists $self->{_option_cache}{$key};
+
+    my $value = $self->_option(@_);
+#    if ($self->{_option_cache}{$key} && $self->{_option_cache}{$key} ne $value) {
+#	warn "@_: WAS $self->{_option_cache}{$key}; NOW $value";
+#    }
+#    $self->{_option_cache}{$key} ||= $value;
+    return $value;
+}
+
+sub _option {
   my $self = shift;
   my ($glyph,$option_name,$partno,$total_parts) = @_;
   return unless defined $option_name;

@@ -8,7 +8,7 @@ use Bio::Graphics::Layout;
 
 use Memoize 'memoize';
 memoize('options') unless $^O =~ /mswin/i;
-memoize('option'); # helps ??
+# memoize('option'); # helps ??
 
 use base qw(Bio::Root::Root);
 
@@ -592,9 +592,14 @@ sub pad_right {
   my $self = shift;
   my @parts = $self->parts or return 0;
   my $max = 0;
+  my $max_right = 0;
   foreach (@parts) {
-    my $pr = $_->pad_right;
-    $max = $pr if $max < $pr;
+      my $right = $_->right;
+      my $pr    = $_->pad_right;
+      if ($max_right < $pr+$right) {
+	  $max   = $pr;
+	  $max_right = $pr+$right;
+      }
   }
   $max;
 }
@@ -1029,7 +1034,7 @@ sub optimized_layout {
 	    $_->{layout_height}+BUMP_SPACING
 	    ]
     } $self->layout_sort(@$parts);
-    
+
     my $layout = Bio::Graphics::Layout->new(0,$self->panel->right);
     my $overbumped;
     while (@rects) {
@@ -1471,7 +1476,6 @@ sub linewidth {
 sub string_width {
     my $self = shift;
     my ($string,$font) = @_;
-    warn "string_width $string";
     $self->panel->string_width($font||$self->font,$string||'m');
 }
 
