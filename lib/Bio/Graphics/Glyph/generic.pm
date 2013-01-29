@@ -140,6 +140,10 @@ sub connector_color {
   my $self = shift;
   $self->color('connector_color') || $self->fgcolor;
 }
+sub mono_font {
+    return GD->gdSmallFont;
+}
+
 sub font {
   my $self = shift;
   return $self->getfont('font','gdSmallFont');
@@ -362,7 +366,7 @@ sub draw_translation {
   my $feature = $self->feature;
   my $strand = $feature->strand;
 
-  my $font    = $self->font;
+  my $font    = $self->mono_font;
   my $pixels_per_residue = $self->scale * 3;
 
   my $y         = $y1 + ($self->height - $font->height)/2;
@@ -413,7 +417,7 @@ sub draw_sequence {
   my $feature = $self->feature;
   my $strand = $feature->strand;
 
-  my $font            = $self->font;
+  my $font            = $self->mono_font;
   my $pixels_per_base = $self->scale;
 
   my $y         = $y1 + ($self->height - $font->height)/2 - 1;
@@ -595,19 +599,17 @@ sub dna_fits {
   my $self = shift;
 
   my $pixels_per_base = $self->scale;
-  my $font            = $self->font;
+  my $font            = $self->mono_font;
   my $font_width      = $font->width;
-
+  
   return $pixels_per_base >= $font_width;
 }
 
 sub protein_fits {
   my $self = shift;
-  my $font               = $self->font;
+  my $font               = $self->mono_font;
 
-  # return unless $font->height <= $self->height;
-
-  my $font_width         = $self->font_width($font);
+  my $font_width         = $font->width;
   my $pixels_per_residue = $self->scale * 3;
 
   return $pixels_per_residue >= $font_width;

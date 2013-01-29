@@ -284,7 +284,7 @@ sub draw_component {
   }
 
   # we get here if there's room to draw the primary sequence
-  my $font  = $self->font;
+  my $font  = GD->gdSmallFont;
   my $pixels_per_residue = $self->pixels_per_residue;
   my $strand = $feature->strand;
   my $y      = $y1-1;

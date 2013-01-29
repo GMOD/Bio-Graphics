@@ -50,7 +50,7 @@ sub labelfont {
 sub pad_left { 
     my $self = shift;
     return 0 unless $self->option('group_label');
-    return length($self->label||'') * $self->labelfont->width+3;
+    return $self->string_width($self->label,$self->labelfont) +3;
 }
 
 sub draw {
@@ -76,7 +76,7 @@ sub draw_label {
 	$x = $panel->left + 1 if $x <= $panel->left;
 	$y = $self->top + $top - 1;
     } elsif ($self->label_position eq 'left') {
-	$y    = $self->{top} + ($self->height - $font->height)/2 + $top;
+	$y    = $self->{top} + ($self->height - $self->font_height($font))/2 + $top;
 	$y    = $self->{top} + $top if $y < $self->{top} + $top;
     }
     $panel->add_key_box($self,$label,$x,$y);

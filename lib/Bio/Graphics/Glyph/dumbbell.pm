@@ -215,14 +215,14 @@ sub draw_end_bubble
   my $bubble_text = defined $self->option('bubble_text') ? $self->option('bubble_text') : "Text";
 
   my $font = $self->option('labelfont') || $self->font;
-  my $bubble_text_length = $font->width * length($bubble_text);
-  my $bubble_text_x = $midX -  $bubble_text_length / 2;
-  my $bubble_text_y = $midY - $font->height / 2;
+  my $bubble_text_length = $self->string_width($bubble_text,$font);
+  my $bubble_text_x = $midX -  $bubble_text_length/2;
+  my $bubble_text_y = $midY - $self->font_height($font)/2;
   
   $gd->string($font, $bubble_text_x, $bubble_text_y, $bubble_text, $self->fontcolor);
   
   my $oval_width = $bubble_text_length * 1.414;
-  my $oval_height = $font->height * 1.414;
+  my $oval_height = $self->font_height($font) * 1.414;
 
   $self->oval($gd, $midX-$oval_width/2, $midY-$oval_height/2, $midX+$oval_width/2, $midY+$oval_height/2);
 
@@ -325,8 +325,8 @@ sub draw_component {
   {
     my $font = $self->option('labelfont') || $self->font;
     my $midX = ($x2-$x1-2*$shape_size)/2+$x1+$shape_size;
-    my $startCaption = $midX - $font->width * length($caption) / 2;
-    $gd->string($font, $startCaption, $midY-$font->height, $caption, $self->fontcolor);
+    my $startCaption = $midX - $self->string_width($caption,$font)/2;
+    $gd->string($font, $startCaption, $midY-$self->font_height($font), $caption, $self->fontcolor);
   }
 }
 
