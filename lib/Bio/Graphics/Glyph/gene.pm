@@ -108,8 +108,8 @@ sub bump {
 sub label {
   my $self = shift;
   return unless $self->{level} < 2;
-  if ($self->label_transcripts && $self->{feature}->primary_tag =~ /RNA|pseudogene/i) {
-    return $self->_label;
+  if ($self->{feature}->primary_tag =~ /rna|transcript|pseudogene/i && $self->label_transcripts) {
+      return $self->_label;
   } else {
     return $self->SUPER::label;
   }

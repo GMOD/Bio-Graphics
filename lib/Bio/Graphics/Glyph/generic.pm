@@ -173,7 +173,7 @@ sub height {
     $self->option('draw_translation') && $self->protein_fits
       or
 	$self->option('draw_dna') && $self->dna_fits;
-  my $fh = $self->font->height + 2;
+  my $fh = $self->font_height + 2;
   return $h > $fh ? $h : $fh;
 }
 
@@ -190,8 +190,8 @@ sub pad_bottom {
   my $bottom  = $self->option('pad_bottom');
   return $bottom if defined $bottom;
   my $pad = $self->SUPER::pad_bottom;
-  $pad   += $self->labelheight if $self->description;
-  $pad   += $self->labelheight if $self->part_labels && $self->label_position eq 'top';
+  $pad   += $self->labelheight+6 if $self->description;
+  $pad   += $self->labelheight+6 if $self->part_labels && $self->label_position eq 'top';
   $pad;
 }
 sub pad_right {
@@ -221,15 +221,15 @@ sub descfont {
 }
 sub labelwidth {
   my $self = shift;
-  return $self->{labelwidth} ||= $self->string_width($self->label||'');
+  return $self->{labelwidth} ||= $self->string_width($self->label||'',$self->labelfont);
 }
 sub descriptionwidth {
   my $self = shift;
-  return $self->{descriptionwidth} ||= length($self->description||'') * $self->font->width;
+  return $self->{descriptionwidth} ||= $self->string_width($self->description||'',$self->descfont);
 }
 sub labelheight {
   my $self = shift;
-  return $self->{labelheight} ||= $self->font->height;
+  return $self->{labelheight} ||= $self->string_height($self->labelfont);
 }
 sub label_position {
   my $self = shift;
@@ -474,7 +474,7 @@ sub draw_label {
 			$self->top + $top - 1,
 			$label);
   } elsif ($self->label_position eq 'left') {
-      my $y = $self->{top} + ($self->height - $self->string_height('',$font))/2 + $top;
+      my $y = $self->{top} + ($self->height - $self->string_height($font))/2 + $top;
       $y    = $self->{top} + $top if $y < $self->{top} + $top;
       $self->render_label($gd,
 			  $font,
@@ -517,7 +517,7 @@ sub draw_description {
 
   $gd->string($self->descfont,
 	      $left,
-	      $bottom,
+	      $bottom-3,
 	      $label,
 	      $self->descriptioncolor);
 }
@@ -607,7 +607,7 @@ sub protein_fits {
 
   # return unless $font->height <= $self->height;
 
-  my $font_width         = $font->width;
+  my $font_width         = $self->font_width($font);
   my $pixels_per_residue = $self->scale * 3;
 
   return $pixels_per_residue >= $font_width;

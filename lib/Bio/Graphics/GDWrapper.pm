@@ -4,6 +4,8 @@ use base 'GD::Image';
 use Memoize 'memoize';
 memoize('_match_font');
 
+my $DefaultFont;
+
 #from http://reeddesign.co.uk/test/points-pixels.html
 my %Pixel2Point = (
     8 => 6,
@@ -30,10 +32,13 @@ my $GdInit;
 
 sub new {
     my $self = shift;
-    my $gd   = shift;
+    my ($gd,$default_font) = @_;
+    $DefaultFont = $default_font unless $default_font eq '1';
     $gd->useFontConfig(1);
     return bless $gd,ref $self || $self;
 }
+
+sub default_font { return $DefaultFont || 'Arial' }
 
 # print with a truetype string
 sub string {
@@ -41,8 +46,9 @@ sub string {
     my ($font,$x,$y,$string,$color) = @_;
     return $self->SUPER::string(@_) if $self->isa('GD::SVG');
     my $fontface   = $self->_match_font($font);
+#     warn "$font => $fontface";
     my ($fontsize) = $fontface =~ /-(\d+)/;
-    $self->stringFT(-${color},$fontface,$fontsize,0,$x,$y+$fontsize+1,$string);
+    $self->stringFT($color,$fontface,$fontsize,0,$x,$y+$fontsize+1,$string);
 }
 
 sub string_width {
@@ -74,7 +80,8 @@ sub _match_font {
     my $style  = $font eq GD->gdMediumBoldFont ? 'bold'
 	        :$font eq GD->gdGiantFont      ? 'bold'
                 :'normal';
-    return "Arial-$height:$style";
+    my $ttfont = $self->default_font;
+    return "$ttfont-$height:$style";
 }
 
 1;
