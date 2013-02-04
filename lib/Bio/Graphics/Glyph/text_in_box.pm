@@ -25,8 +25,8 @@ sub draw_component {
   my $text = defined $self->option('text') ? $self->option('text') : $self->default_text();
   my $text_pad = defined $self->option('text_pad') ? $self->option('text_pad') : $self->default_text_pad();
   
-  my $width = $font->width * length $text;
-  my $height = $font->height;
+  my $width  = $self->string_width($text);
+  my $height = $self->font_height;
 
   my $midY = ($y2+$y1) / 2;
 

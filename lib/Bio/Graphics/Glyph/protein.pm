@@ -12,7 +12,7 @@ sub description { 0 }
 
 sub height {
   my $self = shift;
-  my $font = $self->font;
+  my $font = $self->mono_font;
   return $self->dna_fits ? 2 * $font->height
        : $self->do_kd    ? $self->SUPER::height
        : 0;
@@ -53,7 +53,7 @@ sub draw_protein {
 
   my @bases = split '', $protein;
   my $color = $self->fgcolor;
-  my $font  = $self->font;
+  my $font  = $self->mono_font;
   my $lineheight = $font->height;
   $y1 -= $lineheight/2 - 3;
 
@@ -152,14 +152,14 @@ sub draw_kd_plot {
   $gd->line($x1+5,($y2+$y1)/2,$x2-5,($y2+$y1)/2,$bgcolor);
   $gd->line($x1+5,$y1,        $x2-5,$y1,        $bgcolor);
   my $label = 'Kyte-Doolittle hydropathy plot';
-  $gd->string($self->font,$x1+5,$y1,$label,$axiscolor)
-      if $bin_height > $self->font->height*2 && 
-        $self->width > $self->font->width*length($label);
+  $gd->string($self->mono_font,$x1+5,$y1,$label,$axiscolor)
+      if $bin_height > $self->mono_font->height*2 && 
+        $self->width > $self->mono_font->width*length($label);
 
-  $gd->string($self->font,$x2-20,$y1,$maxkd,$axiscolor) 
-    if $bin_height > $self->font->height*2.5;
-  $gd->string($self->font,$x2-20,$y2-$self->font->height,$minkd,$axiscolor) 
-    if $bin_height > $self->font->height*2.5;
+  $gd->string($self->mono_font,$x2-20,$y1,$maxkd,$axiscolor) 
+    if $bin_height > $self->mono_font->height*2.5;
+  $gd->string($self->mono_font,$x2-20,$y2-$self->mono_font->height,$minkd,$axiscolor) 
+    if $bin_height > $self->mono_font->height*2.5;
 
   my $graphwidth = $x2 - $x1;
   $scale = $graphwidth / (@datapoints + $kd_window - 1);
