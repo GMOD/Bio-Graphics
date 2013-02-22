@@ -14,6 +14,7 @@ lib/Bio/Graphics/FeatureBase.pm
 lib/Bio/Graphics/FeatureDir.pm
 lib/Bio/Graphics/FeatureFile.pm
 lib/Bio/Graphics/FeatureFile/Iterator.pm
+lib/Bio/Graphics/GDWrapper.pm
 lib/Bio/Graphics/Glyph.pm
 lib/Bio/Graphics/Glyph/alignment.pm
 lib/Bio/Graphics/Glyph/allele_tower.pm
@@ -138,6 +139,8 @@ t/data/t1/version12.gif
 t/data/t1/version12.png
 t/data/t1/version13.gif
 t/data/t1/version13.png
+t/data/t1/version14.gif
+t/data/t1/version14.png
 t/data/t1/version2.gif
 t/data/t1/version2.png
 t/data/t1/version3.gif
@@ -170,6 +173,8 @@ t/data/t2/version19.gif
 t/data/t2/version19.png
 t/data/t2/version2.gif
 t/data/t2/version2.png
+t/data/t2/version20.gif
+t/data/t2/version20.png
 t/data/t2/version3.gif
 t/data/t2/version3.png
 t/data/t2/version4.png
@@ -192,6 +197,8 @@ t/data/t3/version13.gif
 t/data/t3/version13.png
 t/data/t3/version14.gif
 t/data/t3/version14.png
+t/data/t3/version15.gif
+t/data/t3/version15.png
 t/data/t3/version2.gif
 t/data/t3/version2.png
 t/data/t3/version3.gif

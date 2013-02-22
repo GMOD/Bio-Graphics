@@ -107,8 +107,8 @@ sub point_radius {
 sub pad_top {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < ($self->font('gdTinyFont')->height+8)) {
-    $pad = $self->font('gdTinyFont')->height+8;  # extra room for the scale
+  if ($pad < $self->font_height('gdTinyFont')+8) {
+      $pad = $self->font_height('gdTinyFont')+8;  # extra room for the scale
   }
   $pad;
 }
@@ -116,8 +116,8 @@ sub pad_top {
 sub pad_bottom {
   my $self = shift;
   my $pad  = $self->Bio::Graphics::Glyph::generic::pad_bottom(@_);
-  if ($pad < ($self->font('gdTinyFont')->height)/4) {
-    $pad = ($self->font('gdTinyFont')->height)/4;  # extra room for the scale
+  if ($pad < $self->font_height('gdTinyFont')/4) {
+      $pad = $self->font_height('gdTinyFont')/4;  # extra room for the scale
   }
   $pad;
 }
@@ -441,15 +441,6 @@ sub _draw_scale {
   my $gc = $self->translate_color($p->gridcolor);
   my $mgc= $self->translate_color($p->gridmajorcolor);
 
-  # if ($side ne 'none') {
-  #     for (my $y = $y2-$y_scale; $y > $y1; $y -= $y_scale) {
-  # 	  my $yr = int($y+0.5);
-  # 	  $gd->line($x1-1,$yr,$x2,$yr,$gc);
-  #     }
-  #     $gd->line($x1,$y1,$x2,$y1,$gc);
-  #     $gd->line($x1,$y2,$x2,$y2,$gc);
-  # }
-  
   $gd->line($x1,$y1,$x1,$y2,$fg) if $side eq 'left'  || $side eq 'both' || $side eq 'three';
   $gd->line($x2,$y1,$x2,$y2,$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
   $gd->line($middle,$y1,$middle,$y2,$fg) if $side eq 'three';
@@ -466,13 +457,13 @@ sub _draw_scale {
     $gd->line($x2,$_->[0],$x2+3,$_->[0],$fg) if $side eq 'right' || $side eq 'both' || $side eq 'three';
     $gd->line($middle,$_->[0],$middle+3,$_->[0],$fg) if $side eq 'three';
 
-    my $font_pos = $_->[0]-($font->height/2);
+    my $font_pos = $_->[0]-($self->font_height($font)/2);
     $font_pos-=2 if $_->[1] < 0;  # jog a little bit for neg sign
 
-    next unless $font_pos > $last_font_pos + $font->height/2; # prevent labels from clashing
+    next unless $font_pos > $last_font_pos + $self->font_height($font)/2; # prevent labels from clashing
     if ($side eq 'left' or $side eq 'both' or $side eq 'three') {
       $gd->string($font,
-		  $x1 - $font->width * length($_->[1]) - 3,$font_pos,
+		  $x1 - $self->string_width($_->[1],$font) - 3,$font_pos,
 		  $_->[1],
 		  $fg);
     }
@@ -482,7 +473,6 @@ sub _draw_scale {
 		  $_->[1],
 		  $fg);
     }
-#    if ($side eq 'three' && $_->[1] != 0) {
     if ($side eq 'three') {
       $gd->string($font,
 		  $middle + 5,$font_pos,
@@ -649,9 +639,10 @@ sub draw_label {
 	$x += ($self->panel->glyph_scratch||0);
 
 	my $font  = $self->labelfont;
-	my $width = $font->width*(length($label)+4);
+	my $width = $self->string_width($label,$font)+4;
+	my $height= $self->string_height('',$font);
 	unless ($self->record_label_positions) {
-	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$font->height,$self->bgcolor);
+	    $gd->filledRectangle($x,$top,$x+$width+6,$top+$height,$self->bgcolor);
 	    local $self->{default_opacity} = 1;
 	    $gd->string($font,$x+3,$top,$label,$self->contrasting_label_color($gd,$self->bgcolor));
 	}
@@ -660,7 +651,7 @@ sub draw_label {
 
     } elsif ($self->label_position eq 'left') {
 	  my $font = $self->labelfont;
-	  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+	  my $x = $self->left + $left - $self->string_width($label,$font) - $self->extra_label_pad;
 	  my $y = $self->{top} + $top;
 
 	  $self->render_label($gd,
@@ -694,7 +685,7 @@ sub draw_legend {
   my $label = "<a id=\"legend_$name\" target=\"_blank\" href=\"#\"> <font color=\'$color\';\">" . $name . "</font></a>" or return;
 
   my $font = $self->labelfont;
-  my $x = $self->left + $left - $font->width*length($label) - $self->extra_label_pad;
+  my $x = $self->left + $left - $self->string_width($label,$font) - $self->extra_label_pad;
   my $y = $self->{top} + $top;
   my $is_legend = 1;
   $self->render_label($gd,

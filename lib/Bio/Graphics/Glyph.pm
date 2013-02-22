@@ -8,12 +8,13 @@ use Bio::Graphics::Layout;
 
 use Memoize 'memoize';
 memoize('options') unless $^O =~ /mswin/i;
-# memoize('option'); # helps ??
+# memoize('option',NORMALIZER=>'_normalize_objects'); # helps ??
+my %OptionCache; # works better?
 
 use base qw(Bio::Root::Root);
 
 my %LAYOUT_COUNT;
-my @FEATURE_STACK;
+our @FEATURE_STACK;
 
 # the CM1 and CM2 constants control the size of the hash used to
 # detect collisions.
@@ -205,6 +206,7 @@ sub demo_feature {
     return;
 }
 
+sub gd { shift->panel->current_gd }
 
 # a bumpable graphical object that has bumpable graphical subparts
 
@@ -220,6 +222,8 @@ sub new {
   my $factory = $arg{-factory} || $class->default_factory;
   my $level   = $arg{-level} || 0;
   my $flip    = $arg{-flip};
+
+  push @FEATURE_STACK,($feature,undef);
 
   my $self = bless {},$class;
   $self->{feature} = $feature;
@@ -260,13 +264,13 @@ sub new {
   $self->feature_has_subparts(@subfeatures>0);
 
   if (@visible_subfeatures) {
-    # dynamic glyph resolution
-    @subglyphs = map { $_->[0] }
+      # dynamic glyph resolution
+      @subglyphs = map { $_->[0] }
           sort { $a->[1] <=> $b->[1] }
 	    map { [$_, $_->left ] }
 	      $self->make_subglyph($level+1,@visible_subfeatures);
-    $self->{feature_count} = scalar @subglyphs;
-    $self->{parts}         = \@subglyphs;
+      $self->{feature_count} = scalar @subglyphs;
+      $self->{parts}         = \@subglyphs;
   }
 
 #  warn "type=",$feature->type,", glyph=$self, subglyphs=@subglyphs";
@@ -293,7 +297,7 @@ sub new {
   }
 
   $self->{point} = $arg{-point} ? $self->height : undef;
-
+  splice(@FEATURE_STACK,-2);
   return $self;
 }
 
@@ -471,7 +475,10 @@ sub width {
 }
 sub layout_height {
   my $self = shift;
-  return $self->layout;
+  push @FEATURE_STACK,$self->feature;
+  my $result =  $self->layout;
+  pop @FEATURE_STACK;
+  return $result;
 }
 sub layout_width {
   my $self = shift;
@@ -533,90 +540,101 @@ sub unfilled_box {
 sub boxes {
   my $self = shift;
 
+  push @FEATURE_STACK,$self->feature;
+
   my ($left,$top,$parent) = @_;
   $top  += 0; $left += 0;
   my @result;
 
-  $self->layout;
-  $parent         ||= $self;
-  my $subparts = $self->box_subparts || 0;
+   $self->layout;
+   $parent         ||= $self;
+   my $subparts = $self->box_subparts || 0;
 
-  for my $part ($self->parts) {
-    my $type   = $part->feature->primary_tag || '';
-    if ($type eq 'group' or $subparts > $part->level) {
-      push @result,$part->boxes($left,$top+$self->top+$self->pad_top,$parent);
-      next if $type eq 'group';
-    }
-    my ($x1,$y1,$x2,$y2) = $part->box;
-    $x2++ if $x1==$x2;
-    push @result,[$part->feature,
-		  $left + $x1,$top+$self->top+$self->pad_top+$y1,
-		  $left + $x2,$top+$self->top+$self->pad_top+$y2,
-		  $parent];
-  }
+   for my $part ($self->parts) {
+     my $type   = $part->feature->primary_tag || '';
+     if ($type eq 'group' or $subparts > $part->level) {
+       push @result,$part->boxes($left,$top+$self->top+$self->pad_top,$parent);
+       next if $type eq 'group';
+     }
+     my ($x1,$y1,$x2,$y2) = $part->box;
+     $x2++ if $x1==$x2;
+     push @result,[$part->feature,
+		   $left + $x1,$top+$self->top+$self->pad_top+$y1,
+		   $left + $x2,$top+$self->top+$self->pad_top+$y2,
+		   $parent];
+   }
 
-  return wantarray ? @result : \@result;
-}
+   pop @FEATURE_STACK;
+   return wantarray ? @result : \@result;
+ }
 
-sub box_subparts {
-  my $self = shift;
-  return $self->{box_subparts} if exists $self->{box_subparts};
-  return $self->{box_subparts} = $self->_box_subparts;
-}
+ sub box_subparts {
+   my $self = shift;
+   return $self->{box_subparts} if exists $self->{box_subparts};
+   return $self->{box_subparts} = $self->_box_subparts;
+ }
 
-sub _box_subparts { shift->option('box_subparts') }
+ sub _box_subparts { shift->option('box_subparts') }
 
-# this should be overridden for labels, etc.
-# allows glyph to make itself thicker or thinner depending on
-# domain-specific knowledge
-sub pad_top {
-  my $self = shift;
-  return 0;
-}
-sub pad_bottom {
-  my $self = shift;
-  return 0;
-}
-sub pad_left {
-  my $self = shift;
-  my @parts = $self->parts or return 0;
-  my $max = 0;
-  foreach (@parts) {
-    my $pl = $_->pad_left;
-    $max = $pl if $max < $pl;
-  }
-  $max;
-}
-sub pad_right {
-  my $self = shift;
-  my @parts = $self->parts or return 0;
-  my $max = 0;
-  foreach (@parts) {
-    my $pr = $_->pad_right;
-    $max = $pr if $max < $pr;
-  }
-  $max;
-}
+ # this should be overridden for labels, etc.
+ # allows glyph to make itself thicker or thinner depending on
+ # domain-specific knowledge
+ sub pad_top {
+   my $self = shift;
+   return 0;
+ }
+ sub pad_bottom {
+   my $self = shift;
+   return 0;
+ }
+ sub pad_left {
+   my $self = shift;
+   my @parts = $self->parts or return 0;
+   my $max = 0;
+   foreach (@parts) {
+     my $pl = $_->pad_left;
+     $max = $pl if $max < $pl;
+   }
+   $max;
+ }
+ sub pad_right {
+   my $self = shift;
+   my @parts = $self->parts or return 0;
+   my $max = 0;
+   my $max_right = 0;
+   foreach (@parts) {
+       my $right = $_->right;
+       my $pr    = $_->pad_right;
+       if ($max_right < $pr+$right) {
+	   $max   = $pr;
+	   $max_right = $pr+$right;
+       }
+   }
+   $max;
+ }
 
-# move relative to parent
-sub move {
-  my $self = shift;
-  my ($dx,$dy) = @_;
-  $self->{left} += $dx;
-  $self->{top}  += $dy;
+ # move relative to parent
+ sub move {
+   my $self = shift;
+   my ($dx,$dy) = @_;
+   $self->{left} += $dx;
+   $self->{top}  += $dy;
 
-  # because the feature parts use *absolute* not relative addressing
-  # we need to move each of the parts horizontally, but not vertically
-  $_->move($dx,0) foreach $self->parts;
-}
+   # because the feature parts use *absolute* not relative addressing
+   # we need to move each of the parts horizontally, but not vertically
+   $_->move($dx,0) foreach $self->parts;
+ }
 
-# get an option
-sub option {
-  my $self = shift;
-  my $option_name = shift;
-  my @args = ($option_name,@{$self}{qw(partno total_parts)});
-  my $factory = $self->{factory} or return;
-  return $factory->option($self,@args)
+ # get an option
+ sub option {
+   my $self = shift;
+   my $option_name = shift;
+   local $^W=0;
+   my $cache_key = join ';',(%$self,$option_name);
+   return $OptionCache{$cache_key} if exists $OptionCache{$cache_key};
+   my @args = ($option_name,@{$self}{qw(partno total_parts)});
+   my $factory = $self->{factory} or return;
+   return $OptionCache{$cache_key} = $factory->option($self,@args);
 }
 
 # get an option that might be a code reference
@@ -764,7 +782,7 @@ sub getfont {
 
   my $img_class = $self->image_class;
 
-  unless (UNIVERSAL::isa($font,$img_class . '::Font')) {
+  if (!UNIVERSAL::isa($font,$img_class . '::Font') && $font =~ /^(gd|sanserif)/) {
     my $ref    = {
 		  gdTinyFont       => $img_class->gdTinyFont(),
 		  gdSmallFont      => $img_class->gdSmallFont(),
@@ -848,6 +866,7 @@ sub layout_sort {
 # handle collision detection
 sub layout {
   my $self = shift;
+
   return $self->{layout_height} if exists $self->{layout_height};
 
   my @parts = $self->parts;
@@ -1028,7 +1047,7 @@ sub optimized_layout {
 	    $_->{layout_height}+BUMP_SPACING
 	    ]
     } $self->layout_sort(@$parts);
-    
+
     my $layout = Bio::Graphics::Layout->new(0,$self->panel->right);
     my $overbumped;
     while (@rects) {
@@ -1044,12 +1063,17 @@ sub optimized_layout {
     return $overbumped && $overbumped < $layout->totalHeight ? $overbumped : $layout->totalHeight;
 }
 
+sub draw_it {
+    my $self = shift;
+    push @FEATURE_STACK,$self->feature;
+    $self->draw(@_);
+    pop @FEATURE_STACK;
+}
+
 sub draw {
   my $self = shift;
   my $gd   = shift;
   my ($left,$top,$partno,$total_parts) = @_;
-
-  push @FEATURE_STACK,$self->feature;
 
   $self->panel->startGroup($gd);
 
@@ -1083,9 +1107,6 @@ sub draw {
   }
 
   $self->panel->endGroup($gd);
-
-  pop @FEATURE_STACK;
-
 }
 
 sub connector { return }
@@ -1110,6 +1131,7 @@ sub parent_feature {
     $ancestors    = 1 unless defined $ancestors;
 
     return unless @FEATURE_STACK;
+
     my $index    = $#FEATURE_STACK - $ancestors;
     return unless $index >= 0;
     return $FEATURE_STACK[$index];
@@ -1467,6 +1489,30 @@ sub linewidth {
   shift->option('linewidth') || 1;
 }
 
+sub font_width {
+    my $self = shift;
+    my $font = shift;
+    $self->panel->string_width($font||$self->font,'m');
+}
+
+sub font_height {
+    my $self = shift;
+    my $font = shift;
+    $self->panel->string_height($font||$self->font,'hj');
+}
+
+sub string_width {
+    my $self = shift;
+    my ($string,$font) = @_;
+    $self->panel->string_width($font||$self->font,$string||'m');
+}
+
+sub string_height {
+    my $self = shift;
+    my ($string,$font) = @_;
+    $self->panel->string_height($font||$self->font,$string||'hj');
+}
+
 sub fill {
   my $self = shift;
   my $gd   = shift;
@@ -1821,7 +1867,12 @@ sub _pod_options {
     return $pod;
 }
 
-
+# normalizer for memoize
+sub _normalize_objects {
+    my ($obj,$option_name) = @_;
+    my @args = (%$obj,$option_name);
+    return "@args";
+}
 
 1;
 

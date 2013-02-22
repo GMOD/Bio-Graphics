@@ -511,6 +511,7 @@ sub gd {
   my $gd  = $existing_gd || $pkg->new($width,$height,
 				      ($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
 				     );
+  $self->{gd} = $gd;
 
   if ($self->{truecolor} 
       && $pkg->can('saveAlpha')) {
@@ -525,7 +526,9 @@ sub gd {
   }
 
   $self->{translations} = \%translation_table;
-  $self->{gd}           = $gd;
+  $self->{gd}           = $gd->isa('GD::SVG') ? $gd 
+                        : $self->truetype     ? Bio::Graphics::GDWrapper->new($gd,$self->truetype)
+			: $gd;
   
   eval {$gd->alphaBlending(0)};
   if ($self->bgcolor) {
@@ -605,6 +608,30 @@ sub gd {
   $self->endGroup($gd);
 
   return $self->{gd} = $self->rotate ? $gd->copyRotate90 : $gd;
+}
+
+sub string_width {
+    my $self = shift;
+    my ($font,$string) = @_;
+
+    my $class = $self->image_class;
+
+    return $font->width*CORE::length($string) 
+	unless $self->truetype && $class ne 'GD::SVG';
+    return Bio::Graphics::GDWrapper->string_width($font,$string); 
+}
+
+sub string_height {
+    my $self = shift;
+    my ($font,$string) = @_;
+
+    my $class = $self->image_class;
+
+    return $font->height
+	unless $self->truetype 
+	&& eval{$class eq 'GD' || $class->isa('GD::Image')};
+
+    return Bio::Graphics::GDWrapper->string_height($font,$string);
 }
 
 sub startGroup {
@@ -1701,6 +1728,9 @@ a set of tag/value pairs as follows:
                Useful when working with the
                "image" glyph.
 
+  -truetype    Render text using scaleable vector    false
+               fonts rather than bitmap fonts.
+
   -image_class To create output in scalable vector
                graphics (SVG), optionally pass the image
                class parameter 'GD::SVG'. Defaults to
@@ -1763,6 +1793,15 @@ indicate a "gap" in the sequence:
      $gd->filledRectangle($gap_start,$top,$gap_end,$bottom,$gray);
 }
 
+The B<-truetype> argument will activate rendering of labels using
+antialiased vector fonts. If it is a value of "1", then labels will be
+rendered using the default font (Verdana). Pass a font name to use
+this font as the default:
+
+  -truetype => 'Times New Roman',
+
+Note that you can change the font on a track-by-track basis simply by
+using a truetype font name as add_track()'s -font argument.
 
 =back
 
@@ -1792,7 +1831,6 @@ arguments is irrelevant, allowing either of these idioms:
 
   $panel->add_track(arrow => \@features);
   $panel->add_track(\@features => 'arrow');
-
 
 The glyph name indicates how each feature is to be rendered.  A
 variety of glyphs are available, and the number is growing. You may
@@ -2274,6 +2312,19 @@ ignored.
 
 B<Track color:> The -tkcolor option used to specify the background of
 the entire track.
+
+B<Font:> The -font option controls which font will be used. If the
+Panel was created without passing a true value to -truecolor, then
+only GD bitmapped fonts are available to you. These include
+'gdTinyFont', 'gdSmallFont', 'gdLargeFont', 'gdMediumBoldFont', and
+'gdGiantFont'. If the Panel was creaed using a truevalue for
+-truecolor, then you can pass the name of any truetype font installed
+on the server system. Any of these formats will work:
+
+ -font => 'Times New Roman',          # Times font, let the system pick size
+ -font => 'Times New Roman-12'        # Times font, 12 points
+ -font => 'Times New Roman-12:Italic' # Times font, 12 points italic
+ -font => 'Times New Roman-12:Bold'   # Times font, 12 points bold
 
 B<Font color:> The -fontcolor option controls the color of primary
 text, such as labels

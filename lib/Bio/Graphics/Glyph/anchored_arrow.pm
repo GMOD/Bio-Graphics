@@ -48,7 +48,7 @@ sub draw_label {
       my $x = $self->left + $left;
       my $font = $self->option('labelfont') || $self->font;
       my $middle = $self->left + $left + ($self->right - $self->left) / 2;
-      my $label_width = $font->width * length($label);
+      my $label_width = $self->string_width($label,$font);
       if ($label_align eq 'center') {
           my $new_x = $middle - $label_width / 2;
           $x = $new_x if ($new_x > $x);;

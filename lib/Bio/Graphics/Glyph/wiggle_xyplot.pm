@@ -298,11 +298,11 @@ sub draw_plot {
 	my $side = $self->_determine_side();
 	my $fcolor=$self->panel->translate_color('grey:0.50');
 	my $font  = $self->font('gdTinyFont');
-	my $x1    = $left - length('+2sd') * $font->width - ($side=~/left|three/ ? 15 : 0);
-	my $x2    = $left - length('mn')   * $font->width - ($side=~/left|three/ ? 15 : 0);
-	$gd->string($font,$x1,$yy1-$font->height/2,'+2sd',$fcolor) unless $clip_top;
-	$gd->string($font,$x1,$yy2-$font->height/2,'-2sd',$fcolor) unless $clip_bottom;
-	$gd->string($font,$x2,$y -$font->height/2,'mn',  $fcolor);
+	my $x1    = $left - $self->string_width('+2sd',$font) - ($side=~/left|three/ ? 15 : 0);
+	my $x2    = $left - $self->string_width('mn',$font)   - ($side=~/left|three/ ? 15 : 0);
+	$gd->string($font,$x1,$yy1-$self->string_height('+2sd',$font),'+2sd',$fcolor) unless $clip_top;
+	$gd->string($font,$x1,$yy2-$self->string_height('-2sd')/2,'-2sd',$fcolor) unless $clip_bottom;
+	$gd->string($font,$x2,$y - $self->string_height('mn',$font),'mn',  $fcolor);
     }
     $self->panel->endGroup($gd);
 

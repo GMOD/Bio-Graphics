@@ -59,7 +59,7 @@ sub description { 0 }
 
 sub pad_top {
     my $self = shift;
-    my $font = $self->font;
+    my $font = $self->mono_font;
     my $pt   = $self->SUPER::pad_top;
     return $self->dna_fits 
 	   ? $pt + $font->height+5
@@ -68,7 +68,7 @@ sub pad_top {
 
 sub height {
   my $self = shift;
-  my $font = $self->font;
+  my $font = $self->mono_font;
   return $self->dna_fits ? 2*$font->height
        : $self->do_gc    ? $self->SUPER::height
        : 0;
@@ -113,7 +113,7 @@ sub draw_dna {
   my @bases = split '',$strand >= 0 ? $dna : $self->reversec($dna);
 
   my $color = $self->fgcolor;
-  my $font  = $self->font;
+  my $font  = $self->mono_font;
   my $lineheight = $font->height;
   $y1 -= $lineheight/2 - 3;
   my $strands = $self->option('strand') || 'auto';
@@ -147,6 +147,7 @@ sub draw_gc_content {
   my ($x1,$y1,$x2,$y2) = @_;
 
   $dna = $self->reversec($dna) if $self->{flip};
+  my $font = $self->mono_font;
 
 # get the options that tell us how to draw the GC content
 
@@ -234,7 +235,7 @@ sub draw_gc_content {
   my $axiscolor  = $self->color('axis_color') || $fgcolor;
 
 # Draw the axes
-  my $fontwidth = $self->font->width;
+  my $fontwidth = $font->width;
   $gd->line($x1,  $y1,        $x1,  $y2,        $axiscolor);
   $gd->line($x2-2,$y1,        $x2-2,$y2,        $axiscolor);
   $gd->line($x1,  $y1,        $x1+3,$y1,        $axiscolor);
@@ -246,15 +247,16 @@ sub draw_gc_content {
   $gd->line($x1+5,$y2,        $x2-5,$y2,        $bgcolor);
   $gd->line($x1+5,($y2+$y1)/2,$x2-5,($y2+$y1)/2,$bgcolor);
   $gd->line($x1+5,$y1,        $x2-5,$y1,        $bgcolor);
-  $gd->string($self->font,$x1-length('% gc')*$fontwidth,$y1,'% gc',$axiscolor) if $bin_height > $self->font->height*2;
+  $gd->string($self->font,$x1-$self->string_width('% gc',$self->font),$y1,'% gc',$axiscolor) 
+      if $bin_height > $self->font_height($font)*2;
 
 # If we are using a sliding window, the GC graph will be scaled to use the full
 # height of the glyph, so label the right vertical axis to show the scaling that# is in effect
 
   $gd->string($self->font,$x2+3,$y1,"${maxgc}%",$axiscolor) 
-    if $bin_height > $self->font->height*2.5;
-  $gd->string($self->font,$x2+3,$y2-$self->font->height,"${mingc}%",$axiscolor) 
-    if $bin_height > $self->font->height*2.5;
+    if $bin_height > $self->font_height*2.5;
+  $gd->string($self->font,$x2+3,$y2-$self->font_height,"${mingc}%",$axiscolor) 
+    if $bin_height > $self->font_height*2.5;
 
 # Draw the GC content graph itself
 

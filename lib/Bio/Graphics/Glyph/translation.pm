@@ -26,7 +26,7 @@ sub default_color {
 
 sub height {
   my $self = shift;
-  my $font = $self->font;
+  my $font = $self->mono_font;
   my $lines = $self->translation_type eq '3frame' ? 3
             : $self->translation_type eq '6frame' ? 6
             : 1;
@@ -69,7 +69,7 @@ sub longprotein_fits {
   return unless $self->show_sequence;
 
   my $pixels_per_residue = $self->pixels_per_residue;
-  my $font               = $self->font;
+  my $font               = $self->mono_font;
   my $font_width         = $font->width * 4; # not 3; leave room for whitespace
 
   return $pixels_per_residue >= $font_width;
@@ -175,7 +175,7 @@ sub draw_frame {
   my $awo = 0;
   if ($self->protein_fits) {
     $self->draw_protein(\$protein,$strand,$color,$gd,$x1,$y1,$x2,$y2);
-    $awo += $self->font->height/2;
+    $awo += $self->mono_font->height/2;
   } else {
     $self->draw_orfs(\$protein,$strand,$color,$gd,$x1,$y1,$x2,$y2);
   }
@@ -189,7 +189,7 @@ sub draw_protein {
   my $self = shift;
   my ($protein,$strand,$color,$gd,$x1,$y1,$x2,$y2) = @_;
   my $pixels_per_base = $self->pixels_per_base;
-  my $font   = $self->font;
+  my $font   = $self->mono_font;
   my $flip   = $self->{flip};
   my $left   = $self->panel->left;
   my $right  = $self->panel->right;

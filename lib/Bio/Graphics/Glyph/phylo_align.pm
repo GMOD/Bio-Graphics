@@ -21,7 +21,7 @@ sub description { 0 }
 
 sub height {
   my $self = shift;
-  my $font = $self->font;
+  my $font = $self->mono_font;
   
   #adjust the space to take if conservation scores are drawn instead
   if (! $self->dna_fits) {
@@ -124,13 +124,11 @@ sub unknown_species {
     $refspecies = $_[1];
     @current_species = @{$_[2]};
     @known_species = @{$_[3]};
-    @unknown_species;
   } else {
     %alignments = $self->extract_features;
     $refspecies = $self->option('reference_species');
     @current_species =  keys %alignments;   #all species in viewing window
     @known_species = $self->known_species;  #all species from cladogram info
-    @unknown_species;                       #species in GFF but not in clado
   } #would have combined the two cases into one line using || but Perl will treat the arrays as num of elem
   
   #do set subtraction to see which species in viewing range but not in tree
@@ -217,8 +215,9 @@ sub draw_clado {
   my @nodes = $root->get_all_Descendents;
   
   #draw bg for cladogram
+  my $font = $self->mono_font;
   my $clado_bg = $self->color('clado_bg') || $self->bgcolor;
-  my @coords = (0, $y1, $start_x+$xoffset+$self->font->width-1, $y2+1);
+  my @coords = (0, $y1, $start_x+$xoffset+$font->width-1, $y2+1);
   my @coords2 = ($x1, $y1, $start_x+$xoffset/2, $y2);
   if ($draw_clado_left) {
     $gd->filledRectangle(@coords, $clado_bg);
@@ -381,7 +380,8 @@ sub get_legend_and_scale {
 #main method that draws everything
 sub draw {
   my $self = shift;
-  my $height = $self->font->height;
+  my $font = $self->mono_font;
+  my $height = $font->height;
   my $scale = $self->scale;
   
   my $gd = shift;
@@ -396,12 +396,12 @@ sub draw {
   #spacing of either DNA alignments or score histograms in units of font height
   my $species_spacing = $self->option('species_spacing') || 1;
   
-  my $xscale = $self->font->width;
+  my $xscale = $font->width;
   my $yscale = $height * $species_spacing;
   
   
   my $xoffset = $x1;
-  my $yoffset = $y1 + 0.5*$self->font->height;
+  my $yoffset = $y1 + 0.5*$font->height;
   
   #method that reads the tree file to create the tree objects
   my $tree = $self->set_tree;
@@ -468,14 +468,14 @@ sub draw {
         $dna    = $dna->seq if ref($dna) and $dna->can('seq'); # to catch Bio::PrimarySeqI objects
         my $bg_color = $self->color('ref_color') || $self->bgcolor;
         
-        $fy2 = $fy1 + $self->font->height || $y2;
+        $fy2 = $fy1 + $font->height || $y2;
   
         
 	$self->_draw_dna($gd,$dna,$fx1,$fy1,$fx2,$fy2, $self->fgcolor, $bg_color);
       } else {
       }
       
-      my $x_label_start = $start_x + $xoffset + $self->font->width;
+      my $x_label_start = $start_x + $xoffset + $font->width;
       $self->species_label($gd, $draw_clado_left, $x_label_start, $y, $species) unless ($self->option('hide_label'));
       
       $y += $yscale;
@@ -485,7 +485,7 @@ sub draw {
     
     #skip if the there is no alignments for this species in this window
     unless ($alignments{$species}) {
-      my $x_label_start = $start_x + $xoffset + $self->font->width;
+      my $x_label_start = $start_x + $xoffset + $font->width;
       $self->species_label($gd, $draw_clado_left, $x_label_start, $y, $species) unless ($self->option('hide_label'));
       
       $y += $yscale;
@@ -578,7 +578,7 @@ sub draw {
     
     
     #label the species in the cladogram
-    my $x_label_start = $start_x + $xoffset + $self->font->width;
+    my $x_label_start = $start_x + $xoffset + $font->width;
     $self->species_label($gd, $draw_clado_left, $x_label_start, $y, $species) unless ($self->option('hide_label'));
     
     $y += $yscale;
@@ -599,24 +599,26 @@ sub species_label {
   my $y_start = shift;
   my $species = shift;
   
+  my $font = $self->mono_font;
+
   $x_start += 2;
-  my $text_width = $self->font->width * length($species);
+  my $text_width = $font->width * length($species);
   my $bgcolor = $self->color('bg_color');
   
   #make label
   if ($draw_clado_left) {
     
-    $gd->filledRectangle($x_start-2, $y_start, $x_start + $text_width, $y_start+$self->font->height, $bgcolor);
-    $gd->rectangle($x_start-2, $y_start, $x_start + $text_width, $y_start+$self->font->height, $self->fgcolor);
-    $gd->string($self->font, $x_start, $y_start, $species, $self->fgcolor);
+    $gd->filledRectangle($x_start-2, $y_start, $x_start + $text_width, $y_start+$font->height, $bgcolor);
+    $gd->rectangle($x_start-2, $y_start, $x_start + $text_width, $y_start+$font->height, $self->fgcolor);
+    $gd->string($font, $x_start, $y_start, $species, $self->fgcolor);
     
   } else {
     my ($x_max, $y_max) = $gd->getBounds;
     my $write_pos = $x_max - $x_start - $text_width;
     
-    $gd->filledRectangle($write_pos, $y_start, $write_pos + $text_width+2, $y_start+$self->font->height, $bgcolor);
-    $gd->rectangle($write_pos, $y_start, $write_pos + $text_width+2, $y_start+$self->font->height, $self->fgcolor);
-    $gd->string($self->font, $write_pos+2, $y_start, $species, $self->fgcolor);
+    $gd->filledRectangle($write_pos, $y_start, $write_pos + $text_width+2, $y_start+$font->height, $bgcolor);
+    $gd->rectangle($write_pos, $y_start, $write_pos + $text_width+2, $y_start+$font->height, $self->fgcolor);
+    $gd->string($font, $write_pos+2, $y_start, $species, $self->fgcolor);
     
   }
 }
@@ -627,7 +629,7 @@ sub draw_pairwisegraph_axis {
   my $self = shift;
   my ($gd, $graph_legend, $x1, $x2, $y_track_top, $y_track_bottom, $draw_clado_left, @bounds) = @_;
   
-  
+  my $font = $self->mono_font;
   my $axis_color = $self->color('axis_color') || $self->fgcolor;
   my $mid_axis_color = $self->color('mid_axis_color') || $axis_color;
   
@@ -647,15 +649,15 @@ sub draw_pairwisegraph_axis {
       $coords[0] = $bounds[0] - $coords[0];
       $coords[2] = $bounds[0] - $coords[2];
       
-      my $x_text_offset = length($label) * $self->font->width;
+      my $x_text_offset = length($label) * $font->width;
       
-      $gd->string($self->font, $coords[0]-$x_text_offset, $coords[1], $label, $self->fgcolor);
+      $gd->string($font, $coords[0]-$x_text_offset, $coords[1], $label, $self->fgcolor);
       $gd->line(@coords, $self->fgcolor);
       
       $gd->line($x2,$y_track_top,$x2,$y_track_bottom,$self->fgcolor);
     } else {
       #draw the legned on the left
-      $gd->string($self->font, @coords[0..1], $label, $self->fgcolor);
+      $gd->string($font, @coords[0..1], $label, $self->fgcolor);
       $gd->line(@coords, $self->fgcolor);
       
       $gd->line($x1,$y_track_top,$x1,$y_track_bottom,$self->fgcolor);
@@ -942,7 +944,7 @@ sub draw_log10_rectangle {
   my $graph_scale = shift;
   my $zero_y = shift;
   my $y1 = shift;
-  my $zero_y = shift;
+     $zero_y = shift;  # oy vey - this will be overwritten
   my $x_left = shift;
   my $x_right = shift;
   my $gd = shift;
@@ -969,8 +971,9 @@ sub draw_dna {
   my $fgcolor = $self->fgcolor;
   my $bg_color = $self->color('targ_color') || $self->bgcolor;
   my $errcolor  = $self->color('errcolor') || $fgcolor;
+  my $font = $self->mono_font;
   
-  $y2 = $y1 + $self->font->height || $y2;
+  $y2 = $y1 + $font->height || $y2;
   
   
   
@@ -1025,10 +1028,6 @@ sub _draw_dna {
     $gd->filledRectangle($x1+1, $y1, $x2, $y2, $bg_color);
   }
   
-  
-  my $feature = $self->feature;
-  
-  
   my $strand = $feature->strand || 1;
   $strand *= -1 if $self->{flip};
 
@@ -1039,7 +1038,7 @@ sub _draw_dna {
   
   $color = $self->fgcolor unless $color;
   $bg_color = 0 unless $bg_color;
-  my $font  = $self->font;
+  my $font  = $self->mono_font;
   my $lineheight = $font->height;
 #  $y1 -= $lineheight/2 - 3;          ##################NOT SURE WHY THIS WAS HERE BEFORE
   my $strands = $self->option('strand') || 'auto';
