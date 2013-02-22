@@ -1809,7 +1809,8 @@ this font as the default:
 
   -truetype => 'Times New Roman',
 
-Note that you can change the font on a track-by-track basis.
+Note that you can change the font on a track-by-track basis simply by
+using a truetype font name as add_track()'s -font argument.
 
 =back
 

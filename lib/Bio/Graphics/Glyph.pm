@@ -629,6 +629,7 @@ sub boxes {
  sub option {
    my $self = shift;
    my $option_name = shift;
+   local $^W=0;
    my $cache_key = join ';',(%$self,$option_name);
    return $OptionCache{$cache_key} if exists $OptionCache{$cache_key};
    my @args = ($option_name,@{$self}{qw(partno total_parts)});
