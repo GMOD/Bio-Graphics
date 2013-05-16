@@ -520,7 +520,8 @@ sub gd {
   my $gd  = $existing_gd || $pkg->new($width,$height,
 				      ($self->{truecolor} && $pkg->can('isTrueColor') ? 1 : ())
 				     );
-  $self->{gd} = $gd;
+  $gd->{debug} = 0 if $gd->isa('GD::SVG::Image'); # hack
+  $self->{gd}  = $gd;
 
   if ($self->{truecolor} 
       && $pkg->can('saveAlpha')) {
@@ -535,8 +536,8 @@ sub gd {
   }
 
   $self->{translations} = \%translation_table;
-  $self->{gd}           = $gd->isa('GD::SVG') ? $gd 
-                        : $self->truetype     ? Bio::Graphics::GDWrapper->new($gd,$self->truetype)
+  $self->{gd}           = $gd->isa('GD::SVG::Image') ? $gd 
+                        : $self->truetype            ? Bio::Graphics::GDWrapper->new($gd,$self->truetype)
 			: $gd;
   
   eval {$gd->alphaBlending(0)};

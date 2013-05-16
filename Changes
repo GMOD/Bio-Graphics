@@ -1,7 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
+2.34 Thu May 16 15:42:25 CDT 2013
+    - Fixed silent crashes when rendering with the GD::SVG class.
 
 2.33 Fri Feb 22 15:58:10 EST 2013
-     - Add truetype support. Enable by passing -truetype=>1 to Bio::Graphics::Panel->new()
+    - Add truetype support. Enable by passing -truetype=>1 to Bio::Graphics::Panel->new()
 
 2.32 Mon Dec 10 05:47:45 EST 2012
    - Clean up appearance of crossbox to avoid odd black bar in the middle.
