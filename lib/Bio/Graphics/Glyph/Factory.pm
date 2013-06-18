@@ -53,6 +53,8 @@ use strict;
 use Carp qw(:DEFAULT cluck);
 use Bio::Root::Version;
 use base qw(Bio::Root::Root);
+#use Memoize 'memoize';
+#memoize('option');
 
 my %LOADED_GLYPHS = ();
 my %GENERIC_OPTIONS = (

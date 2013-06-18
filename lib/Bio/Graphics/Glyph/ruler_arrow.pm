@@ -19,7 +19,7 @@ my %UNITS = (K => 1000,
 sub pad_bottom {
   my $self = shift;
   my $val = $self->SUPER::pad_bottom(@_);
-  $val += $self->font->height if $self->option('tick');
+  $val += $self->font_height if $self->option('tick');
   $val;
 }
 
@@ -89,55 +89,54 @@ sub draw_parallel {
   # turn on ticks
   if ($self->option('tick')) {
       local $^W = 0;  # dumb uninitialized variable warning
-    my $font = $self->font;
-    my $width      = $font->width;
-    my $font_color = $self->fontcolor;
-    my $height   = $self->height;
-
-    my $relative = $self->option('relative_coords');
-    my $start    = $relative ? 1 : $self->feature->start;
-    my $stop     = $start + $self->feature->length  - 1;
-
-    my $offset   = $relative ? $self->feature->start-1 : 0;
-    my $reversed = $self->feature->strand < 0;
-
-    my $units = $self->option('units') || '';
-    my $divisor = $UNITS{$units} || 1 if $units;
-
-    my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font,$divisor);
-
-    ## Does the user want to override the internal scale?
-    my $scale = $self->option('scale');
-
-    my $left  = $sw ? $x1+$height : $x1;
-    my $right = $ne ? $x2-$height : $x2;
-
-    my $format = ($major_ticks->[1]-$major_ticks->[0])/($divisor||1) < 1 ? "%.1f$units" : "%d$units";
-
-    for my $i (@$major_ticks) {
-      my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
-	                             : $self->map_pt($i + $offset));
-      next if $tickpos < $left or $tickpos > $right;
-      $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
-      my $label = $scale ? $i / $scale : $i;
-      if ($units) {
-	my $scaled = $label/$divisor;
-	$label = sprintf($format,$scaled);
+      my $font = $self->font;
+      my $font_color = $self->fontcolor;
+      my $height   = $self->height;
+      
+      my $relative = $self->option('relative_coords');
+      my $start    = $relative ? 1 : $self->feature->start;
+      my $stop     = $start + $self->feature->length  - 1;
+      
+      my $offset   = $relative ? $self->feature->start-1 : 0;
+      my $reversed = $self->feature->strand < 0;
+      
+      my $units = $self->option('units') || '';
+      my $divisor = $UNITS{$units} || 1 if $units;
+      
+      my ($major_ticks,$minor_ticks) = $self->panel->ticks($start,$stop,$font,$divisor);
+      
+      ## Does the user want to override the internal scale?
+      my $scale = $self->option('scale');
+      
+      my $left  = $sw ? $x1+$height : $x1;
+      my $right = $ne ? $x2-$height : $x2;
+      
+      my $format = ($major_ticks->[1]-$major_ticks->[0])/($divisor||1) < 1 ? "%.1f$units" : "%d$units";
+      
+      for my $i (@$major_ticks) {
+	  my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
+			       : $self->map_pt($i + $offset));
+	  next if $tickpos < $left or $tickpos > $right;
+	  $gd->line($tickpos,$center-$a2,$tickpos,$center+$a2,$fg);
+	  my $label = $scale ? $i / $scale : $i;
+	  if ($units) {
+	      my $scaled = $label/$divisor;
+	      $label = sprintf($format,$scaled);
+	  }
+	  my $middle = $tickpos - $self->string_width($label)/2;
+	  $gd->string($font,$middle,$center+$a2-1,$label,$font_color)
+	      unless ($self->option('no_tick_label'));
       }
-      my $middle = $tickpos - (length($label) * $width)/2;
-      $gd->string($font,$middle,$center+$a2-1,$label,$font_color)
-        unless ($self->option('no_tick_label'));
-    }
-
-    if ($self->option('tick') >= 2) {
-      my $a4 = $self->height/4;
-      for my $i (@$minor_ticks) {
-	my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
-	                               : $self->map_pt($i + $offset));
-	next if $tickpos < $left or $tickpos > $right;
-	$gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
+      
+      if ($self->option('tick') >= 2) {
+	  my $a4 = $self->height/4;
+	  for my $i (@$minor_ticks) {
+	      my $tickpos = $dx + ($reversed ? $self->map_pt($stop - $i + $offset)
+				   : $self->map_pt($i + $offset));
+	      next if $tickpos < $left or $tickpos > $right;
+	      $gd->line($tickpos,$center-$a4,$tickpos,$center+$a4,$fg);
+	  }
       }
-    }
   }
 
   # add a label if requested
@@ -196,7 +195,7 @@ sub draw_label {
               $self->top + $top,
               $top_left_label,
               $self->fontcolor);
-  my $x1 = $left + $self->panel->right - $font->width*length($label3);
+  my $x1 = $left + $self->panel->right - $self->string_width($label3);
   $gd->string($font,
               $x1,
               $self->top + $top,
@@ -208,7 +207,7 @@ sub draw_label {
                   $self->bottom - $self->pad_bottom + $top,
                   $label3,
                   $self->fontcolor);
-      my $x1 = $left + $self->panel->right - $font->width*length($label5);
+      my $x1 = $left + $self->panel->right - $self->string_width($label5);
       $gd->string($font,
                   $x1,
                   $self->bottom - $self->pad_bottom + $top,

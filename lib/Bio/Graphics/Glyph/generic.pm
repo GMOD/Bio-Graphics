@@ -3,6 +3,9 @@ package Bio::Graphics::Glyph::generic;
 use strict;
 use Bio::Graphics::Util qw(frame_and_offset);
 use base qw(Bio::Graphics::Glyph);
+use Memoize 'memoize';
+#memoize('pad_left');
+#memoize('pad_right');
 
 my %complement = (g=>'c',a=>'t',t=>'a',c=>'g',
 		  G=>'C',A=>'T',T=>'A',C=>'G');
@@ -137,6 +140,10 @@ sub connector_color {
   my $self = shift;
   $self->color('connector_color') || $self->fgcolor;
 }
+sub mono_font {
+    return GD->gdSmallFont;
+}
+
 sub font {
   my $self = shift;
   return $self->getfont('font','gdSmallFont');
@@ -170,7 +177,7 @@ sub height {
     $self->option('draw_translation') && $self->protein_fits
       or
 	$self->option('draw_dna') && $self->dna_fits;
-  my $fh = $self->font->height + 2;
+  my $fh = $self->font_height + 2;
   return $h > $fh ? $h : $fh;
 }
 
@@ -187,8 +194,8 @@ sub pad_bottom {
   my $bottom  = $self->option('pad_bottom');
   return $bottom if defined $bottom;
   my $pad = $self->SUPER::pad_bottom;
-  $pad   += $self->labelheight if $self->description;
-  $pad   += $self->labelheight if $self->part_labels && $self->label_position eq 'top';
+  $pad   += $self->labelheight+6 if $self->description;
+  $pad   += $self->labelheight+6 if $self->part_labels && $self->label_position eq 'top';
   $pad;
 }
 sub pad_right {
@@ -205,7 +212,7 @@ sub pad_left {
   my $self = shift;
   my $pad = $self->SUPER::pad_left;
   return $pad unless $self->label_position eq 'left' && $self->label;
-  $pad += $self->labelwidth;
+  $pad += $self->labelwidth + 3;
   $pad;
 }
 sub labelfont {
@@ -218,15 +225,15 @@ sub descfont {
 }
 sub labelwidth {
   my $self = shift;
-  return $self->{labelwidth} ||= length($self->label||'') * $self->font->width;
+  return $self->{labelwidth} ||= $self->string_width($self->label||'',$self->labelfont);
 }
 sub descriptionwidth {
   my $self = shift;
-  return $self->{descriptionwidth} ||= length($self->description||'') * $self->font->width;
+  return $self->{descriptionwidth} ||= $self->string_width($self->description||'',$self->descfont);
 }
 sub labelheight {
   my $self = shift;
-  return $self->{labelheight} ||= $self->font->height;
+  return $self->{labelheight} ||= $self->string_height($self->labelfont);
 }
 sub label_position {
   my $self = shift;
@@ -359,7 +366,7 @@ sub draw_translation {
   my $feature = $self->feature;
   my $strand = $feature->strand;
 
-  my $font    = $self->font;
+  my $font    = $self->mono_font;
   my $pixels_per_residue = $self->scale * 3;
 
   my $y         = $y1 + ($self->height - $font->height)/2;
@@ -410,7 +417,7 @@ sub draw_sequence {
   my $feature = $self->feature;
   my $strand = $feature->strand;
 
-  my $font            = $self->font;
+  my $font            = $self->mono_font;
   my $pixels_per_base = $self->scale;
 
   my $y         = $y1 + ($self->height - $font->height)/2 - 1;
@@ -471,7 +478,7 @@ sub draw_label {
 			$self->top + $top - 1,
 			$label);
   } elsif ($self->label_position eq 'left') {
-      my $y = $self->{top} + ($self->height - $font->height)/2 + $top;
+      my $y = $self->{top} + ($self->height - $self->string_height($font))/2 + $top;
       $y    = $self->{top} + $top if $y < $self->{top} + $top;
       $self->render_label($gd,
 			  $font,
@@ -514,7 +521,7 @@ sub draw_description {
 
   $gd->string($self->descfont,
 	      $left,
-	      $bottom,
+	      $bottom-3,
 	      $label,
 	      $self->descriptioncolor);
 }
@@ -592,17 +599,15 @@ sub dna_fits {
   my $self = shift;
 
   my $pixels_per_base = $self->scale;
-  my $font            = $self->font;
+  my $font            = $self->mono_font;
   my $font_width      = $font->width;
-
+  
   return $pixels_per_base >= $font_width;
 }
 
 sub protein_fits {
   my $self = shift;
-  my $font               = $self->font;
-
-  # return unless $font->height <= $self->height;
+  my $font               = $self->mono_font;
 
   my $font_width         = $font->width;
   my $pixels_per_residue = $self->scale * 3;

@@ -113,7 +113,7 @@ my %UNITS = (p => 1e-12,
 sub pad_bottom {
   my $self = shift;
   my $val = $self->SUPER::pad_bottom(@_);
-  $val += $self->font->height if $self->option('tick');
+  $val += $self->string_height($self->font) if $self->option('tick');
   $val;
 }
 
@@ -190,7 +190,7 @@ sub draw_parallel {
   if ($self->option('tick')) {
     local $^W = 0;  # dumb uninitialized variable warning
     my $font       = $self->font;
-    my $width      = $font->width;
+    my $width      = $self->string_width('m',$font);
     my $font_color = $self->fontcolor;
     my $height     = $self->height;
 

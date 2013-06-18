@@ -174,7 +174,7 @@ sub pad_right {
 sub labelwidth {
   my $self = shift;
   return $self->SUPER::labelwidth unless $self->draw_target && $self->dna_fits && $self->label_position eq 'left';
-  return $self->{labelwidth} ||= (length($self->label||'')+1) * $self->font->width;
+  return $self->{labelwidth} ||= (length($self->label||'')+1) * $self->mono_font->width;
 }
 sub draw_target {
   my $self = shift;
@@ -199,7 +199,7 @@ sub height {
   if ($self->draw_protein_target) {
     return $height unless $self->protein_fits;
   }
-  my $fontheight = $self->font->height;
+  my $fontheight = $self->mono_font->height;
   return $fontheight if $fontheight > $height;
 }
 
@@ -705,7 +705,7 @@ sub draw_multiple_alignment {
   my ($red,$green,$blue)   = $self->panel->rgb($bgcolor);
   my $avg         = ($red+$green+$blue)/3;
   my $color       = $self->translate_color($avg > 128 ? 'black' : 'white');
-  my $font  = $self->font;
+  my $font       = $self->mono_font;
   my $lineheight = $font->height;
   my $fontwidth  = $font->width;
 
@@ -927,10 +927,18 @@ sub _get_cigar {
     return unless $cigar;
 
     my @arry;
-    while ($cigar =~ /(\d*)([A-Z])/g) {
-	my ($count,$op) = ($1,$2);
-	$count ||= 1;
-	push @arry,[$op,$count];
+    my $regexp = $cigar =~ /^\d+/ ? '(\d+)([A-Z])' 
+	                          : '([A-Z])(\d+)';
+    if ($cigar =~ /^\d+/) {
+	while ($cigar =~ /(\d+)([A-Z])/g) {
+	    my ($count,$op) = ($1,$2);
+	    push @arry,[$op,$count];
+	}
+    } else {
+	while ($cigar =~ /([A-Z])(\d+)/g) {
+	    my ($op,$count) = ($1,$2);
+	    push @arry,[$op,$count];
+	}
     }
     return \@arry;
 }

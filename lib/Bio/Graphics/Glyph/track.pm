@@ -51,7 +51,7 @@ sub draw {
   local $Bio::Graphics::Panel::GlyphScratch;  # set $GlyphScratch to undef
   for (my $i=0; $i<@parts; $i++) {
     $parts[$i]->draw_highlight($gd,$left,$top);
-    $parts[$i]->draw($gd,$left,$top,0,1);
+    $parts[$i]->draw_it($gd,$left,$top,0,1);
   }
 
   $gd->clip(@clip) if @clip;

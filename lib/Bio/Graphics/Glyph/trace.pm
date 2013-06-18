@@ -388,7 +388,7 @@ sub draw_component {
     }
 
     # Get Text Info
-    my $font        = $self->font;
+    my $font        = $self->mono_font;
     my $text_buffer = 2;
     my $text_height = $font->height + ( $text_buffer * 2 );
 

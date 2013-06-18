@@ -59,6 +59,9 @@ sub my_options {
 
 sub extra_arrow_length {
   my $self = shift;
+  return 0 if $self->feature->primary_tag =~ /exon|utr/i;
+  return $self->SUPER::extra_arrow_length 
+      unless $self->feature->primary_tag =~ /gene/;
   return 0 unless $self->{level} == 1;
   local $self->{level} = 0;  # fake out superclass
   return $self->SUPER::extra_arrow_length;
@@ -67,19 +70,14 @@ sub extra_arrow_length {
 sub pad_left {
   my $self = shift;
   my $type = $self->feature->primary_tag;
-  return 0 unless $type =~ /gene|mRNA/;
+  return 0 unless $type =~ /gene|mRNA|transcript/;
   $self->SUPER::pad_left;
 }
 
 sub pad_right {
   my $self = shift;
   return 0 unless $self->{level} < 2; # don't invoke this expensive call on exons
-  my $strand = $self->feature->strand;
-  $strand *= -1 if $self->{flip};
-  my $pad    = $self->SUPER::pad_right;
-  return $pad unless defined($strand) && $strand > 0;
-  my $al = $self->arrow_length;
-  return $al > $pad ? $al : $pad;
+  return $self->SUPER::pad_right;
 }
 
 sub pad_bottom {
@@ -110,8 +108,8 @@ sub bump {
 sub label {
   my $self = shift;
   return unless $self->{level} < 2;
-  if ($self->label_transcripts && $self->{feature}->primary_tag =~ /RNA|pseudogene/i) {
-    return $self->_label;
+  if ($self->{feature}->primary_tag =~ /rna|transcript|pseudogene/i && $self->label_transcripts) {
+      return $self->_label;
   } else {
     return $self->SUPER::label;
   }

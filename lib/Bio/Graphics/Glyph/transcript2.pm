@@ -16,8 +16,9 @@ sub extra_arrow_length {
   my $self = shift;
   my $strand = $self->feature->strand || 0;
   $strand *= -1 if $self->{flip};
-  return 0 unless $strand < 0;
-  my $first = ($self->parts)[0] || $self;
+  my $first = $strand < 0 ? ($self->parts)[0]
+                          : ($self->parts)[-1];
+  $first ||= $self;
   my @rect  = $first->bounds();
   my $width = abs($rect[2] - $rect[0]);
   return 0 if $width >= MIN_WIDTH_FOR_ARROW;
@@ -27,6 +28,7 @@ sub extra_arrow_length {
 sub pad_left  {
    my $self = shift;
    my $pad = $self->Bio::Graphics::Glyph::generic::pad_left;
+   return $pad if $self->feature->strand > 0;
    my $extra_arrow_length = $self->extra_arrow_length;
    if ($self->label_position eq 'left' && $self->label) {
      return $extra_arrow_length+$pad;
@@ -38,12 +40,9 @@ sub pad_left  {
 sub pad_right  {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_right;
-  return $pad if $self->{level} > 0;
-  my $last = ($self->parts)[-1] || $self;
-  my @rect  = $last->bounds();
-  my $width = abs($rect[2] - $rect[0]);
-  return $self->SUPER::pad_right if $width < MIN_WIDTH_FOR_ARROW;
-  return $pad
+  return $pad if $self->feature->strand < 0;
+  my $extra_arrow_length = $self->extra_arrow_length;
+  return $extra_arrow_length > $pad ? $extra_arrow_length : $pad;
 }
 
 sub draw_connectors {
