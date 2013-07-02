@@ -107,8 +107,8 @@ sub point_radius {
 sub pad_top {
   my $self = shift;
   my $pad = $self->Bio::Graphics::Glyph::generic::pad_top(@_);
-  if ($pad < $self->font_height('gdTinyFont')+8) {
-      $pad = $self->font_height('gdTinyFont')+8;  # extra room for the scale
+  if ($pad < $self->font_height($self->getfont('gdTinyFont'))+8) {
+      $pad = $self->font_height($self->getfont('gdTinyFont'))+8;  # extra room for the scale
   }
   $pad;
 }
@@ -116,8 +116,8 @@ sub pad_top {
 sub pad_bottom {
   my $self = shift;
   my $pad  = $self->Bio::Graphics::Glyph::generic::pad_bottom(@_);
-  if ($pad < $self->font_height('gdTinyFont')/4) {
-      $pad = $self->font_height('gdTinyFont')/4;  # extra room for the scale
+  if ($pad < $self->font_height($self->getfont('gdTinyFont'))/4) {
+      $pad = $self->font_height($self->getfont('gdTinyFont'))/4;  # extra room for the scale
   }
   $pad;
 }

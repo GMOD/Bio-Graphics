@@ -155,6 +155,7 @@ sub wig {
 sub datatype {
     my $self = shift;
     my $feature = $self->feature;
+    warn $feature->display_name;
     my ($tag,$value);
     for my $t ('wigfile','wigdata','densefile','coverage') {
 	if (my ($v) = eval{$feature->get_tag_values($t)}) {
@@ -166,6 +167,7 @@ sub datatype {
     unless ($value) {
 	$tag   = 'statistical_summary';
 	$value = eval{$feature->statistical_summary};
+	$value or warn "track data object '",ref($feature),"' does not support statistical_summary() method; please add wigfile,wigdata,densefile or coverage attribute to data file";
     }
     $tag ||= 'generic';
     return wantarray ? ($tag,$value) : $tag;

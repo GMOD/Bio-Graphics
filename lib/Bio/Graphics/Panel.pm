@@ -620,6 +620,26 @@ sub gd {
   return $self->{gd} = $self->rotate ? $gd->copyRotate90 : $gd;
 }
 
+sub gdfont {
+    my $self = shift;
+    my $font = shift;
+    my $img_class = $self->image_class;
+
+    if (!UNIVERSAL::isa($font,$img_class . '::Font') && $font =~ /^(gd|sanserif)/) {
+	my $ref    = $self->{gdfonts} ||= {
+	    gdTinyFont       => $img_class->gdTinyFont(),
+	    gdSmallFont      => $img_class->gdSmallFont(),
+	    gdMediumBoldFont => $img_class->gdMediumBoldFont(),
+	    gdLargeFont      => $img_class->gdLargeFont(),
+	    gdGiantFont      => $img_class->gdGiantFont(),
+	    sanserif         => $img_class->gdSmallFont(),
+	};
+	return $ref->{$font} || $ref->{gdSmallFont};
+    } else {
+	return $font;
+    }
+}
+
 sub string_width {
     my $self = shift;
     my ($font,$string) = @_;

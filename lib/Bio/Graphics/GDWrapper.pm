@@ -2,6 +2,7 @@ package Bio::Graphics::GDWrapper;
 
 use base 'GD::Image';
 use Memoize 'memoize';
+use Carp 'cluck';
 memoize('_match_font');
 
 my $DefaultFont;
@@ -74,7 +75,10 @@ sub _match_font {
     my $self = shift;
     my $font = shift;
     return $font unless ref $font && $font->isa('GD::Font');
-    $GdInit++ || GD::Image->useFontConfig(1);
+
+    # work around older versions of GD that require useFontConfig to be called from a GD::Image instance
+    $GdInit++ || eval{GD::Image->useFontConfig(1)} || GD::Image->new(10,10)->useFontConfig(1);
+
     my $fh     = $font->height-1;
     my $height = $Pixel2Point{$fh} || $fh;
     my $style  = $font eq GD->gdMediumBoldFont ? 'bold'

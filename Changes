@@ -1,6 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
 2.35
    - Change Glyph/segments.pm to work with both variants of CIGAR strings.	
+   - Workaround for broken useFontConfig() support in versions of GD prior to 2.50.
+   - Fix "gdTinyFont doesn't support height() method error in xyplot".
 
 2.34 Thu May 16 15:42:25 CDT 2013
     - Fixed silent crashes when rendering with the GD::SVG class.

@@ -780,23 +780,9 @@ sub getfont {
   my $font = $self->option($option) || $default;
   return unless $font;
 
-  my $img_class = $self->image_class;
-
-  if (!UNIVERSAL::isa($font,$img_class . '::Font') && $font =~ /^(gd|sanserif)/) {
-    my $ref    = {
-		  gdTinyFont       => $img_class->gdTinyFont(),
-		  gdSmallFont      => $img_class->gdSmallFont(),
-		  gdMediumBoldFont => $img_class->gdMediumBoldFont(),
-		  gdLargeFont      => $img_class->gdLargeFont(),
-		  gdGiantFont      => $img_class->gdGiantFont(),
-		  sanserif         => $img_class->gdSmallFont(),
-    		 };
-
-    my $gdfont = $ref->{$font} || $ref->{gdSmallFont};
-    $self->configure($option => $gdfont);
-    return $gdfont;
-  }
-  return $font;
+  my $gdfont = $self->panel->gdfont($font);
+  $self->configure($option => $gdfont);  
+  return $gdfont;
 }
 
 sub tkcolor { # "track color"
