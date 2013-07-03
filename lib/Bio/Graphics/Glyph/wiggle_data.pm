@@ -243,7 +243,7 @@ sub create_parts_from_summary {
     my $self = shift;
     my ($stats,$start,$end) = @_;
     $stats ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} : undef} @$stats;
     return \@vals;
 }
 
@@ -397,7 +397,7 @@ sub draw_statistical_summary {
     my $feature = shift;
     my $stats = $feature->statistical_summary($self->width);
     $stats   ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} : undef} @$stats;
     return $self->_draw_coverage($feature,\@vals,@_);
 }
 
@@ -418,6 +418,7 @@ sub _draw_coverage {
 	my $s      = $start + $offset;
 	my $e      = $s+1;  # fill in gaps
 	my $v      = $array->[$offset/$bases_per_bin];
+	next unless defined $v; # skip missing values
 	push @parts,[$s,$s,$v];
     }
     $self->draw_plot(\@parts,@_);
