@@ -70,7 +70,7 @@ sub draw {
  my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
  my $height   = $bottom - $top;
  my $feature  = $self->feature;
- my $set_flip = $self->option('flip_sign') | 0;
+ my $set_flip = $self->option('flip_sign') || 0;
 
  #Draw individual features for reads (unlike wiggle features reads will have scores)
  my $t_id = $feature->method;
@@ -106,7 +106,23 @@ sub draw {
 					-end    => $self->panel->end,
 					-type   => 'summary');
 	 my $stats = $summary->statistical_summary($self->width);
-	 my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}*$flip:0} @$stats;
+	 my $interval_method = $self->option('interval_method') || 'mean';
+	 my @vals;
+	 if ($interval_method eq 'mean') {
+		@vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} * $flip : undef} @$stats;
+	 }
+	 elsif ($interval_method eq 'sum') {
+		@vals  = map {$_->{validCount} ? $_->{sumData} * $flip : undef} @$stats;
+	 }
+	 elsif ($interval_method eq 'min') {
+		@vals  = map {$_->{validCount} ? $_->{minVal} * $flip : undef} @$stats;
+	 }
+	 elsif ($interval_method eq 'max') {
+		@vals  = map {$_->{validCount} ? $_->{maxVal} * $flip : undef} @$stats;
+	 }
+	 else {
+		warn "unrecognized interval method $interval_method!";
+	 }
 	 $self->_draw_coverage($summary,\@vals,@_);
      }
  }
@@ -129,6 +145,7 @@ sub minmax {
     my $parts  = shift;
 
     my $autoscale  = $self->option('autoscale') || 'local';
+    my $set_flip = $self->option('flip_sign') || 0;
 
     my $min_score  = $self->min_score  unless $autoscale eq 'z_score';
     my $max_score  = $self->max_score  unless $autoscale eq 'z_score';
@@ -160,6 +177,7 @@ sub minmax {
 	$stdev += $d**2;
     }
     $stdev = sqrt($stdev);
+    $min = $max * -1 if ($set_flip);
 
     $min_score = $min if $do_min;
     $max_score = $max if $do_max;
