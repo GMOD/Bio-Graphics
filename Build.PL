@@ -18,7 +18,7 @@ my $build = Module::Build->new(
     recommends        => {
 	'GD::SVG'                 => 0.32, 
 	'Text::ParseWords'        => 3.26,  # required for Bio::Graphics::Wiggle::Loader
-	'Bio::SCF'                => 1.01,  # required for Bio::Graphics::Glyph::trace
+#	'Bio::SCF'                => 1.01,  # required for Bio::Graphics::Glyph::trace
     },
     script_files => ['scripts/contig_draw.pl',
 		     'scripts/feature_draw.pl',

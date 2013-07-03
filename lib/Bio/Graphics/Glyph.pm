@@ -1081,7 +1081,7 @@ sub draw {
       my $fake_x = $x;
       $fake_x-- if defined $last_x && $parts[$i]->left - $last_x == 1;
       $parts[$i]->draw_highlight($gd,$fake_x,$y);
-      $parts[$i]->draw($gd,$fake_x,$y,$i,scalar(@parts));
+      $parts[$i]->draw_it($gd,$fake_x,$y,$i,scalar(@parts));
       $last_x = $parts[$i]->right;
     }
   }

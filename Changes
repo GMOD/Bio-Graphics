@@ -1,4 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
+2.36
+   - Fix regression in glyph parent_feature() method so that it once again returns
+     the parent of the current feature.
+   - Remove recommended prerequisite of Bio::SCF, which is hardly used now.
+
 2.35
    - Change Glyph/segments.pm to work with both variants of CIGAR strings.	
    - Workaround for broken useFontConfig() support in versions of GD prior to 2.50.
