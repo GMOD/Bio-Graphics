@@ -842,7 +842,7 @@ sub _state_transition {
 	return 'data'   if $line =~ /^reference\s*=/; # feature-file reference sequence directive
 	
 	return 'config' if $line =~ /^\s*$/;                             #empty line
-	return 'config' if $line =~ m/^\[([^\]]+)\]/;                    # section beginning
+	return 'config' if $line =~ m/^\[(.+)\]/;                    # section beginning
 	return 'config' if $line =~ m/^[\w:\s]+=/ 
 	    && $self->{current_config};                                  # configuration line
 	return 'config' if $line =~ m/^\s+(.+)/
@@ -870,7 +870,7 @@ sub parse_config_line {
 	return 1;
     }
 
-    elsif (/^\[([^\]]+)\]/) {  # beginning of a configuration section
+    elsif (/^\[(.+)\]/) {  # beginning of a configuration section
 	my $label = $1;
 	my $cc = $label =~ /^(general|default)$/i ? 'general' : $label;  # normalize
 	push @{$self->{types}},$cc unless $cc eq 'general';
