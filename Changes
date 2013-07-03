@@ -1,4 +1,9 @@
 Revision history for Perl extension Bio::Graphics.
+2.37
+   - Merge fix for incorrect parsing of feature_file sections (issue #6)
+   - Added decorated_transcript glyph
+   - Added nathanweeks fix for broken heatmap glyph
+
 2.36
    - Fix regression in glyph parent_feature() method so that it once again returns
      the parent of the current feature.

@@ -10,3 +10,4 @@ Build$
 ^[^/]+\.gff3
 MANIFEST\.bak
 ~$
+\.patch

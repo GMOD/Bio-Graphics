@@ -27,6 +27,8 @@ lib/Bio/Graphics/Glyph/christmas_arrow.pm
 lib/Bio/Graphics/Glyph/cross.pm
 lib/Bio/Graphics/Glyph/crossbox.pm
 lib/Bio/Graphics/Glyph/dashed_line.pm
+lib/Bio/Graphics/Glyph/decorated_gene.pm
+lib/Bio/Graphics/Glyph/decorated_transcript.pm
 lib/Bio/Graphics/Glyph/diamond.pm
 lib/Bio/Graphics/Glyph/dna.pm
 lib/Bio/Graphics/Glyph/dot.pm
@@ -127,6 +129,8 @@ scripts/index_cov_files.pl
 scripts/render_msa.pl
 scripts/search_overview.pl
 t/BioGraphics.t
+t/data/decorated_transcript_t1.gff
+t/data/decorated_transcript_t1.png
 t/data/feature_data.txt
 t/data/t1.gif
 t/data/t1.png
@@ -211,4 +215,5 @@ t/data/t3/version8.gif
 t/data/t3/version8.png
 t/data/t3/version9.png
 t/data/wig_data.wig
+t/decorated_transcript_t1.pl
 t/Wiggle.t

@@ -1,13 +1,11 @@
 package Bio::Graphics::Glyph::heat_map;
 
 use strict;
+use base qw(Bio::Graphics::Glyph::generic);
 use Bio::Graphics::Glyph::minmax;
 
 # A glyph to draw a heat map for scored features along a continuous color
 # gradient calculated in HSV color space
-
-use vars '@ISA';
-@ISA = qw/Bio::Graphics::Glyph::minmax/;
 
 sub my_description {
     return <<END;
