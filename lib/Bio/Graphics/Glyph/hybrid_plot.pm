@@ -70,7 +70,7 @@ sub draw {
  my ($left,$top,$right,$bottom) = $self->calculate_boundaries($dx,$dy);
  my $height   = $bottom - $top;
  my $feature  = $self->feature;
- my $set_flip = $self->option('flip_sign') | 0;
+ my $set_flip = $self->option('flip_sign') || 0;
 
  #Draw individual features for reads (unlike wiggle features reads will have scores)
  my $t_id = $feature->method;
@@ -129,6 +129,7 @@ sub minmax {
     my $parts  = shift;
 
     my $autoscale  = $self->option('autoscale') || 'local';
+    my $set_flip = $self->option('flip_sign') || 0;
 
     my $min_score  = $self->min_score  unless $autoscale eq 'z_score';
     my $max_score  = $self->max_score  unless $autoscale eq 'z_score';
@@ -160,6 +161,7 @@ sub minmax {
 	$stdev += $d**2;
     }
     $stdev = sqrt($stdev);
+    $min = $max * -1 if ($set_flip);
 
     $min_score = $min if $do_min;
     $max_score = $max if $do_max;
