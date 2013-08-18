@@ -76,7 +76,7 @@ my %DRAWOPTIONS = (
                                    'default' => 1},
     ## labeling options
     'labels'                  => { 'private' => 'loop_labels',
-                                   'default' => []},
+                                   'default' => {}},
     'text_offset'             => { 'private' => 'text_offset',
                                    'default' => 0},
     'helix_label'             => { 'private' => 'helix_label',
