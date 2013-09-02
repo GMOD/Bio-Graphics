@@ -412,7 +412,7 @@ sub calculate_color {
   my ($s,$rgb,$min_score,$max_score) = @_;
   $s ||= $min_score;
 
-  return (255,255,255) if $max_score <= $min_score; # avoid div by zero
+  return (255,255,255) unless $max_score - $min_score; # avoid div by zero
 
   my $relative_score = ($s-$min_score)/($max_score-$min_score);
   $relative_score    = 0 if $relative_score < 0;
