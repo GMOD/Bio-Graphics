@@ -168,6 +168,7 @@ sub draw_segment {
   my $data    = ref $seg_data eq 'ARRAY' ? $seg_data
                                          : $seg_data->values($start,$end,$samples);
 
+
   # scale the glyph if the data end before the panel does
   my $data_width = $end - $start;
   my $data_width_ratio;
@@ -358,6 +359,7 @@ sub draw_plot {
     $self->panel->startGroup($gd);
     foreach (@$parts) {
 	my ($start,$end,$score) = @$_;
+	next unless defined $score; # undefined (absent) score transparent
 	$score    = ($score-$mean)/$stdev if $rescale;
 	$score    = $scaled_min if $scaled_min > $score;
 	$score    = $scaled_max if $scaled_max < $score;
@@ -401,7 +403,7 @@ sub _draw_coverage {
 	my $s      = $start + $offset;
 	my $e      = $s+1;  # fill in gaps
 	my $v      = $array->[$offset/$bases_per_bin];
-	$v         = 0 unless defined $v; # don't want undefined values
+	#$v         = 0 unless defined $v; # don't want undefined values
 	push @parts,[$s,$s,$v];
     }
     $self->Bio::Graphics::Glyph::wiggle_density::draw_plot(\@parts,@_);
