@@ -3,6 +3,7 @@ package Bio::Graphics::Glyph::wiggle_data;
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);
 use File::Spec;
+use Data::Dumper;
 sub minmax {
     my $self   = shift;
     my $parts  = shift;
@@ -155,7 +156,7 @@ sub wig {
 sub datatype {
     my $self = shift;
     my $feature = $self->feature;
-    warn $feature->display_name;
+
     my ($tag,$value);
     for my $t ('wigfile','wigdata','densefile','coverage') {
 	if (my ($v) = eval{$feature->get_tag_values($t)}) {
@@ -164,12 +165,13 @@ sub datatype {
 	    last;
 	}
     }
-    unless ($value) {
+    if (!$value && $feature->can('statistical_summary')) {
 	$tag   = 'statistical_summary';
 	$value = eval{$feature->statistical_summary};
-	$value or warn "track data object '",ref($feature),"' does not support statistical_summary() method; please add wigfile,wigdata,densefile or coverage attribute to data file";
     }
+
     $tag ||= 'generic';
+
     return wantarray ? ($tag,$value) : $tag;
 }
 

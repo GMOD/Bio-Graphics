@@ -80,7 +80,8 @@ sub draw {
     $self->panel->endGroup($gd);
     return $retval;
   } else {
-      return $self->Bio::Graphics::Glyph::box::draw(@_);
+      # This draws a filled box for null value data
+      #return $self->Bio::Graphics::Glyph::box::draw(@_);
   }
 }
 
