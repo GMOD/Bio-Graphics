@@ -155,7 +155,7 @@ sub _subfeat {
 
   if ($feature->primary_tag =~ /^gene/i) {
     my @transcripts;
-    for my $t (qw/mRNA tRNA snRNA snoRNA miRNA ncRNA pseudogene/) {
+    for my $t (qw/mRNA tRNA snRNA snoRNA miRNA ncRNA pseudogene transcript/) {
       push @transcripts, $feature->get_SeqFeatures($t);
     }
     return @transcripts if @transcripts;
