@@ -82,7 +82,7 @@ sub extra_arrow_length {
 sub pad_left {
   my $self = shift;
   my $type = $self->feature->primary_tag;
-  return 0 unless $type =~ /gene|mRNA/;
+  return 0 unless $type =~ /gene|rna|transcript/i;
   $self->SUPER::pad_left;
 }
 
