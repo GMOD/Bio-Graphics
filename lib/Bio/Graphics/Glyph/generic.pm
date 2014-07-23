@@ -217,7 +217,9 @@ sub pad_left {
 }
 sub labelfont {
   my $self = shift;
-  return $self->getfont('label_font',$self->font);
+  my $font = $self->getfont('label_font',$self->font);
+  $font = GD->gdTinyFont if $self->string_height($font) > $self->height && $self->label_position eq 'left';
+  return $font;
 }
 sub descfont {
   my $self = shift;
@@ -478,8 +480,8 @@ sub draw_label {
 			$self->top + $top - 1,
 			$label);
   } elsif ($self->label_position eq 'left') {
-      my $y = $self->{top} + ($self->height - $self->string_height($font))/2 + $top;
-      $y    = $self->{top} + $top if $y < $self->{top} + $top;
+#      my $y = $top + $self->{top} + ($self->height - $self->string_height($font))/2;
+      my $y = $top + $self->{top} - 1;
       $self->render_label($gd,
 			  $font,
 			  $x,
