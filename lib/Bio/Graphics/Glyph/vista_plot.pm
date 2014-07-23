@@ -203,7 +203,23 @@ sub draw_signal {
 	    $self->Bio::Graphics::Glyph::wiggle_whiskers::draw(@_);
 	} else {
 	    my $stats = $summary->statistical_summary($self->width);
-	    my @vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : 0} @$stats; 
+		my $interval_method = $self->option('interval_method') || 'mean';
+		my @vals;
+		if ($interval_method eq 'mean') {
+			@vals  = map {$_->{validCount} ? Bio::DB::BigWig::binMean($_) : undef} @$stats;
+		}
+		elsif ($interval_method eq 'sum') {
+			@vals  = map {$_->{validCount} ? $_->{sumData} : undef} @$stats;
+		}
+		elsif ($interval_method eq 'min') {
+			@vals  = map {$_->{validCount} ? $_->{minVal} : undef} @$stats;
+		}
+		elsif ($interval_method eq 'max') {
+			@vals  = map {$_->{validCount} ? $_->{maxVal} : undef} @$stats;
+		}
+		else {
+			warn "unrecognized interval method $interval_method!";
+		}
 	    $self->bigwig_summary($summary);
 	    if ($signal_type eq 'density') {
 		$self->Bio::Graphics::Glyph::wiggle_density::_draw_coverage($summary,\@vals,@_);

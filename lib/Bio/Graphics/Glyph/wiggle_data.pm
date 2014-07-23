@@ -3,6 +3,7 @@ package Bio::Graphics::Glyph::wiggle_data;
 use strict;
 use base qw(Bio::Graphics::Glyph::minmax);
 use File::Spec;
+use Data::Dumper;
 sub minmax {
     my $self   = shift;
     my $parts  = shift;
@@ -155,7 +156,7 @@ sub wig {
 sub datatype {
     my $self = shift;
     my $feature = $self->feature;
-    warn $feature->display_name;
+
     my ($tag,$value);
     for my $t ('wigfile','wigdata','densefile','coverage') {
 	if (my ($v) = eval{$feature->get_tag_values($t)}) {
@@ -164,12 +165,13 @@ sub datatype {
 	    last;
 	}
     }
-    unless ($value) {
+    if (!$value && $feature->can('statistical_summary')) {
 	$tag   = 'statistical_summary';
 	$value = eval{$feature->statistical_summary};
-	$value or warn "track data object '",ref($feature),"' does not support statistical_summary() method; please add wigfile,wigdata,densefile or coverage attribute to data file";
     }
+
     $tag ||= 'generic';
+
     return wantarray ? ($tag,$value) : $tag;
 }
 
@@ -243,7 +245,23 @@ sub create_parts_from_summary {
     my $self = shift;
     my ($stats,$start,$end) = @_;
     $stats ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    my $interval_method = $self->option('interval_method') || 'mean';
+    my @vals;
+    if ($interval_method eq 'mean') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'sum') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'min') {
+    	@vals  = map {$_->{validCount} ? $_->{minVal} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'max') {
+    	@vals  = map {$_->{validCount} ? $_->{maxVal} : undef} @$stats;
+    }
+    else {
+    	warn "unrecognized interval method $interval_method!";
+    }
     return \@vals;
 }
 
@@ -397,7 +415,23 @@ sub draw_statistical_summary {
     my $feature = shift;
     my $stats = $feature->statistical_summary($self->width);
     $stats   ||= [];
-    my @vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount}:0} @$stats;
+    my $interval_method = $self->option('interval_method') || 'mean';
+    my @vals;
+    if ($interval_method eq 'mean') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData}/$_->{validCount} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'sum') {
+    	@vals  = map {$_->{validCount} ? $_->{sumData} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'min') {
+    	@vals  = map {$_->{validCount} ? $_->{minVal} : undef} @$stats;
+    }
+    elsif ($interval_method eq 'max') {
+    	@vals  = map {$_->{validCount} ? $_->{maxVal} : undef} @$stats;
+    }
+    else {
+    	warn "unrecognized interval method $interval_method!";
+    }
     return $self->_draw_coverage($feature,\@vals,@_);
 }
 
@@ -418,6 +452,7 @@ sub _draw_coverage {
 	my $s      = $start + $offset;
 	my $e      = $s+1;  # fill in gaps
 	my $v      = $array->[$offset/$bases_per_bin];
+	next unless defined $v; # skip missing values
 	push @parts,[$s,$s,$v];
     }
     $self->draw_plot(\@parts,@_);

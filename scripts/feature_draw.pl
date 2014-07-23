@@ -7,6 +7,7 @@ use Bio::Graphics::Feature;
 use Bio::Graphics::FeatureFile;
 
 use Getopt::Long;
+use List::Util qw/first/;
 
 use constant WIDTH => 600;
 my ($WIDTH,$RANGE,$BOXES);
@@ -86,7 +87,13 @@ if ($BOXES) {  # debugging code
   debugging_rectangles($gd,$boxes);
 }
 
-print $gd->can('png') ? $gd->png : $gd->gif;
+if($gd->can('png')) {
+  print STDERR "Printing png\n";
+  print $gd->png;
+} elsif($gd->can('gif')) {
+  print STDERR "Printing gif\n";
+  print $gd->gif;
+};
 
 sub debugging_rectangles {
   my ($image,$boxes) = @_;
