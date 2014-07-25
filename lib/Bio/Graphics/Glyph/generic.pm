@@ -245,8 +245,10 @@ sub label {
   my $self = shift;
 
   return if $self->{overbumped};  # set by the bumper when we have hit bump limit
-  return unless $self->subpart_callbacks;  # returns true if this is level 0 or if subpart callbacks allowed
+  return if $self->subpart_callbacks;  # returns true if this is level 0 or if subpart callbacks allowed
   return $self->_label if $self->{level} >= 0;
+#  return $self->_label if $self->{level} == 0;
+
 
   return exists $self->{label} ? $self->{label}
                                : ($self->{label} = $self->_label);
