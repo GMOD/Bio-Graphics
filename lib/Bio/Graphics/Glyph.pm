@@ -9,7 +9,7 @@ use Bio::Graphics::Layout;
 use Memoize 'memoize';
 memoize('options') unless $^O =~ /mswin/i;
 # memoize('option',NORMALIZER=>'_normalize_objects'); # helps ??
-my %OptionCache; # works better?
+# my %OptionCache; # works better?
 
 use base qw(Bio::Root::Root);
 
@@ -630,11 +630,9 @@ sub boxes {
    my $self = shift;
    my $option_name = shift;
    local $^W=0;
-   my $cache_key = join ';',(%$self,$option_name);
-   return $OptionCache{$cache_key} if exists $OptionCache{$cache_key};
    my @args = ($option_name,@{$self}{qw(partno total_parts)});
    my $factory = $self->{factory} or return;
-   return $OptionCache{$cache_key} = $factory->option($self,@args);
+   return $factory->option($self,@args);
 }
 
 # get an option that might be a code reference
