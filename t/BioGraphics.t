@@ -15,7 +15,9 @@ use File::Glob ':glob';
 # for now, the image tests are turned off
 use lib "$Bin/../lib";
 
-use constant IMAGE_TESTS => 1;
+# libgd has become unstable -- produces a binary different (but visually identical)
+# image each time.
+use constant IMAGE_TESTS => 0; 
 
 BEGIN { 
   use lib '.';
@@ -174,18 +176,19 @@ sub do_write {
 
 sub do_compare {
   my $test = shift;
-  my $canpng = GD::Image->can('png');
-  my @input_files = glob($images . ($canpng ? "/$test/*.png" : "/$test/*.gif"));
+  my $cangif = GD::Image->can('gif');
+  my @input_files = glob($images . ($cangif ? "/$test/*.gif" : "/$test/*.png"));
   my $test_sub    = $test;
   my $panel       = eval "$test_sub()" or die "Couldn't run test";
   my $ok = 0;
-  my $test_data = $canpng ? $panel->gd->png : $panel->gd->gif;
+  my $test_data = $cangif ? $panel->gd->gif : $panel->gd->png;
   foreach (@input_files) {
-    my $reference_data = read_file($_);
-    if ($reference_data eq $test_data) {
-      $ok++;
-      last;
-    }
+      my $gd = $cangif ? GD::Image->newFromGif($_) : GD::Image->newFromPng($_);
+      my $reference_data = $cangif ? $gd->gif : $gd->png;
+      if ($reference_data eq $test_data) {
+	  $ok++;
+	  last;
+      }
   }
   ok($ok);
 }

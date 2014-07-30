@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+2.39
+   - Turn off image-based regression tests becuase libgd has started to produce visually-identical
+     images that are different at the byte level.
+	
 2.38
    - If left labeling requested and the selected font size is larger than the available height,
      then go to smallest available font (gdTinyFont).
