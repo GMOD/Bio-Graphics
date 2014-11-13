@@ -268,15 +268,16 @@ sub _split_on_cigar {
     my $source_end   = $feature->end;
     my $ss  = $feature->strand;
     my $ts  = $feature->hit->strand;
+
+    # Render -/- alignments on the + strand
+    if ($ss == -1 && $ts == -1) {
+        $ss = 1;
+    }
+
     my $target_start = eval {$feature->hit->start} || return $feature;
 
     my (@parts);
 
-    # BUG: we handle +/+ and -/+ alignments, but not +/- or -/-
-    # (i.e. the target has got to have forward strand coordinates)
-
-    # forward strand
-    if ($ss >= 0) {  
 	for my $event (@$cigar) {
 	    my ($op,$count) = @$event;
 	    if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
@@ -296,28 +297,6 @@ sub _split_on_cigar {
 		$target_start += $count;
 	    }
 	}
-
-    # minus strand
-    } else {
-	for my $event (@$cigar) {
-	    my ($op,$count) = @$event;
-	    if ($op eq 'I' || $op eq 'S' || $op eq 'H') {
-		$target_start += $count;
-	    }
-	    elsif ($op eq 'D' || $op eq 'N') {
-		$source_end -= $count;
-	    }
-	    elsif ($op eq 'P') {
-		# do nothing for pads
-	    } else {  # everything else is assumed to be a match -- revisit
-		push @parts,[$source_end-$count+1,$source_end,
-			     $target_start,$target_start+$count-1];
-		$source_end   -= $count;
-		$target_start += $count;
-	    }
-	}
-	
-    }
 
     my $id  = $feature->seq_id;
     my $tid = $feature->hit->seq_id;
