@@ -148,6 +148,12 @@ sub maxdepth {
   return 2;
 }
 
+sub fixup_glyph {
+  my $self = shift;
+  return unless $self->level == 1;
+  $self->create_implied_utrs if $self->option('implied_utrs');
+  $self->adjust_exons        if $self->option('implied_utrs') || $self->option('adjust_exons');
+}
 
 sub _subfeat {
   my $class   = shift;
@@ -176,7 +182,11 @@ sub _subfeat {
     @subparts = $feature->get_SeqFeatures($class->option('sub_part'));
   }
   elsif ($feature->primary_tag =~ /^mRNA/i) {
-    @subparts = $feature->get_SeqFeatures(qw(CDS five_prime_UTR three_prime_UTR UTR));
+    if ($class->option('implied_utrs') || $class->option('adjust_exons')) {
+      @subparts = $feature->get_SeqFeatures(qw(CDS exon five_prime_UTR three_prime_UTR UTR));
+    } else {
+      @subparts = $feature->get_SeqFeatures(qw(CDS five_prime_UTR three_prime_UTR UTR));
+    }
   }
   else {
     @subparts = $feature->get_SeqFeatures('exon');
@@ -298,10 +308,6 @@ options:
   -decorate_introns
                  Draw strand with little arrows undef (false)
                  on the intron.
-
-The B<-adjust_exons> and B<-implied_utrs> options are inherited from
-processed_transcript, but are quietly ignored. Please use the
-processed_transcript glyph for this type of processing.
 
 =head1 BUGS
 
