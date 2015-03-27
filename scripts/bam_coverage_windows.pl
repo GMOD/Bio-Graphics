@@ -50,6 +50,7 @@ while (<BAM>) {
     }
 
     push @scores, $score;
+    $current_chr = $chr;
 }
 
 
