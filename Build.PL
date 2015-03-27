@@ -27,7 +27,7 @@ my $build = Module::Build->new(
 		     'scripts/search_overview.pl',
 		     'scripts/render_msa.pl',
 		     'scripts/bam_coverage_windows.pl',
-		     'scripts/coverage_to_topoview.pl/
+		     'scripts/coverage_to_topoview.pl'
     ],
     create_makefile_pl => 'passthrough',
     build_class        => 'Module::Build',
