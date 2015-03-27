@@ -90,6 +90,7 @@ lib/Bio/Graphics/Glyph/text_in_box.pm
 lib/Bio/Graphics/Glyph/three_letters.pm
 lib/Bio/Graphics/Glyph/tic_tac_toe.pm
 lib/Bio/Graphics/Glyph/toomany.pm
+lib/Bio/Graphics/Glyph/topoview.pm
 lib/Bio/Graphics/Glyph/trace.pm
 lib/Bio/Graphics/Glyph/track.pm
 lib/Bio/Graphics/Glyph/transcript.pm
@@ -114,14 +115,13 @@ lib/Bio/Graphics/RendererI.pm
 lib/Bio/Graphics/Util.pm
 lib/Bio/Graphics/Wiggle.pm
 lib/Bio/Graphics/Wiggle/Loader.pm
-Makefile.PL
 MANIFEST
 MANIFEST.SKIP
-META.json
-META.yml
 README
 README.bioperl
+scripts/bam_coverage_windows.pl
 scripts/contig_draw.pl
+scripts/coverage_to_topoview.pl
 scripts/feature_draw.pl
 scripts/frend.pl
 scripts/glyph_help.pl
