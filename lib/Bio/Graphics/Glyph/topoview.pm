@@ -1,7 +1,18 @@
 package Bio::Graphics::Glyph::topoview;
 
 # Based on the fb_shmiggle glyph by Victor Strelets, FlyBase.org 
-# Sheldon McKay 2015
+# 2009-2010 Victor Strelets, FlyBase.org 
+# Sheldon McKay <sheldon.mckay@gmail.com> 2015
+
+
+# "topoview.pm" the TopoView glyph was developed for fast
+# 3D-like demonstration of RNA-seq data consisting of multiple
+# individual subsets. The main purposes were to compact presentation
+# as much as possible (in one reasonably sized track) and
+# to allow easy visual detection of coordinated behavior
+# of the expression profiles of different subsets.  
+
+# See http://gmod.org/wiki/Using_the_topoview_Glyph for complete documentation 
 
 use strict;
 use GD;
@@ -11,50 +22,38 @@ use Data::Dumper;
 use List::Util qw/min max shuffle/;
 use constant DEBUG => 0;
 
-use vars qw/$colors_selected $black $red $white $grey @colors %Indices @colcycle
-            $black $yellow $red $white $gray $darkgrey $lightgrey $charcoal/;
+use vars qw/$colors_selected $black $red $white $grey @colors %Indices 
+            $black $darkgrey $lightgrey $charcoal/;
 
 sub draw {
     my $self = shift;
     my $gd   = shift;
     my ($left,$top,$partno,$total_parts) = @_;
     my $ft   = $self->feature;
-    my $ftid = $ft->{id};
-    my $pn   = $self->panel;
-    my $fgc  = $self->fgcolor;
-    my $bgc  = $self->bgcolor;
-    my($r,$g,$b);
 
-    unless( $colors_selected ) {
-	$black     = $gd->colorClosest(0,0,0);
-	$yellow    = $gd->colorClosest(255,255,0);
-	$white     = $gd->colorClosest(255,255,255);
-	$red       = $gd->colorClosest(255,0,0);
-	$lightgrey = $gd->colorClosest(225,225,225);
-	$grey      = $gd->colorClosest(200,200,200);
-	$darkgrey  = $gd->colorClosest(125,125,125);
-	$charcoal  = $gd->colorClosest(75,75,75);
-	foreach my $ccc ( @colcycle ) {
-	    if( $ccc =~ /^[#]?(\S\S)(\S\S)(\S\S)$/ ) {
-		($r,$g,$b)= ($1,$2,$3);
-		eval('$r =hex("0x'.$r.'");'); 
-		eval('$g =hex("0x'.$g.'");'); 
-		eval('$b =hex("0x'.$b.'");');
-	    }
-	    my $c = $gd->colorClosest($r,$g,$b);
-	    push(@colors,$c);
-	}
-	$colors_selected = 1;
+    $black     = $gd->colorClosest(0,0,0);
+    $lightgrey = $gd->colorClosest(225,225,225);
+    $grey      = $gd->colorClosest(200,200,200);
+    $darkgrey  = $gd->colorClosest(125,125,125);
+    $charcoal  = $gd->colorClosest(75,75,75);
+    
+    # User specified edge color or else charcoal gray (black is very harsh)
+    if (my $edge_color = $self->option('edge color')) {
+	my $col = $self->factory->translate_color($edge_color);
+	$self->{fgcolor} = $col;
+    }
+    else {
+	$self->{fgcolor} = $charcoal;
     }
     
-    my($pnstart,$pnstop)    = ($pn->start,$pn->end); # in seq coordinates
+    my($pnstart,$pnstop)    = ($self->panel->start,$self->panel->end); # in seq coordinates
     my($xf1,$yf1,$xf2,$yf2) = $self->calculate_boundaries($left,$top);
     my $nseqpoints = $pnstop - $pnstart + 1;
-    my $leftpad    = $pn->pad_left;
+    my $leftpad    = $self->panel->pad_left;
     $ft->{datadir} ||= $self->option('datadir');
     my $datadir    = $ENV{SERVER_PATH} . $ft->{datadir};
     
-    my($start,$stop) = $pn->location2pixel(($ft->{start},$ft->{end}));
+    my($start,$stop) = $self->panel->location2pixel(($ft->{start},$ft->{end}));
     my $ftscrstop    = $stop + $leftpad;
     my $ftscrstart   = $start + $leftpad;
     
@@ -90,8 +89,7 @@ sub draw {
    
     my $xshift = 0;
     my $yshift = $nsets * $ystep;
-    ($r,$g,$b)= (10,150,80);
-    my $colcycler = 0; 
+
     my @screencoords = @{$signals->{screencoords}};
     my $max_signal = 30;
     my $koeff = 4;
@@ -109,15 +107,19 @@ sub draw {
     my $no_fill = defined $self->option('fill') && !$self->option('fill');
 
     foreach my $subset ( @orderedsubsets ) {
-	my ($bgcolor,$edgecolor);
-	if ( $self->{color} ) {
-	    $bgcolor = $self->{color}->{$subset};
+	my ($color,$bgcolor,$edgecolor);
+	if ( $self->{bgcolor} ) {
+	    $bgcolor = $self->{bgcolor}->{$subset};
 	}
-	if ( $self->{edge_color} ) {
-            $edgecolor = $self->{edge_color}->{$subset};
-        }
-	my $color = (!$self->{no_max} && $profilen ==0) ? $darkgrey : $bgcolor || $colors[$colcycler];
-	$edgecolor = $charcoal;#||= (!$self->{no_max} && $xshift ==0) ? $black : $color;
+	
+	if ($profilen == 0) {
+	    ($color,$edgecolor) = ($darkgrey,$charcoal);
+	}
+	else {
+	    $color = $bgcolor;
+	    $edgecolor = $self->{fgcolor};
+	}
+
 	$xshift -= $xstep;
 	$yshift -= $ystep;
 	my @values = @{$signals->{$subset}};
@@ -129,6 +131,7 @@ sub draw {
 	my @ally = ($yold);
 	my @allvals = (0);
 	my $runx = $xf1 + $xshift;
+
 	foreach my $val ( @values ) {
 	    $scrx += $leftpad;
 	    my $x =  $screencoords[$xpos] + $xshift;
@@ -169,8 +172,7 @@ sub draw {
 	$self->{_key}->{$subsetsnames->{$subset}} = $color;
 
 	$gd->string(GD::Font->Tiny,$xf2+$xshift+3, $yf2-$yshift-5,$subsetsnames->{$subset},$color);
-	$colcycler++;
-	$colcycler = 0 if $colcycler>$#colors;
+
 	unless( $profilen ==0 ) { @prevx = @allx; @prevy = @ally; @prevvals = @allvals; }
 	$profilen++;
     }
@@ -203,7 +205,6 @@ sub add_subset_key {
     my $first_x = $self->{_xmid}-250;
     my $first_y = 12;
     my $key_colors  = $self->{_key};
-    my $edge_colors = $self->{edge_color};
     my $font = GD::Font->MediumBold;
     my $width = $self->width;
     my $total_key_width = 18;
@@ -228,8 +229,8 @@ sub add_subset_key {
             $x = $first_x;
             $y = $first_y + 12;
         }
-        my $color = $$key_colors{$subset};
-        my $edgecolor = $$edge_colors{$subset};
+        my $color = $key_colors->{$subset};
+        my $edgecolor = $self->{fgcolor};
         my $string_width = $self->string_width($subset,$font);
         $gd->rectangle($x,$y,$x+10,$y+10,$edgecolor);
         $gd->filledRectangle($x,$y,$x+10,$y+10,$color);
@@ -278,40 +279,26 @@ sub getData {
 
     # This bit of code reads in user-specified bgcolor, if provided
     if ( ref $subsets[0] eq 'ARRAY' ) {
-	my %bgcolor;
-	my %edgecolor;
 	for (@subsets) {
 	    next unless ref $_ eq 'ARRAY';
 	    my ($subset,$color,$alpha)  = @$_;
+	    $alpha ||= $self->option('fill opacity') || 1.0;
 
-	    my ($r,$g,$b) = $color =~ /^[#]?(\S\S)(\S\S)(\S\S)$/;
-	    $r && $g && $b || die "topoview: Color must be in hex form (B87333) $color @$_\n";
-
-	    eval('$r =hex("0x'.$r.'");');
-	    eval('$g =hex("0x'.$g.'");');
-	    eval('$b =hex("0x'.$b.'");');
-
-	    $alpha ||= $self->option('fill opacity');
-	    if ($alpha) {
-		unless ($alpha <= 1) {
-		    die "Alpha must be between zero and 1";
-		}
-		$alpha = 1 - $alpha unless $alpha == 1;
-		$alpha *= 127;
-	    }
-	    else {
-		$alpha = 20;
+	    if ($alpha && $alpha > 1) {
+		die "Alpha must be between zero and 1";
 	    }
 	    
-	    $color = $gd->colorAllocateAlpha($r,$g,$b,$alpha);
+	    # make it hex if it looks like hex
+	    if ((length $color == 6) && $color =~ /^[0-9A-F]+$/) {
+		$color = '#'.$color;
+	    } 
+	    my $bgcolor = $self->factory->transparent_color($alpha,$color);
+	    my $fgcolor = $self->translate_color($color);
+	    $self->{bgcolor}->{$subset} = $bgcolor;
 	    
-	    $bgcolor{$subset}   = $color;
-	    $edgecolor{$subset} = $gd->colorAllocate($r,$g,$b);
-	    
+	    # We will re-use this array later
 	    $_ = $subset;
 	}
-	$self->{color} = \%bgcolor;
-	$self->{edge_color} = \%edgecolor;
     }
 
     shift(@subsets) if $subsets[0] eq 'MAX';
@@ -506,168 +493,4 @@ sub random_color {
 
 1;
 
-=pod
 
-=head1 TopoView Glyph
-
-=begin html
-<h2>topoview</h2>
-"topoview.pm" the TopoView glyph was developed for fast
-3D-like demonstration of RNA-seq data consisting of multiple
-individual subsets. The main purposes were to compact presentation 
-as much as possible (in one reasonably sized track) and
-to allow easy visual detection of coordinated behavior
-of the expression profiles of different subsets.  See the note below
-about normalizing the expression profiles across the whole
-experiment.
-
-This glyph is derived from the fb_shmiggle Glyph, 
-2009-2010 Victor Strelets, FlyBase.org 
-
-<h2>Log transformation</h2>
-It was found that log2 conversion dramatically changes
-perception of expression profiles and kind of illuminates
-coordinated behavior of different subsets.  Using log2-transformed
-read counts is recomment (see below for instructions).
-
-<h2>Data format and performance</h2>
-Comparing performance (retrieval of several Kbp of data profiles
-for several subsets of some RNA-seq experiment) of wiggle binary
-method and of several possible alternatives, it was discovered that
-one of the approaches remarkably outperforms wiggle bin method
-(although it requires several times more space for formatted data 
-storage). Optimal storage/retrieval method stores all experiment
-data (all subsets of the experiment) in one text file, where
-structure of the file in fact is one of the most simple wiggle
-(coverage files) formats with the addition of some positioning
-data (two-column format, without runlength specification, without
-omission of zero values). This is the only format which glyph is able
-to handle.
-
-<pre>
-# subset =BS107_all_unique chromosome =2LHet
--200000 0
-0       0
-19955   1
-19959   0
-19967   2
-19972   0
-19977   2
-20027   0
-20031   2
-20035   0
-20043   1
-</pre>
-
-<h2>Accessory scripts</h2>
-The Bio::Graphics package has two scripts useful for processing BAM alignment
-data from programs such as tophat for use with this glyph.
-<p>
-bam_coverage_windows.pl accepts a sorted bam file as input and will calculate
-the average read coverage for a user-specified window size (default 25). The windows
-are non-overlapping.  The output format is WIG/BED4, which is the format used by the
-coverage_to_topoview.pl script.
-<pre>
-Usage: perl bam_coverage_windows.pl -b bamfile -n 10_000_000 -w 25 | gzip -c > bamfile.wig.gz
-    -b name of bam file to read REQUIRED
-    -w window size (default 25)
-    -n normalized read number -- if you will be comparing multiple bam files 
-                                 select the read number to normalize against.
-                                 All counts will be adjusted by a factor of:
-                                 actual readnum/normalized read num
-  
-</pre>
-<b>Note: </b>If you are comparing BAM files with different total read counrts, you need 
-to normalize the read counts for each BAM file with the -n option.  The number used in
--n should be near the avarage read count for all BAM files being analyzed in the experiment.
-</p>
-<p>
-coverage_to_topoview.pl converts a list of coverage files (WIG/BED4) to the indexed
-format used by this glyph. 
-<pre>
-Usage: perl coverage_to_topoview.pl [-o output_dir] [-h] [-l] file1.wig.gz file2.wig.gz
-    -o output directory (default 'topoview')
-    -l use log2 for read counts (recommended)
-    -h this help message
-</pre>
-
-<b>Note 1:</b> Each WIG file corresponds to a single BAM file and is a subset (subtrack).
-The base name of the file will be used a the subset.  For example, the file:<br>
-shoots-R1.wig.gz will generate a subset names shoots-R1 in the topoview track.
-
-<b>Note 2:</b> If you do not specify an output directory name, the default name
-'topoview' will be used.  Any existing contents will be overwritten.  For example,
-if you are making two tracks, one using raw counts and the other using log2 transformed counts:
-
-<pre>perl coverage_to_topoview.pl -o raw file1.wig.gz file2.wig.gz</pre>
-<pre>perl coverage_to_topoview.pl -o log2 -l  file1.wig.gz file2.wig.gz</pre>
-</p>
-
-<h2>Configuration</h2>
-<h3>Example config stanza</h3>
-<pre>
-[TOPOVIEWLOG2]
-databas       = scaffolds
-feature       = region
-glyph         = topoview
-autoscale     = local
-height        = 200
-datadir       = /home/ubuntu/data/bam/log2
-subset order  = SRR1810778.25  FF9966
-                SRR1810779.25  FF6633
-                SRR1810780.25  FF0000
-                SRR1810781.25  00CC66
-                SRR1810782.25  009933
-                SRR1810783.25  006600
-key           = TopHat: Normalized Read Coverage (log2)
-show max      = 0
-x_step        = 2
-y_step        = 8
-fill opacity  = 0.8
-</pre>
-<h3>Options</h3>
-Glyph-specific options
-<ul>
-<li><b>feature</b> The full-length feature for the track.  This would usuallu be the feature type you configured for your chromosomes or scaffolds</li>
-<li><b>database</b> The same database as you used for the chromosomes</li> 
-<li><b>autoscale</b> are local and global local scales to the on-screen max value, global scales to the global max</li> 
-<li><b>datadir</b> location of the indexed coverage data (absolute path)</li> 
-<li><b>show max</b> show an extra subset corresponding to the maximum coverage across all subsets</li> 
-<li><b>x_step</b> the horizontal offset (pixels) of each plotted subset (can not be zero)</li>
-<li><b>y_step</b> the vertical offset (pixels) of each plotted subset (can not be zero)</li> 
-<li><b>fill opacity</b> the degree of transparency of each plotted subset.  Translucency aids in the comparison.</li>
-<li><b>subset order</b> the order and color of each subset (subplot) in the graph (see below)</li>
-</ul>
-
-<h4>Subsets</h4>
-Setting 'subset order' is mandatory.  It specified the subsets and the order in which
-they will be displayed.
-
-There are three ways to represent the subsets:<br>
-
-Ordered subsets with no color specified.  Random colors will be assigned.  Hope you are feeling lucky.
-<pre>
-subset order  = SRR1810778.25
-                ...
-</pre>
-
-Ordered subsets with color specified (only use hex colors with the '#' ommitted)
-<pre>
-subset order  = SRR1810778.25  FF9966
-                SRR1810779.25  FF6633
-                ...
-</pre>
-
-Ordered subsets with color and opacity set.  Not that the global 'fill opacity' option affects all subsets.  Specifying individual opacity is optional.
-<pre>                                                                                                                                                                                                                                     
-subset order  = SRR1810778.25  FF9966 0.8
-                SRR1810779.25  FF6633 0.7
-                ...
-</pre>   
-
-<h2>More information</h2>
-
-
-Questions about TopoView glyph should be directed to Sheldon McKay (Sheldon McKay).
-
-=end html
