@@ -12,7 +12,7 @@ use List::Util qw/min max shuffle/;
 use constant DEBUG => 0;
 
 use vars qw/$colors_selected $black $red $white $grey @colors %Indices @colcycle
-            $black $yellow $red $white $gray $darkgrey $lightgrey $gray/;
+            $black $yellow $red $white $gray $darkgrey $lightgrey $charcoal/;
 
 sub draw {
     my $self = shift;
@@ -33,6 +33,7 @@ sub draw {
 	$lightgrey = $gd->colorClosest(225,225,225);
 	$grey      = $gd->colorClosest(200,200,200);
 	$darkgrey  = $gd->colorClosest(125,125,125);
+	$charcoal  = $gd->colorClosest(75,75,75);
 	foreach my $ccc ( @colcycle ) {
 	    if( $ccc =~ /^[#]?(\S\S)(\S\S)(\S\S)$/ ) {
 		($r,$g,$b)= ($1,$2,$3);
@@ -116,7 +117,7 @@ sub draw {
             $edgecolor = $self->{edge_color}->{$subset};
         }
 	my $color = (!$self->{no_max} && $profilen ==0) ? $darkgrey : $bgcolor || $colors[$colcycler];
-	$edgecolor ||= (!$self->{no_max} && $xshift ==0) ? $black : $color;
+	$edgecolor = $charcoal;#||= (!$self->{no_max} && $xshift ==0) ? $black : $color;
 	$xshift -= $xstep;
 	$yshift -= $ystep;
 	my @values = @{$signals->{$subset}};
@@ -207,31 +208,36 @@ sub add_subset_key {
     my $width = $self->width;
     my $total_key_width = 18;
 
-    for ($subsets){ 
-	$total_key_width += $self->string_width($_,$font) + 18;
-    }
+    my ($longest_string) = sort {$b <=> $a}
+    map  {$self->string_width($_,$font)} @subsets;
 
     my $count;
     my $x = $first_x;
     my $y = $first_y;
 
+    my $cutoff = 100;
+    if (@subsets > 8 && !(@subsets %2)) {
+        $cutoff = @subsets/2 + 1;
+    }
+    elsif (@subsets > 8) {
+        $cutoff = int(@subsets/2 + 0.5);
+    }
+
     for my $subset (@subsets) {
-	if (++$count == 9) {
-	    $x = $first_x;
-	    $y = $first_y + 12;
-	}
-	my $color = $$key_colors{$subset};
-	my $edgecolor = $$edge_colors{$subset};
-	my $string_width = $self->string_width($subset,$font);
-	$gd->rectangle($x,$y,$x+10,$y+10,$edgecolor);
-	$gd->filledRectangle($x,$y,$x+10,$y+10,$color);
-	$x += 14;
-	$gd->string($font,$x,$y,$subset,$black);
-	$x += $string_width + 8;
+        if (++$count == $cutoff) {
+            $x = $first_x;
+            $y = $first_y + 12;
+        }
+        my $color = $$key_colors{$subset};
+        my $edgecolor = $$edge_colors{$subset};
+        my $string_width = $self->string_width($subset,$font);
+        $gd->rectangle($x,$y,$x+10,$y+10,$edgecolor);
+        $gd->filledRectangle($x,$y,$x+10,$y+10,$color);
+        $x += 14;
+        $gd->string($font,$x,$y,$subset,$black);
+        $x += $longest_string + 8;
     }
 }
-
-
 
 #--------------------------
 sub getData {
