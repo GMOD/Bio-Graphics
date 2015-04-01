@@ -1,5 +1,6 @@
 Bio::Graphics - Generate GD images of Bio::Seq objects
 
+
 SYNOPSIS
 
 This is a simple GD-based renderer (diagram drawer) for DNA and
