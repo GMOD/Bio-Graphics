@@ -1,4 +1,8 @@
 Revision history for Perl extension Bio::Graphics.
+2.40
+   - Add CGI as a requirement as it is not part of core perl distributions, post-5.21
+   - Add Bio::Coordinate::Pair as a requirement (now released separately from BioPerl core)
+
 2.39
    - Turn off image-based regression tests becuase libgd has started to produce visually-identical
      images that are different at the byte level.
