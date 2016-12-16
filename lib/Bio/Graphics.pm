@@ -2,7 +2,7 @@ package Bio::Graphics;
 
 use strict;
 use Bio::Graphics::Panel;
-our $VERSION = '2.39';
+our $VERSION = '2.40';
 
 1;
 
@@ -129,4 +129,3 @@ it under the same terms as Perl itself.  See DISCLAIMER.txt for
 disclaimers of warranty.
 
 =cut
-
