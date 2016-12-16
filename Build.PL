@@ -12,11 +12,13 @@ my $build = Module::Build->new(
     requires          => {
 	'Bio::Root::Version'  => '1.005009001',
 	'GD'                  => 2.30,
-        'Statistics::Descriptive' => 2.6,   # required for Bio::Graphics::Wiggle::Loader
-                                            #and tests fail without it 
+    'CGI'                 => 0,
+    'Bio::Coordinate::Pair'   => '1.005009001',
+    'Statistics::Descriptive' => 2.6,   # required for Bio::Graphics::Wiggle::Loader
+                                            #and tests fail without it
     },
     recommends        => {
-	'GD::SVG'                 => 0.32, 
+	'GD::SVG'                 => 0.32,
 	'Text::ParseWords'        => 3.26,  # required for Bio::Graphics::Wiggle::Loader
 #	'Bio::SCF'                => 1.01,  # required for Bio::Graphics::Glyph::trace
     },
