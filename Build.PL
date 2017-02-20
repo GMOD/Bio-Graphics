@@ -33,8 +33,27 @@ my $build = Module::Build->new(
     ],
     create_makefile_pl => 'passthrough',
     build_class        => 'Module::Build',
-    );
-
+    meta_merge => {
+        resources => {
+            homepage => 'http://gmod.org/',
+            ## Oddly, the specs for resources mention a bugtracker
+            ## and repository that are hash references.  However,
+            ## those seem to be ignored by Module::Build at the
+            ## moment.  The documented values are here commented for
+            ## this is sorted out.
+#            bugtracker => {
+#                web => 'https://github.com/GMOD/Bio-Graphics/issues',
+#            },
+#            repository => {
+#                url => 'https://github.com/GMOD/Bio-Graphics.git',
+#                web => 'https://github.com/GMOD/Bio-Graphics',
+#                type => 'git',
+#            },
+            bugtracker => 'https://github.com/GMOD/Bio-Graphics/issues',
+            repository => 'https://github.com/GMOD/Bio-Graphics.git',
+        },
+    },
+);
 
 $build->create_build_script;
 exit 0;
