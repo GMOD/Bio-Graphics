@@ -92,7 +92,7 @@ Note that this modules depends on Bio::Perl, GD and the
 Text::Parsewords module.
 
 A good tutorial on this module can be found at
-http://www.bioperl.org/wiki/HOWTO:Graphics.
+http://bioperl.org/howtos/BioGraphics_HOWTO.html
 
 BUILDING AND INSTALLING
 
