@@ -259,8 +259,8 @@ if (param('cat')) {
 print header,start_html('Sequence Feature Renderer');
 print h1('Sequence Feature Renderer');
 
-print p('This is a front end to the Bio::Graphics package, a part of the',
-	a({-href=>'http://www.bioperl.org'},'BioPerl library.'),
+print p('This is a front end to the Bio::Graphics perl module distribution, a part of the',
+	a({-href=>'http://gmod.org/'},'GMOD project.'),
 	  'Cut and paste your sequence annotation data into the text field below, or upload it using the',
 	'upload button.',
 	'The format of the annotation data is explained',a({-href=>'#format'},'below.'));
@@ -319,7 +319,7 @@ print start_multipart_form(),
 
 print_format();
 
-print hr(),a({-href=>'http://www.bioperl.org'},'www.bioperl.org'),end_html();
+print hr(),a({-href=>'http://gmod.org/'},'http://gmod.org/'),end_html();
 
 exit 0;
 
