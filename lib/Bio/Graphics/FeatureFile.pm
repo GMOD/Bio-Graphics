@@ -314,7 +314,7 @@ object.  Arguments are -name=E<gt>value pairs:
 
    -safe_world     If the -safe option is not set, and -safe_world
                    is set to a true value, then Bio::Graphics::FeatureFile
-                   will evalute "sub {}" options in a L<Safe::World>
+                   will evaluate "sub {}" options in a L<Safe::World>
                    environment with minimum permissions. Subroutines
                    will be able to access and interrogate 
                    Bio::DB::SeqFeature objects and perform basic Perl

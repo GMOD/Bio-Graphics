@@ -298,7 +298,7 @@ sub draw_telomere {
   $self->wipe(@_);
 
   # For single, unaggregated bands, make the terminal band
-  # a bit wider to accomodate the arc
+  # a bit wider to accommodate the arc
   if ($self->{single}) {
     $x1 -= 5 if $state == 1;
     $x2 += 5 if $state == 0;

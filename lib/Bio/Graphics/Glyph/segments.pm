@@ -1136,7 +1136,7 @@ target (the hit).  For this to work, the feature must implement the
 hit() method, and both the source and the target DNA must be
 available.  If you pass the glyph a series of
 Bio::SeqFeature::SimilarityPair objects, then these criteria will be
-satisified.
+satisfied.
 
 Without additional help, this glyph cannot display gapped alignments
 correctly.  To display gapped alignments, you can use the

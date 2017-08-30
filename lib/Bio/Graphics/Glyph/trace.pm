@@ -733,7 +733,7 @@ filesystem or located at a remote URL (provided that you have the LWP module
 installed).
 
 Until an alignment feature is added to this glyph, the feature start and end
-must correspond exactly with the begining and end of the called sequence.
+must correspond exactly with the beginning and end of the called sequence.
 Meaning that even if the starting sequence is poor and doesn't match the
 sequence, it must still be included.
 
@@ -883,7 +883,7 @@ CVS checkout of Bio::Perl to work properly with the "arrow", "span" and
 
 =head1 BUGS AND LIMITATIONS
 
-See the L<DESCRIPTION> for an explaination of how to align the trace with the
+See the L<DESCRIPTION> for an explanation of how to align the trace with the
 reference.
 
 The trace looks a little off when the feature is on the negative strand of the
