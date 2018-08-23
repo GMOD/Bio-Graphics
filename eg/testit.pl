@@ -1,7 +1,8 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 use lib '.','..','./blib/lib','../blib/lib';
 use strict;
+use warnings;
 
 use Bio::Graphics::Panel;
 use Bio::Graphics::Feature;

@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 =head1 NAME
 
@@ -236,6 +236,7 @@ Lincoln Stein, lstein@cshl.org
 =cut
 
 use strict;
+use warnings;
 use Bio::Graphics::Panel;
 use Bio::Graphics::Feature;
 use Bio::Graphics::FeatureFile;
