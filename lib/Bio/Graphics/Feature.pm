@@ -260,7 +260,7 @@ sub factory {
            called the accession_number. For sequences from established
            databases, the implementors should try to use the correct
            accession number. Notice that primary_id() provides the
-           unique id for the implemetation, allowing multiple objects
+           unique id for the implementation, allowing multiple objects
            to have the same accession number in a particular implementation.
 
            For sequences with no accession number, this method should return

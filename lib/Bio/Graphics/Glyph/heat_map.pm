@@ -522,7 +522,7 @@ effective visual heat map is to progress from
 white->red.
 
 For the start_color and end_color options, 140 named webcolors
-and their corresponsing RGB hex codes (listed below) are supported.
+and their corresponding RGB hex codes (listed below) are supported.
 
  steelblue           	#4682B4
  royalblue           	#041690

@@ -1710,7 +1710,7 @@ a set of tag/value pairs as follows:
   -auto_pad    If "left" or "right" keys are in use  true
                then setting auto_pad to a true value
                will allow the panel to adjust its
-               width in order to accomodate the
+               width in order to accommodate the
                length of the longest key.
 
   -empty_tracks What to do when a track is empty.    suppress

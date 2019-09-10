@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 
 =head1 NAME
 
@@ -49,6 +49,7 @@ Jason Stajich, jason[-at-]open-bio[-dot-]org.
 =cut
 
 use strict;
+use warnings;
 
 use Bio::Graphics::Panel;
 use Bio::Graphics::Feature;

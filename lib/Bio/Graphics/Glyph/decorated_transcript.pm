@@ -17,7 +17,7 @@ use base
 sub my_descripton {
   return <<END;
 This glyph extends the functionality of the Bio::Graphics::Glyph::processed_transcript glyph 
-and allows to draw protein decorations (e.g., signal peptides, transmembrane domains, protein domains)
+and allows one to draw protein decorations (e.g., signal peptides, transmembrane domains, protein domains)
 on top of gene models. Currently, the glyph can draw decorations in form of colored or outlined boxes 
 inside or around CDS segments. Protein decorations are specified at the 'mRNA' transcript level 
 in protein coordinates. Protein coordinates are automatically mapped to nucleotide coordinates by the glyph. 
@@ -201,7 +201,7 @@ sub decorations {
 	return $feature->get_tag_values(DECORATION_TAG_NAME);
 }
 
-# allows to retrieve additional decorations via callback
+# allows one to retrieve additional decorations via callback
 sub additional_decorations {
 	my $self    = shift;
 	my $feature = $self->feature;
@@ -948,7 +948,7 @@ Bio::Graphics::Glyph::decorated_transcript - draws processed transcript with pro
 =head1 DESCRIPTION
 
 This glyph extends the functionality of the L<Bio::Graphics::Glyph::processed_transcript> glyph 
-and allows to draw protein decorations (e.g., signal peptides, transmembrane domains, protein domains)
+and allows one to draw protein decorations (e.g., signal peptides, transmembrane domains, protein domains)
 on top of gene models. Currently, the glyph can draw decorations in form of colored or outlined boxes 
 inside or around CDS segments. Protein decorations are specified at the 'mRNA' transcript level 
 in protein coordinates. Protein coordinates are automatically mapped to nucleotide coordinates by the glyph. 

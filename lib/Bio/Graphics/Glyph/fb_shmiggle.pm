@@ -611,7 +611,7 @@ order of the initial subsets names.
 <br>
 <br>
 
-Setting 'subsetsnames' allows to rename subsets (very important as in most cases
+Setting 'subsetsnames' allows one to rename subsets (very important as in most cases
 workflow names of subsets are unsutable for intelligent data display to end users).
 If setting omitted, initial subsets names will be used for display.
 
